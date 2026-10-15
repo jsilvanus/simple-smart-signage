@@ -20,7 +20,7 @@ This is the top-level implementation roadmap. Detailed specifications belong in 
 - [ ] Define screen/group assignment and device permissions.
 - [ ] Define SSE events, event IDs, reconnect, and reconciliation.
 - [ ] Define heartbeat payload and online/offline thresholds.
-- [ ] Define the content model: playlists, playlist layouts with concurrent scene regions (full-screen, PiP, side-by-side, up to four regions, and free split), scene completion/closure policies per region, playlist items, scenes and revisions, eligibility, 24-hour screen/group schedules, conditional playlist sequences, run policies, shared conditions, and special-broadcast overlay/replacement modes.
+- [ ] Define the content model: playlists with internal scene layouts and scene-completion policies; separate concurrent-playlist composition modes (PiP, split, 4-split, and free split); playlist items, scenes and revisions, eligibility, 24-hour screen/group schedules, conditional playlist sequences, run policies, shared conditions, and special-broadcast overlay/replacement modes.
 - [ ] Define reusable, versioned templates as scene starting points with placeholder values and structured content schemas.
 - [ ] Define display-target schema: hosted URL, packaged web bundle, and media.
 - [ ] Define scene authoring workspace, UUID proxy routing, source editing, preview, build, publishing, and artifact contracts.

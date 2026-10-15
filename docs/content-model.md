@@ -59,6 +59,14 @@ If an entry is ineligible, the player skips it and considers the next eligible e
 
 A screen or screen group has a 24-hour assignment schedule that selects a programme. For each local calendar date, resolve exactly one schedule: use a configured calendar-date schedule first; if none exists for that target and date, use the applicable weekday schedule. These schedules are exclusive and must not be merged. A calendar-date schedule can represent a holiday or special service. “Copy schedule to date” creates an independent snapshot, so later edits to the source weekday schedule or copied date schedule do not propagate to the other. Uncovered time in the selected schedule is off time; gaps in a calendar-date schedule do not fall through to the weekday schedule. Screen groups are reusable publishing targets, and group membership remains distinct from assignment. Precedence between group assignments and per-screen overrides, including overlapping assignments, must also be defined explicitly.
 
+### Playlist layouts and concurrent scenes
+
+A playlist may define a layout that displays one or more scene occurrences concurrently. The layout is part of the playlist, not a separate user-facing playback-lane content type. Supported presets include full-screen, picture-in-picture (PiP), side-by-side, up to four regions, and free split with configurable region positions and sizes. These presets use a shared region-composition model; regions need not be equal in size.
+
+Regions ordinarily advance independently. A scene completing or reporting closure in one region must follow an explicit layout/region policy rather than implicitly ending the entire playlist. Candidate policies include holding the last frame, advancing that region to the next eligible scene, clearing it or showing a placeholder, collapsing/reflowing the layout where supported, or ending the composition when explicitly configured. The policy must be compatible with the chosen layout. Completion is distinct from a runtime error; errors use failure recovery and diagnostics rather than being treated as successful completion by default.
+
+The compositor defines region bounds, stacking order, fit/scaling, clipping, transitions, and audio focus. PiP requires explicit z-order and placement. Device capabilities must be checked, with a configured fallback and reported result if a client cannot support the requested layout. The display itself is not assumed to provide native PiP. See [D-032 — Playlist layouts and concurrent scene playback](decisions/D-032-playlist-layouts-and-concurrent-scenes.md).
+
 ### Special broadcasts and temporary display overrides
 
 A **special broadcast** is a temporary display override that can operate in one of two modes:

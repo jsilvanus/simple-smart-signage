@@ -61,6 +61,22 @@ The creation view should combine live preview, source editing, and an MCP/AI act
 
 The UI may offer a full-screen preview mode as well as a source-focused split view. The preview and editors should stay synchronized as the source changes. Tool actions and code changes should be inspectable and reversible where practical.
 
+### Viewport controls and target-screen review
+
+Scene creation must not require the creator to choose a physical screen or orientation up front. Keep a compact viewport selector available in both authoring views, using small buttons or equivalent controls for common shapes such as landscape, portrait, and square, plus a custom-dimensions option. These controls change the simulated preview viewport only; they do not change the scene's source or assign it to a device.
+
+The preview must render the running scene at the selected CSS viewport dimensions and aspect ratio, rather than merely scaling a screenshot. The editor may scale the viewport visually to fit the available workspace, but layout and responsive behavior must be evaluated using the selected logical dimensions. Make the selected profile and dimensions visible.
+
+Before publishing, provide a target-screen review step. The creator can select one or more preview profiles, inspect each result, and review detectable issues such as overflow, clipped content, missing assets, and runtime errors. Automated checks are aids, not a guarantee of visual quality; allow the creator to review and approve the result. A scene's intended/verified compatibility is separate from assigning it to actual devices. Do not imply that a scene is suitable for every orientation just because it can be rendered there.
+
+### Visual text editing
+
+In the main authoring view, provide a WYSIWYG-style way to create and edit ordinary text without requiring the creator to edit HTML. The creator should be able to select an editable text region in the preview (or open it in a text-editing panel), type or paste content, and apply a small, predictable set of formatting such as headings, paragraphs, emphasis, lists, and links. The preview updates immediately. The manual source view remains available for full control.
+
+This is a structured editing affordance, not an unrestricted contenteditable layer over arbitrary scene output. AI-authored scenes should expose identifiable editable text blocks/fields where appropriate; complex decorative or data-driven elements may remain source/AI-edited. The text editor and source files must stay synchronized, and changes should be inspectable and reversible where practical. Use the SiSSi design system for typography and formatting rather than importing arbitrary pasted styling.
+
+Pasted content must be sanitised. Strip unsafe markup, scripts, event handlers, embedded objects, and unsupported styling; retain supported semantic text formatting where possible. The editor must not execute pasted HTML or treat it as trusted code. A creator can always switch to manual HTML/CSS/JavaScript editing for advanced cases.
+
 ## Design system and scene contract
 
 AI-generated frontend code should follow a versioned SiSSi design system: reusable layout primitives or equivalent CSS conventions, typography, spacing, colours, media handling, responsive rules, and accessible defaults. The system should provide a documented scene contract for readiness, start, stop, and optional completion, while leaving internal timelines, page navigation, and time guards under scene control.

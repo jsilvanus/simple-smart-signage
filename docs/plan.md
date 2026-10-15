@@ -65,6 +65,9 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Implement per-scene Vite authoring workspace on the SiSSi server using `npm run dev`.
 - [ ] Expose each workspace through an authenticated UUID-addressed reverse proxy.
 - [ ] Build the authoring view with live preview, HTML/CSS/JavaScript editors, and MCP/AI action log.
+- [ ] Add compact viewport controls (landscape, portrait, square, custom) shared by both authoring views; render the live scene at the selected logical dimensions.
+- [ ] Add a pre-publish target-screen review for one or more profiles, with detectable layout/runtime/resource checks and explicit creator review.
+- [ ] Add WYSIWYG editing for identified editable text blocks, including paste and safe supported formatting, synchronised with the scene source.
 - [ ] Integrate AI-assisted scene creation and editing using the SiSSi design system and three-file source contract.
 - [ ] Support multiple logical pages/views within a scene.
 - [ ] Import and validate artifacts/data produced by MCP-connected tools.

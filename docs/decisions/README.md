@@ -113,6 +113,17 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Rationale:** Allows convenient library updates without unexpected changes to other scenes or displays, while retaining deterministic published playback.
 - **Reference:** [Asset library and provenance](../asset-library.md) · [Content creation and authoring](../creation-system.md)
 
+### D-020 — Viewport-aware authoring and visual text editing
+
+- **Status:** Accepted architectural direction
+- **Date:** 2026-10-15
+- **Decision:** Scene creation does not require an initial physical-screen or orientation choice. Both authoring views provide compact viewport controls for common landscape, portrait, and square profiles, plus custom dimensions. The preview renders the live scene at the selected logical viewport dimensions and aspect ratio.
+- **Final review:** Before publishing, creators can review one or more target-screen profiles and inspect automated findings such as overflow, clipping, missing assets, and runtime errors. Automated checks do not replace human visual approval. Target compatibility is distinct from device assignment.
+- **Visual text editing:** The main authoring view provides a WYSIWYG-style editor for identifiable editable text blocks, allowing typing/pasting and a constrained set of semantic formatting. The editor and the same scene source stay synchronised; the manual HTML/CSS/JavaScript view remains available for advanced editing.
+- **Safety and consistency:** This is not unrestricted editing of arbitrary rendered DOM. Pasted markup is sanitised, unsafe code and embedded objects are removed, and supported formatting follows the SiSSi design system. Non-editable, decorative, or data-driven elements may require AI or manual source editing.
+- **Rationale:** Lets non-technical creators work with text naturally while retaining responsive previews, source transparency, and predictable output across screen shapes.
+- **Reference:** [Content creation and authoring](../creation-system.md) · [Roadmap](../plan.md)
+
 ### D-017 — Gesture interaction and strict no-audio boundary
 
 - **Status:** Accepted direction for future research; not an MVP feature

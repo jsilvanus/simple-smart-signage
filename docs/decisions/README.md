@@ -38,6 +38,16 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Status:** Accepted
 - **Decision:** Approved clients retain cached content and continue playback during temporary network or server outages. New content is activated only after required assets are downloaded and verified.
 
+### D-012 — Pluggable full-screen web display runtime
+
+- **Status:** Accepted
+- **Date:** 2026-10-15
+- **Decision:** Use a small managed client shell with a pluggable display runtime. Full-screen web applications are the first-class display type, supporting both administrator-assigned hosted HTTPS URLs and versioned, locally cached web bundles. Native layouts and media remain complementary display types.
+- **Rationale:** Web apps (including Vite builds) provide broad presentation possibilities and can be developed/deployed independently of the client shell.
+- **Consequences:** The client must handle cache integrity, safe version activation/rollback, offline limitations, and a strict boundary between displayed app code and device-management credentials.
+- **Camera note:** Browser-based webcam access and local person detection may be possible, but are not guaranteed. Camera access is an explicit capability and must be tested on each target platform and hardware combination. Arbitrary web apps receive no camera permission by default.
+- **Reference:** [Display runtime](../display-runtime.md)
+
 ## Proposed / to decide
 
 ### D-007 — Server stack and deployment
@@ -72,7 +82,7 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 
 ## Adding decisions
 
-For a substantial architecture choice, add a file such as `D-012-short-title.md` with:
+For a substantial architecture choice, add a file such as `D-013-short-title.md` with:
 
 - Status and date
 - Context

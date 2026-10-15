@@ -45,16 +45,18 @@ A **programme** can be a conditional, explicitly ordered sequence of reusable pl
 
 Published scene and layout revisions are immutable and versioned so playback is reproducible. Editing a draft must not change what is already published to screens. A playlist references a specific published revision or an explicitly defined update policy.
 
-### Special broadcasts and temporary display overrides
+### Concurrent playlists and temporary overrides
 
-A **special broadcast** is a temporary display override that can operate in one of two modes:
+A display may compose more than one active playlist at the same time. Each playlist retains its own ordered sequence and playback state; the composition determines how their content is presented together. This is distinct from a layout that groups multiple scenes within a single content composition.
 
-- **WITH current content:** compose a secondary playlist in a separate region (PiP, left/right split, top/bottom split, etc.) while the normal/base programme continues independently in the remaining region.
-- **REPLACE current content:** temporarily take over the entire display, replacing the current composition—for example, show a Eucharistic peace image during the Eucharist. The underlying base programme retains its playback position and state, and resumes when the override ends.
+An **override** is a temporary, higher-priority instruction layered over the normal desired playback state. It references an override playlist or supported content and defines a target display/group, priority, activation/deactivation, expiry, manual stop, fallback, and audit behavior. An override has an explicit **override style**:
 
-A special broadcast references a playlist or supported content payload; it does not mutate the base playlist. It may be activated manually, by time, or by conditions. It defines target display/group, mode, layout if composited, priority, activation/expiry/stop rules, and fallback. Prepare and validate its content before activation. When it ends, restore the prior composition and base playback state without restarting the base programme. Initially, one active special broadcast per display is sufficient; define deterministic priority/conflict behavior and leave room for later stacking or multiple regions.
+- **WITH:** Add the override playlist/content in another region (PiP, left/right split, top/bottom split, or another supported layout) while base playback continues independently and retains its state.
+- **REPLACE:** Temporarily take over the full display. The base playback state is preserved and resumes when the override ends.
 
-PiP and split-screen must be implemented by the SiSSi client compositor; do not assume the television itself provides a usable PiP function. Define per-device capability support, content/media combinations, region scaling, and audio focus. By default, avoid two simultaneous audible sources. If a client cannot support the selected layout, apply a configured fallback and report it rather than silently claiming success. See [D-029](decisions/D-029-special-broadcast-composition.md).
+“Special broadcast” is a use case or user-facing workflow for creating an override, not a separate playback/content model. Overrides can be started manually or activated by time or conditions. Prepare and validate override content before activation. When a WITH override ends, remove its additional region; when a REPLACE override ends, restore the previous composition. Neither mode restarts or mutates the base playlist.
+
+PiP and split-screen are SiSSi client-compositor features; do not assume the television itself provides usable PiP. Define per-device capability support, content/media combinations, region scaling, and audio focus. By default, avoid two simultaneous audible sources. If a client cannot support the selected layout, apply a configured fallback and report it rather than silently claiming success. Initially, one active override per display is sufficient; leave room for more regions and complex compositions later. See [D-029](decisions/D-029-special-broadcast-composition.md).
 
 ### Shared condition evaluation
 

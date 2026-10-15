@@ -43,6 +43,10 @@ A model that estimates broad scene context is not proof of family relationships 
 - Privacy safeguards must be enforced by the SiSSi client/platform boundary, not merely by instructions to an app developer.
 - This decision does not itself establish a lawful basis for camera use. Each deployment still needs a purpose, transparency, and legal assessment appropriate to its setting.
 
+## Future research note (not an implementation permission)
+
+On-device scene inference is a possible future research direction and is outside the MVP. A separate inference service may also be evaluated later, but only as a fallback to local inference and with a strict no-storage requirement for submitted frames. Because transmitting frames is prohibited by the binding decision above, any such design requires an explicit revision of this decision and documented privacy review before implementation. This note does not grant an exception or authorise frame transmission.
+
 ## Change control
 
 This is a binding product constraint. It cannot be relaxed through ordinary configuration, content assignment, or app permissions. Any proposal to change it requires an explicit revision of this accepted decision and a documented review; until then, the prohibition remains in force.

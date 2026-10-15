@@ -50,6 +50,12 @@ Before claiming webcam support on a platform, test the actual hardware, browser 
 
 See [Privacy and camera boundaries](privacy-and-camera.md) for the binding privacy decision.
 
+## Future camera inference (not MVP)
+
+Camera-based scene classification for context-aware signage is a possible later research item, not an MVP capability. Prefer inference entirely on the display device. First establish feasibility on actual Android TV and Samsung Tizen hardware; do not assume camera or model-runtime support from platform name alone.
+
+A separate inference service may be studied only as a later fallback. It must discard each frame after processing and must not store frames. Sending frames to another service is currently prohibited by the binding privacy decision in [Privacy and camera boundaries](privacy-and-camera.md); it must not be implemented unless that decision is explicitly reviewed and amended first. This roadmap note grants no camera permission and does not change the current prohibition.
+
 ## Platform notes
 
 - **Android TV:** a native Android shell with a full-screen WebView is a likely implementation. Camera support depends on the device, USB host/driver support, WebView capabilities, and native permission handling.

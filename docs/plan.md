@@ -76,6 +76,13 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Review security and EUPL compliance.
 - [ ] Publish a first usable release and operator documentation.
 
+## Future research — not MVP
+
+- [ ] Evaluate optional camera-based scene classification for context-aware signage, with a strong preference for on-device inference.
+- [ ] First verify camera access and local inference feasibility on actual Android TV and Samsung Tizen hardware.
+- [ ] Consider a separate inference service only as a later, explicitly reviewed fallback. It must discard frames after inference and must not store them; any transmission of frames would require revising the current binding camera privacy decision before implementation.
+- [ ] Keep this capability out of the MVP. Until separately approved, use scheduled signage only; no camera-based inference is authorised by this roadmap item.
+
 ## Delivery rule
 
 A phase is not complete merely because the happy path works. Include failure recovery, permission checks, and tests appropriate to the phase before marking its tasks complete.

@@ -288,6 +288,13 @@ Keep this index updated when a decision is accepted or superseded.
 - **Reference:** [Assignment queues](D-031-playlist-composition.md) · [Content and playback model](../content-model.md)
 
 
+### D-034 — Pluggable execution provider for scene authoring and builds
+
+- **Status:** Accepted architectural direction; provider contract and isolation profile remain to be specified
+- **Date:** 2026-10-15
+- **Decision:** Define a runtime-independent server-side execution-provider boundary for scene authoring/preview and disposable validation/build jobs. Podman is the first target, preferably rootless where practical. Keep preview and build lifecycles distinct, constrain untrusted workloads, and publish only validated immutable artifacts through a separate permissioned workflow. The need for an in-container supervisor/API remains undecided.
+- **Reference:** [Pluggable execution provider](D-034-pluggable-execution-provider.md)
+
 ### D-033 — Declared scene actions and host-mediated runtime API
 
 - **Status:** Accepted architectural direction; API names and schemas remain to be specified

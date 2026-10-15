@@ -72,7 +72,7 @@ PiP and split-screen must be implemented by the SiSSi client compositor; do not 
 
 ### Shared condition evaluation
 
-Conditions can be referenced by playlist-level eligibility, individual scene-entry eligibility, programme playlist-entry eligibility, screen/group programme assignments, and special-broadcast activation. Examples include selecting a live-service playlist only while a YouTube Live broadcast is active, or making a scene eligible when a configured API returns a JSON field with a particular value. Time windows and condition rules are combined according to the policy's explicit rule composition; this never edits a playlist or immutable scene revision.
+Conditions can be referenced by playlist-level eligibility, individual scene-entry eligibility, programme playlist-entry eligibility, screen/group programme assignments, and special-broadcast activation. Finite run counts are part of a programme playlist entry's eligibility state. Examples include selecting a live-service playlist only while a YouTube Live broadcast is active, or making a scene eligible when a configured API returns a JSON field with a particular value. Time windows and condition rules are combined according to the policy's explicit rule composition; this never edits a playlist or immutable scene revision.
 
 Use the planned `varfetch` package (`varfetch@^0.3.0` as of 2026-10-15) as the server-side HTTP connector primitive for configured requests, safe variable interpolation, SSRF protections, and JSON-path response mapping. The repository does not yet contain an application package manifest, so the actual npm dependency is to be added when the server application is scaffolded. See [D-028](decisions/D-028-conditional-playlist-activation.md).
 
@@ -88,6 +88,8 @@ Conditions must have explicit predicates, evaluation cadence, timeout and respon
 | Playlist eligibility policy | Playlist | Whether the playlist as a whole may be selected/played now |
 | Entry eligibility policy | Playlist entry | Whether this scene occurrence may be selected now |
 | Programme playlist order and eligibility | Programme sequence entry | Whether/when a referenced playlist runs and its order in the sequence |
+| Assignment schedule | Screen / screen group | Which programme is assigned at each time; uncovered time is off time |
+| Programme playlist order and eligibility | Programme sequence entry | Whether/when a referenced playlist runs, its order, and its run limit |
 | Assignment queue | Screen / screen group | Which eligible programme is selected for the target |
 | Playback slot | Playlist item | How long this playlist occurrence is shown |
 | Playlist activation | Schedule/assignment | When a playlist is active on a display |

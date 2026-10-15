@@ -182,6 +182,13 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Decision:** Provide a scene-level resource-index URI listing every scene-linked resource the caller may access. Keep publishing and deployment separate from authoring, with explicit MCP tools for publishing reviewed immutable scene revisions, playlist search/read/edit, screen/group assignment, desired-state push, rollout status, and safe rollback. Report server acceptance separately from per-client synchronization.
 - **Reference:** [Decision details](D-026-mcp-publishing-and-resource-index.md)
 
+### D-028 — Screen groups as publishing targets
+
+- **Status:** Accepted architectural direction; exact schemas and conflict rules remain to be specified
+- **Date:** 2026-10-15
+- **Decision:** Treat screen groups as first-class tenant-scoped publishing targets. Assign playlists to groups or individual screens, reconcile desired state, and report synchronization per screen. Group membership changes are audited; overlapping assignments require explicit precedence/conflict handling.
+- **Reference:** [Decision details](D-028-screen-groups-as-publishing-targets.md)
+
 ### D-027 — Composable palette overlays and approved accessible colour sets
 
 - **Status:** Accepted architectural direction; palette schema and church-specific values remain to be specified

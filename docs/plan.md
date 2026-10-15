@@ -29,7 +29,7 @@ This is the top-level implementation roadmap. Detailed specifications belong in 
 - [ ] Define authentication boundaries for authoring, preview, device APIs, assets, and embedded scenes.
 - [ ] Define app origin policy and explicit capabilities, including optional camera access.
 
-Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime.md) · [Content and playback model](content-model.md) · [Content creation system](creation-system.md) · [Decision register](decisions/README.md)
+Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime.md) · [Content and playback model](content-model.md) · [Content creation system](creation-system.md) · [Asset library and provenance](asset-library.md) · [Decision register](decisions/README.md)
 
 ## Phase 2 — Server foundation
 
@@ -57,8 +57,10 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 
 ## Phase 4 — Content creation and management
 
-- [ ] Manage reusable uploaded assets, initially images, PDFs, and MP4 video.
-- [ ] Define supported upload types, size limits, storage, validation, and asset versioning.
+- [ ] Implement reusable asset library for images, PDFs, and MP4 video; keep the model extensible to later MP3/audio support.
+- [ ] Define asset provenance: uploader, credited creator where known, originating project, initial scene, upload time, source/rights notes, tags, and current scene usage.
+- [ ] Define upload limits, server-side validation, storage, checksum/versioning, derived previews, and reference-safe deletion.
+- [ ] Pin asset versions/hashes in published scene revisions so playback remains reproducible.
 - [ ] Implement per-scene Vite authoring workspace on the SiSSi server using `npm run dev`.
 - [ ] Expose each workspace through an authenticated UUID-addressed reverse proxy.
 - [ ] Build the authoring view with live preview, HTML/CSS/JavaScript editors, and MCP/AI action log.

@@ -12,7 +12,7 @@ The authoring experience is not limited to a slide editor. A scene is a frontend
 
 ## Inputs
 
-- **Uploaded assets:** images, PDFs, MP4 video, and other explicitly supported file types. Keep source assets as managed assets so they can be reused across scenes.
+- **Uploaded assets:** initially images, PDFs, and MP4 video. Keep source assets in a reusable asset library, separate from scene workspaces. The model should allow later MP3/audio support without requiring it in the first upload implementation. See [Asset library and provenance](asset-library.md).
 - **AI-authored frontend:** the creator prompts an AI to create or modify a scene's frontend. Generated code must use the SiSSi design system and the documented scene integration contract.
 - **Manual code editing:** creators can open and edit the HTML, CSS, and JavaScript directly.
 - **MCP-created artifacts or data:** tools connected through MCP may create or retrieve content that can be added to a scene. Treat tool output as an input artifact; validate its type, size, provenance, and permissions before use.
@@ -97,7 +97,7 @@ Publishing a scene must not expose workspace files, development-server controls,
 
 ## Still to specify
 
-The implementation contract must define workspace creation and cleanup, per-workspace process supervision, proxy routing, authentication, AI editing boundaries, MCP artifact import, supported upload formats and size limits, dependency/network policy, source-editor behavior, preview lifecycle, build/publishing failures, asset storage, revision rollback, private-scene access, public embedding/CSP policy, and whether advanced multi-file scenes are supported in the first release.
+The implementation contract must define workspace creation and cleanup, per-workspace process supervision, proxy routing, authentication, AI editing boundaries, MCP artifact import, supported upload formats and size limits, dependency/network policy, source-editor behavior, preview lifecycle, build/publishing failures, asset storage and provenance, version replacement and reference-safe deletion, derived previews, revision rollback, private-scene access, public embedding/CSP policy, and whether advanced multi-file scenes are supported in the first release.
 
 ## Authentication boundaries
 

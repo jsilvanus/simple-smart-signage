@@ -91,6 +91,18 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Rationale:** Authentication must match the client and request type, while untrusted presentation code remains separate from management privileges.
 - **Reference:** [Content creation and authoring](../creation-system.md) · [Device handshake](../handshake.md)
 
+### D-018 — Reusable asset library and origin provenance
+
+- **Status:** Accepted architectural direction
+- **Date:** 2026-10-15
+- **Decision:** Treat uploaded media as reusable, managed assets separate from scenes and playlists. The initial planned upload formats are MP4 video, PDF, and images. Keep the model extensible to MP3/audio, which may be added later rather than required for the first upload implementation.
+- **Provenance:** Preserve stable asset identity, uploader and upload time, original creator attribution where known, the project where the asset was first registered, and the initial scene if uploaded from a scene. The uploader and credited creator are distinct concepts. Library uploads may have no initial scene. Record source/rights/attribution notes where known.
+- **Reuse:** Scenes reference assets by stable ID and version/content hash. Track current scene usage separately from immutable origin metadata. Reuse across scenes/projects must not rewrite the original project or initial-scene provenance, and deleting a scene reference must not delete the library asset.
+- **Publishing:** Published scene revisions must pin the exact asset versions/hashes they require so later changes do not silently alter published or cached playback.
+- **Validation and access:** Validate uploaded content server-side; do not trust filename extensions or browser MIME types. Asset discovery and retrieval must obey project/scene permissions. Protect the original source and distinguish it from generated thumbnails, renders, and other derived previews.
+- **Rationale:** Supports asset reuse, traceable attribution, safe publishing, and later growth in supported media types without conflating media storage with scene authoring.
+- **Reference:** [Asset library and provenance](../asset-library.md) · [Content creation and authoring](../creation-system.md)
+
 ### D-017 — Gesture interaction and strict no-audio boundary
 
 - **Status:** Accepted direction for future research; not an MVP feature

@@ -4,6 +4,14 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 
 ## Accepted
 
+### D-043 — First-class caption services and persistent caption layers
+
+- **Status:** Accepted architectural direction
+- **Date:** 2026-10-16
+- **Decision:** Model caption services as reusable first-class objects, initially integrating LCYT through a provider-neutral caption-source contract. Keep source configuration separate from caption presentation and display target. Captions form a persistent auxiliary layer that survives main-playlist scene transitions, supporting overlays or reserved regions and per-display language/styling. Source outages must not interrupt base playback; credentials stay out of scenes and display-visible configuration. Exact schemas and LCYT connection semantics remain open.
+- **Rationale:** Captions are essential on often-muted signage displays and have a lifecycle independent of ordinary playlist entries; separating source, presentation and target enables reuse and different languages/layouts across screens.
+- **Reference:** [D-043](D-043-caption-services-and-persistent-caption-layer.md) · [LCYT](https://github.com/jsilvanus/live-captions-yt)
+
 ### D-033 — Declared scene actions and host-mediated runtime API
 
 - **Status:** Accepted architectural direction

@@ -295,6 +295,13 @@ Keep this index updated when a decision is accepted or superseded.
 - **Decision:** Define a runtime-independent server-side execution-provider boundary for scene authoring/preview and disposable validation/build jobs. Podman is the first target, preferably rootless where practical. Keep preview and build lifecycles distinct, constrain untrusted workloads, and publish only validated immutable artifacts through a separate permissioned workflow. The need for an in-container supervisor/API remains undecided.
 - **Reference:** [Pluggable execution provider](D-034-pluggable-execution-provider.md)
 
+### D-035 — Preview lifecycle and staged scene MVP
+
+- **Status:** Accepted architectural direction; exact timeout configuration and scene schemas remain to be specified
+- **Date:** 2026-10-15
+- **Decision:** Start with direct image/PDF/video scenes as the MVP, then deliver complex code-driven scenes immediately afterward. Initially give each active preview workspace an isolated environment. Explicit editor close starts a 2-minute shutdown countdown; preview inactivity starts a 20-minute countdown. The server-side controller owns timers, preserves workspaces when stopping environments, and starts previews on demand.
+- **Reference:** [Preview lifecycle and staged scene MVP](D-035-preview-lifecycle-and-staged-scene-mvp.md)
+
 ### D-033 — Declared scene actions and host-mediated runtime API
 
 - **Status:** Accepted architectural direction; API names and schemas remain to be specified

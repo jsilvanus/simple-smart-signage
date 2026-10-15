@@ -252,3 +252,12 @@ For a substantial architecture choice, add a file such as `D-014-short-title.md`
 - Alternatives considered
 
 Keep this index updated when a decision is accepted or superseded.
+
+### D-028 — Conditional playlist activation and external conditions
+
+- **Status:** Accepted architectural direction
+- **Date:** 2026-10-15
+- **Decision:** Playlist assignments or playlist-selection rules may depend on server-evaluated external conditions, such as YouTube Live state or a configured API's JSON response. Conditions are separate from calendar schedules and scene time guards and do not mutate playlists or immutable scene revisions.
+- **Dependency:** Plan to use `varfetch@^0.3.0` for configured server-side HTTP requests and JSON-path mapping. Add it to the server application's package manifest when the app is scaffolded; this planning repository currently has no `package.json`.
+- **Safety:** Keep credentials server-side, apply SSRF protections, block private-network targets unless trusted server configuration explicitly allows them, validate response-derived URLs, and define explicit freshness and unknown/error behavior.
+- **Reference:** [Conditional playlist activation](D-028-conditional-playlist-activation.md) · [Content and playback model](../content-model.md)

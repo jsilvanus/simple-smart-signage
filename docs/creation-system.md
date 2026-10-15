@@ -32,6 +32,24 @@ Vite runs on the SiSSi server, never on the signage client. The planned authorin
 
 The UUID is a routing identifier, not an access credential. Authoring URLs must be access-controlled, and one creator's workspace must not be able to read or modify another creator's files or secrets. The development URL is not the public production URL and must not be used as the display's permanent target.
 
+## Staged scene delivery
+
+The delivery order is deliberate:
+
+1. **MVP — simple media scenes:** directly display a managed image, PDF, or video. Ordinary use must not require HTML/CSS/JavaScript editing or a Node/Vite workspace.
+2. **Immediately afterward — complex scenes:** add AI-authored and manually edited frontend scenes, richer layouts and interactions, with live preview, isolated authoring workspaces, validation/build, review, and publication.
+
+Both remain reusable scenes in the same scene/playback model. The simple-scene MVP must not be blocked by the full complex-scene authoring system.
+
+## Preview execution lifecycle
+
+- Initially allocate an isolated execution environment for each active preview workspace; keep the provider boundary runtime-independent and Podman as the first implementation target.
+- Explicitly closing the editor starts a short shutdown countdown (initial default: **2 minutes**). Preview inactivity starts a longer countdown (initial default: **20 minutes**).
+- Reopening the workspace or meaningful activity before shutdown cancels the pending stop. Define meaningful activity so background browser noise and automatic reloads do not keep a preview alive indefinitely.
+- The trusted server-side controller owns timers and reconciles preview environments after server restarts; browser timers are not authoritative.
+- Stopping a preview environment preserves the scene workspace and saved files. Start the preview on demand when reopened. Validation/build remains a separate disposable job from a controlled workspace snapshot.
+- Protect preview routes through the authenticated reverse proxy and isolate scene execution from management-origin privileges and credentials. Container separation is useful but not a complete security guarantee.
+
 ## Three-file source contract
 
 The default scene source consists of exactly three AI-editable core files:

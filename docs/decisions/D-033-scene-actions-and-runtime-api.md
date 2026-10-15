@@ -9,16 +9,16 @@ Scenes are reusable content, while layouts compose scenes and playback concepts 
 
 ## Decision
 
-**Scene editing is where the author chooses which actions that particular scene can invoke.** The editor presents a discoverable action catalogue containing built-in runtime actions and actions registered by installed/configured plugins. The author adds the needed actions to the scene definition, configures their allowed parameters where applicable, and sees each action's description, required capabilities and permission status.
+**A scene can make API requests from its own code.** Scene authors are not limited to calling a fixed catalogue of predefined actions. For example, a scene's JavaScript may fetch event data from a public or otherwise browser-accessible event API and use the response to render the scene or respond to a visitor. This is ordinary scene behavior and should not require registering every endpoint as a plugin action.
 
-The catalogue and scene declaration have different jobs:
+Scene editing is also where the author defines the scene's required capabilities and, where appropriate, configures named API connections or privileged actions that the scene uses. These are distinct mechanisms:
 
-- The **action registry** defines which actions exist, their stable identifiers and versions, parameter/result schemas, provider, capability requirements, and execution contract. Built-in actions are supplied by SiSSi; plugins register additional actions through a controlled manifest/registration process.
-- The **scene definition** declares the subset of those actions that the scene is designed to call, plus any scene-level parameter configuration. The editor must not let authors invent arbitrary API endpoints or executable server functions.
-- **Tenant/display permissions and integration configuration** determine whether the declared action is actually authorized and available in a given context. Selecting an action in the editor is not itself a grant of permission.
-- The **runtime dispatcher** validates and executes calls using the registry contract and effective permissions.
+- **Scene-authored API requests:** the scene may call public/browser-accessible APIs using normal web mechanisms, subject to browser CORS, network availability, the endpoint's own authentication and usage rules. The scene can decide when and how to call them. Arbitrary client-side requests must not carry server secrets.
+- **Configured API connections:** for APIs requiring credentials, server-side access, controlled response shaping, or access to private network resources, an administrator configures a named connection/connector. Scene code calls that connection through a documented SiSSi interface; credentials stay on the server and requests are constrained by its policy. This also provides a safe path for APIs that browsers cannot call directly because of CORS.
+- **Built-in runtime actions and plugin actions:** actions that affect the player, playback, devices, or privileged integrations use the host-mediated action API. The author chooses the actions the scene may invoke in the scene definition/editor; plugins register additional versioned actions through a controlled contract.
+- **Permissions and enforcement:** editor declarations describe intended use and support validation/documentation; they are not permissions by themselves. Tenant/display policy, connection configuration and the runtime host determine what is actually authorized.
 
-At runtime, the scene receives only its declared API surface. The host player and server-side dispatcher retain control of execution. Scene code requests an action; SiSSi validates the caller, current playback context, parameters, capability availability and effective permissions before performing it. A scene cannot directly mutate playlists, choose arbitrary resources, access credentials, or call arbitrary plugins/endpoints.
+The host must not give scene code secrets or unrestricted server-side network access. Server-side connectors validate destination and resource scope, block SSRF/private-network access by default unless explicitly trusted, enforce timeouts and response/payload limits, and apply authentication and audit policy. The scene can request APIs and actions, but it cannot bypass SiSSi authorization, directly mutate player-owned state, or access credentials.
 
 ## Built-in lifecycle and playback requests
 
@@ -45,7 +45,7 @@ Plugins may register named, versioned action definitions, for example `lighting.
 - Expected errors and whether the action can run on a client, server or external service
 - Audit and privacy requirements
 
-The scene editor lets an author select and configure only registered actions. A tenant administrator must grant the required permissions and configure the relevant integration/resource. For example, a scene may request a lighting preset that turns supported lights down; the plugin resolves the configured lighting system and checks the caller's authority. The scene never receives the lighting API credential. Unknown, ungranted, unsupported or invalid actions fail closed with a structured result.
+The scene editor lets an author write API-calling scene logic, configure named API connections where needed, and select registered privileged actions. A tenant administrator must grant required permissions and configure the relevant integration/resource. For example, a scene may request a lighting preset that turns supported lights down; the plugin resolves the configured lighting system and checks the caller's authority. The scene never receives the lighting API credential. Unknown, ungranted, unsupported or invalid actions fail closed with a structured result.
 
 ## Execution contract
 

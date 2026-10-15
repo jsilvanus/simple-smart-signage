@@ -41,6 +41,8 @@ Preserve embedded provenance metadata and C2PA-compatible manifests where availa
 
 Maintain applicable AI-transparency label icons as versioned global/system assets with source and licence metadata, separate from user-owned library assets.
 
+A tool's assertion that an image or other asset is AI-generated may be incorrect. An authorised human must be able to correct the asset's provenance classification, including changing an erroneous AI-generated claim to a better-supported category or to unknown. Preserve the prior claim and record the correction as an auditable event with the reviewer, timestamp, reason/evidence when supplied, and affected asset version. Do not confuse the correction with cryptographic verification: human review does not make a C2PA manifest valid, and a valid manifest does not necessarily establish every aspect of an asset's authorship. Keep current classification, historical claims, validation status, and disclosure/label decisions distinguishable. Derivatives must inherit the source lineage and any correction-relevant provenance; correcting a source asset should flag dependent derivatives and scene references for appropriate review.
+
 ## Reuse, pinning, and scene relationships
 
 - A scene references an asset by stable asset ID and a specific asset version or immutable content hash.

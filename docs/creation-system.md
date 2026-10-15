@@ -99,6 +99,16 @@ Add a dedicated Review phase before publication. Reviewers inspect and can edit 
 
 Keep provenance, editorial-review status, and disclosure policy as separate dimensions. Maintain versioned global/system assets for applicable AI-transparency labels, with source and licence metadata. Flag unreviewed AI-generated content and apply or recommend labels according to the publication context and configured policy. Do not assume human review universally removes legal disclosure duties.
 
+#### Human correction of provenance errors
+
+Provenance classifications supplied by an MCP tool, AI model, import process, or metadata parser are claims that may be wrong; they are not ground truth. An authorised human reviewer must be able to correct a text field's or asset's origin classification, including an erroneous claim that content or an image is AI-generated. Corrections may select a more accurate known category or mark the origin unknown when it cannot be established.
+
+Record each correction as an auditable provenance event, including the prior claim, corrected classification, person making the correction, timestamp, reason or supporting evidence when provided, affected field/asset and version, and relevant source event. Do not silently overwrite or delete the earlier claim. The current classification should be clear in normal authoring and review views, while the history remains inspectable.
+
+Distinguish tool assertions, machine-readable metadata, successful cryptographic/manifest validation, and human editorial determinations. A human correction records an accountable editorial judgement; it does not itself prove authorship or make an unverified manifest valid. Where evidence is insufficient or disputed, retain an explicit unknown/disputed state rather than forcing a confident label.
+
+When a correction changes facts used by an AI-transparency label or disclosure recommendation, recalculate or flag that decision for review. Keep the provenance correction, editorial approval, and applicable disclosure decision distinct. MCP tools may propose classifications but must not silently undo or overwrite a human correction; any later conflicting claim must be recorded and surfaced for resolution.
+
 ## Design system and scene contract
 
 AI-generated frontend code should follow a versioned SiSSi design system: reusable layout primitives or equivalent CSS conventions, typography, spacing, colours, media handling, responsive rules, and accessible defaults. The system should provide a documented scene contract for readiness, start, stop, and optional completion, while leaving internal timelines, page navigation, and time guards under scene control.

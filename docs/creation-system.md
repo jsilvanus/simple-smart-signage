@@ -36,10 +36,10 @@ The UUID is a routing identifier, not an access credential. Authoring URLs must 
 
 The delivery order is deliberate:
 
-1. **MVP — simple media scenes:** directly display a managed image, PDF, or video. Ordinary use must not require HTML/CSS/JavaScript editing or a Node/Vite workspace.
-2. **Immediately afterward — complex scenes:** add AI-authored and manually edited frontend scenes, richer layouts and interactions, with live preview, isolated authoring workspaces, validation/build, review, and publication.
+1. **MVP — native media scenes:** directly display a managed image, PDF, or video using the built-in display runtime. These are structured scene definitions with asset references and type-specific settings; they do not require a scene-specific HTML/CSS/JavaScript application, bundle build, or Node/Vite workspace.
+2. **Immediately afterward — AI-authored web scenes:** add custom compositions, layouts, overlays, and interactions through AI-authored or manually edited frontend scenes, with live preview, isolated authoring workspaces, validation/build, review, and publication.
 
-Both remain reusable scenes in the same scene/playback model. The simple-scene MVP must not be blocked by the full complex-scene authoring system.
+Both remain reusable scenes in the same scene/playback model. Keep native media types deliberately narrow rather than building a general-purpose native composition system. For compositions such as text over an image or a title over a video, start from a suitable template that creates a normal AI-editable web scene. In the basic use case, the creator describes the desired result and supplies/selects content; AI writes and maintains the code, while the creator reviews the preview. Templates may expose structured content fields for routine edits without requiring code regeneration. The native-media MVP must not be blocked by the full web-scene authoring system.
 
 ## Preview execution lifecycle
 

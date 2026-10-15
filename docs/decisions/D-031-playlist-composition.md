@@ -26,7 +26,9 @@ A **screen or screen group has an assignment queue** that selects an active prog
 ## Evaluation and behavior
 
 - Selection among multiple eligible screen/group assignments must be deterministic and observable, with reasons for selection and rejection.
-- The assignment queue represents a 24-hour schedule; uncovered time is off time unless an explicit assignment says otherwise.
+- Each screen or screen group resolves one effective assignment schedule for a given local calendar date. A calendar-date schedule, when configured for that target and date, takes precedence over the weekday schedule; otherwise the applicable weekday schedule is used. The two schedules are exclusive and are never merged.
+- A weekday schedule supplies the normal recurring pattern for its weekday. A calendar-date schedule is an exception for that date, useful for holidays and special services. Provide an explicit “copy schedule to date” operation that creates an independent copy; later edits to either schedule do not affect the other.
+- The selected schedule represents the full 24-hour day. Uncovered time is off time unless an explicit assignment says otherwise. If a calendar-date schedule exists but contains gaps, those gaps remain off time; do not fill them from the weekday schedule.
 - Within a conditional playlist sequence, evaluate entries in configured order; when multiple entries are eligible, the order defines which runs first. After a playlist completes, continue to the next eligible entry.
 - Support a continuous-loop run policy and a finite run-count policy. Reaching the configured count makes the entry ineligible for the rest of that schedule/sequence occurrence, regardless of remaining time in its window.
 - Define explicit behavior when multiple assignments match, none match, condition results are unknown/stale/errors, a playlist becomes ineligible while playing, a finite run limit is reached, or the sequence reaches its end. Off time must not be silently converted into fallback content.

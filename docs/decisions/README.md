@@ -278,3 +278,11 @@ Keep this index updated when a decision is accepted or superseded.
 - **Date:** 2026-10-15
 - **Decision:** Both scenes and playlists have first-class display-eligibility policies that can combine time windows and conditions. Assignments/schedules, playlist-item playback behavior, scene element-level guards, and eligibility are distinct concerns. Ineligible content is skipped or falls back according to explicit policies; condition errors are never silently coerced to true or false.
 - **Reference:** [Decision details](D-030-scene-and-playlist-eligibility.md) · [Content and playback model](../content-model.md)
+
+
+### D-031 — Playlist composition and nested playlists
+
+- **Status:** Accepted architectural direction; exact schemas and playback semantics remain to be specified
+- **Date:** 2026-10-15
+- **Decision:** Playlists can contain typed scene entries and child-playlist entries. Time/condition eligibility can apply to the playlist as a whole and to each entry. Scene entries are selected by playlist rules while scenes independently handle their own internal guards. Parent playlists explicitly choose sequential or conditional-selection composition modes.
+- **Reference:** [Playlist composition](D-031-playlist-composition.md) · [Content and playback model](../content-model.md)

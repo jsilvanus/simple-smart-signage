@@ -47,13 +47,19 @@ Source assets, editable scene workspace files, published scene revisions, and de
 
 The scene's internal timeline governs behavior inside the presentation: animation, revealing or replacing elements, and timed media. It is distinct from the playlist item's playback slot. A scene may loop, play once and hold, remain static, or signal completion; exact supported modes and completion semantics require an explicit runtime contract.
 
-### Scene-owned time guards
+### Scene and playlist display eligibility
 
-Time guards are part of the scene's own presentation logic. A scene may use them to decide when to show, hide, replace, or advance particular elements, or when the scene itself is appropriate to run. Examples include revealing a service-time panel only before a service, hiding an expired notice, or restricting the entire scene to weekday mornings. A scene's internal timeline and its time guards belong to the scene; they are not playlist timing.
+Scenes and playlists both have first-class **display-eligibility policies**, and each policy can combine time windows with condition rules. Eligibility is separate from a scene's internal timeline, a playlist item's playback slot, and a display assignment's schedule. See [D-030 — Shared scene and playlist display eligibility](decisions/D-030-scene-and-playlist-eligibility.md).
 
-A scene may therefore contain multiple time guards at different scopes: element-level guards affect only parts of its presentation, while scene-level availability guards determine whether the scene is eligible to be selected at all. Guards should use an explicit time zone when based on local wall-clock time. Exact rule composition, exceptions, overnight windows, daylight-saving transitions, clock uncertainty, and behavior when a guard cannot be evaluated must be specified before implementation.
+- **Scene eligibility** determines whether a particular scene occurrence may be displayed now. It can restrict a scene to date ranges, local time windows, weekdays, or conditions such as an event/API state.
+- **Playlist eligibility** determines whether a playlist may be selected or played now. It can combine time windows and conditions, such as a service playlist being eligible only during a service and while its livestream is active.
+- **Element-level guards** remain presentation logic: they show/hide parts of an otherwise eligible scene and do not make the whole scene ineligible.
+- **Assignments and schedules** determine where and when a playlist is assigned; they do not override playlist or scene eligibility.
+- **Playlist-item restrictions** may narrow the context for one occurrence, but must never bypass the referenced scene's own eligibility policy.
 
-A playlist item may add contextual restrictions, but must not silently bypass a scene's own guards. If a scene-level availability guard becomes false while the scene is playing, the runtime should stop presenting the scene and advance to eligible content. An element-level guard should only affect the element it governs. The runtime should avoid blanking the display while preparing a replacement.
+A scene that becomes ineligible during playback should be stopped and replaced by the next eligible item without unnecessarily blanking the display. If no scene in a playlist is eligible, the player follows an explicit fallback/empty-state policy instead of showing ineligible content or looping indefinitely. An ineligible playlist must not displace another eligible assignment. If no eligible assignment remains, use the configured display fallback.
+
+Time rules need explicit time zones for local wall-clock windows and deliberate handling of overnight windows, exceptions, daylight-saving transitions, and uncertain clocks. Rule composition must be explicit (for example, all rules must match versus any rule may match). A condition that is unknown, stale, times out, or errors must follow a configured policy; never silently coerce it to true or false. Eligibility is not an authorization boundary: publishing, tenant access, and display permissions are enforced separately.
 
 ### Schedule, display assignment, and screen groups
 
@@ -67,9 +73,9 @@ The composition should define its target display/group, base and secondary playl
 
 PiP and split-screen must be implemented by the SiSSi client compositor; do not assume the television itself provides a usable PiP function. Define per-device capability support, content/media combinations, region scaling, and audio focus. By default, avoid two simultaneous audible sources. If a client cannot support the selected layout, apply a configured fallback and report it rather than silently claiming success. See [D-029](decisions/D-029-special-broadcast-composition.md).
 
-### Conditional playlist activation
+### Shared condition evaluation
 
-A playlist assignment, playlist-selection rule, or special-broadcast composition may also have an external condition. Examples include selecting a live-service playlist only while a YouTube Live broadcast is active, or selecting a playlist when a configured API returns a JSON field with a particular value or URL. This is server-side conditional activation, separate from calendar schedules and scene-owned time guards; it never edits a playlist or immutable scene revision.
+Conditions can be referenced by scene and playlist eligibility policies, playlist assignments/selections, and special-broadcast compositions. Examples include selecting a live-service playlist only while a YouTube Live broadcast is active, or making a scene eligible when a configured API returns a JSON field with a particular value. Time windows and condition rules are combined according to the policy's explicit rule composition; this never edits a playlist or immutable scene revision.
 
 Use the planned `varfetch` package (`varfetch@^0.3.0` as of 2026-10-15) as the server-side HTTP connector primitive for configured requests, safe variable interpolation, SSRF protections, and JSON-path response mapping. The repository does not yet contain an application package manifest, so the actual npm dependency is to be added when the server application is scaffolded. See [D-028](decisions/D-028-conditional-playlist-activation.md).
 
@@ -80,7 +86,9 @@ Conditions must have explicit predicates, evaluation cadence, timeout and respon
 | Time concept | Owner | Purpose |
 |---|---|---|
 | Internal timeline | Scene revision/runtime | Animation and timed changes within the presentation |
-| Scene time guards | Scene | Element visibility and scene eligibility |
+| Scene eligibility policy | Scene | Whether the whole scene may be displayed now |
+| Element-level guards | Scene presentation | Visibility of individual elements within an eligible scene |
+| Playlist eligibility policy | Playlist | Whether the playlist may be selected/played now |
 | Playback slot | Playlist item | How long this playlist occurrence is shown |
 | Playlist activation | Schedule/assignment | When a playlist is active on a display |
 

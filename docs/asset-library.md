@@ -33,14 +33,28 @@ Every asset record should preserve, where known:
 
 Distinguish immutable origin facts from current usage. Moving an asset to another project or using it in additional scenes must not overwrite its original project or initial-scene provenance. Record any later transfer or relationship separately if auditability is needed.
 
-## Reuse and scene relationships
+## Reuse, pinning, and scene relationships
 
 - A scene references an asset by stable asset ID and a specific asset version or immutable content hash.
+- Support explicit asset-version pinning. An editable scene may follow the latest asset version or pin a chosen version; the selected behavior must be visible to the creator. Published scene revisions always pin the exact versions/hashes used in that revision.
 - The library records current scene references separately from the asset's initial scene.
 - One asset may be used by multiple scenes and projects, subject to access permissions.
 - Removing an asset from a scene removes that usage relationship; it does not delete the library asset.
 - Deletion or replacement must check references and avoid breaking published scene revisions or offline playback. Published revisions retain the exact resource versions/hashes they were built against.
 - Project and scene access controls apply to both discovery and retrieval. A user must not gain access to a private asset simply because they know its UUID.
+
+## Updating an asset
+
+When a creator uploads a replacement/new version of an existing asset, preserve the previous version and show a propagation prompt listing the scenes that currently reference the asset. Let the creator select which editable scenes should adopt the new version, with clear indication of the currently pinned version and whether each scene follows latest or is pinned.
+
+- Do not silently change the source of a pinned scene reference.
+- Propagation updates selected scene references (or their editable source configuration) to the new version; it must not mutate an already published immutable scene revision.
+- For published scenes, offer to create a new scene revision/rebuild from the updated asset and publish it through the normal review/publish flow. Do not hot-swap assets underneath a published revision.
+- The prompt should distinguish scenes that can be updated now from published revisions that require a new build/publish step, and respect project/scene permissions.
+- Provide a safe default: no published output changes until the creator explicitly confirms the update and publishes the resulting revision.
+- If the creator declines propagation, retain the new asset version in the library without changing any existing scene references. The creator can update selected scenes later.
+
+The exact interaction may be a checklist/modal with scene name, project, current version/pinning mode, and proposed action. It should be possible to select individual scenes, select all eligible editable scenes, or skip propagation.
 
 ## Tags and search
 

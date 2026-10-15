@@ -60,7 +60,8 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Implement reusable asset library for images, PDFs, and MP4 video; keep the model extensible to later MP3/audio support.
 - [ ] Define asset provenance: uploader, credited creator where known, originating project, initial scene, upload time, source/rights notes, tags, and current scene usage.
 - [ ] Define upload limits, server-side validation, storage, checksum/versioning, derived previews, and reference-safe deletion.
-- [ ] Pin asset versions/hashes in published scene revisions so playback remains reproducible.
+- [ ] Implement explicit asset-version pinning for editable scene references and exact version/hash pinning in published revisions.
+- [ ] On asset update, prompt with the referencing-scene list and allow selective propagation; never mutate published revisions in place.
 - [ ] Implement per-scene Vite authoring workspace on the SiSSi server using `npm run dev`.
 - [ ] Expose each workspace through an authenticated UUID-addressed reverse proxy.
 - [ ] Build the authoring view with live preview, HTML/CSS/JavaScript editors, and MCP/AI action log.

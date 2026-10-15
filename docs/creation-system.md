@@ -71,7 +71,7 @@ Design-system and runtime-contract versions should be recorded with each publish
 
 The Vite dev server is the live authoring and preview mechanism. It is not the permanent production runtime for signage devices.
 
-Publishing builds the scene into a versioned, immutable delivery artifact—initially a static web bundle plus a manifest. The publisher validates references, records asset hashes, and checks that required resources are available. The display runtime downloads and verifies the artifact before activation, and retains its last known-good revision if preparation fails.
+Publishing builds the scene into a versioned, immutable delivery artifact—initially a static web bundle plus a manifest. The publisher validates references, records exact asset versions/hashes, and checks that required resources are available. Published revisions remain immutable if a source asset is later updated. The display runtime downloads and verifies the artifact before activation, and retains its last known-good revision if preparation fails.
 
 The published build is served by SiSSi at a stable scene URL based on the scene UUID. This production URL is separate from the development preview URL. A scene can be published with one of two access policies:
 
@@ -97,7 +97,7 @@ Publishing a scene must not expose workspace files, development-server controls,
 
 ## Still to specify
 
-The implementation contract must define workspace creation and cleanup, per-workspace process supervision, proxy routing, authentication, AI editing boundaries, MCP artifact import, supported upload formats and size limits, dependency/network policy, source-editor behavior, preview lifecycle, build/publishing failures, asset storage and provenance, version replacement and reference-safe deletion, derived previews, revision rollback, private-scene access, public embedding/CSP policy, and whether advanced multi-file scenes are supported in the first release.
+The implementation contract must define workspace creation and cleanup, per-workspace process supervision, proxy routing, authentication, AI editing boundaries, MCP artifact import, supported upload formats and size limits, dependency/network policy, source-editor behavior, preview lifecycle, build/publishing failures, asset storage and provenance, version replacement and reference-safe deletion, asset-version pinning and scene-update propagation prompts, derived previews, revision rollback, private-scene access, public embedding/CSP policy, and whether advanced multi-file scenes are supported in the first release.
 
 ## Authentication boundaries
 

@@ -103,6 +103,16 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Rationale:** Supports asset reuse, traceable attribution, safe publishing, and later growth in supported media types without conflating media storage with scene authoring.
 - **Reference:** [Asset library and provenance](../asset-library.md) · [Content creation and authoring](../creation-system.md)
 
+### D-019 — Explicit asset-version pinning and update propagation
+
+- **Status:** Accepted architectural direction
+- **Date:** 2026-10-15
+- **Decision:** Assets are versioned. Scene references can explicitly follow the latest asset version while being edited or pin a specific version; the selected mode must be visible. Every published scene revision pins exact asset versions or content hashes.
+- **Update prompt:** When an existing asset is updated, show a list of scenes that reference it and ask whether the new version should be propagated. Let the creator select individual eligible scenes, select all eligible scenes, or skip propagation. Show project context and the current reference/version mode for each scene.
+- **Safety:** Never silently retarget a pinned reference. Updating editable scene references does not mutate an already published revision. To change published output, build a new immutable scene revision and use the normal review/publish process. Keep previous asset versions available for existing revisions and rollback, subject to retention policy.
+- **Rationale:** Allows convenient library updates without unexpected changes to other scenes or displays, while retaining deterministic published playback.
+- **Reference:** [Asset library and provenance](../asset-library.md) · [Content creation and authoring](../creation-system.md)
+
 ### D-017 — Gesture interaction and strict no-audio boundary
 
 - **Status:** Accepted direction for future research; not an MVP feature

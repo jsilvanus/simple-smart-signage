@@ -20,7 +20,7 @@ This is the top-level implementation roadmap. Detailed specifications belong in 
 - [ ] Define screen/group assignment and device permissions.
 - [ ] Define SSE events, event IDs, reconnect, and reconciliation.
 - [ ] Define heartbeat payload and online/offline thresholds.
-- [ ] Define the content model: playlists, playlist items, scenes, scene revisions, scene timelines, scene time guards, display assignments, screen groups, and conditional playlist activation.
+- [ ] Define the content model: playlists, playlist items, scenes, scene revisions, scene timelines, scene time guards, display assignments, screen groups, conditional playlist activation, and special-broadcast compositions.
 - [ ] Define reusable, versioned templates as scene starting points with placeholder values and structured content schemas.
 - [ ] Define display-target schema: hosted URL, packaged web bundle, and media.
 - [ ] Define scene authoring workspace, UUID proxy routing, source editing, preview, build, publishing, and artifact contracts.
@@ -102,6 +102,8 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Build, validate, and publish immutable scene revisions at stable UUID-based SiSSi URLs.
 - [ ] Implement permissioned MCP publication/deployment operations with review gates, target preview/confirmation, immutable revision pinning, idempotent rollout, per-client status, and safe rollback.
 - [ ] Implement playlist resources and MCP tools to discover/edit playlists, manage ordered items and playback policies, assign playlists to screens/groups, push desired configuration, and inspect synchronization/health.
+- [ ] Define special-broadcast composition schema, initial PiP/vertical-split/horizontal-split layouts, activation/expiry/priority rules, audio focus, device capability negotiation, and fallback behavior.
+- [ ] Implement display-client multi-region composition so a secondary broadcast can play alongside the base playlist without resetting its playback position; support start/stop/status for displays and screen groups.
 - [ ] Define condition/connector schemas and supported predicates for conditional playlist activation, including YouTube Live state and mapped JSON values/URLs.
 - [ ] Add `varfetch` as a server runtime dependency when the application package manifest is created; configure trusted SSRF allow/deny policy and keep credentials server-side.
 - [ ] Implement server-side condition evaluation, polling/cache freshness, manual test/status display, audit events, and explicit unknown/error fallback behavior.

@@ -80,6 +80,17 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Rationale:** Gives creators a flexible AI-assisted frontend authoring workflow while retaining predictable, cacheable, reviewable display releases and optional public embedding.
 - **Reference:** [Content creation and authoring](../creation-system.md) · [Content and playback model](../content-model.md)
 
+### D-016 — Separate authentication by client and request type
+
+- **Status:** Accepted
+- **Date:** 2026-10-15
+- **Decision:** Use the creator's authenticated session for authoring, a unique revocable device credential for signage-device control-plane requests, and an explicit access policy for published scenes. Use Authorization headers for API/resource requests when the client can set them, but do not assume browser page navigation or ordinary iframe loads can attach arbitrary headers.
+- **Preview:** Protect UUID-addressed Vite preview routes at the reverse proxy. Use the authenticated session or a short-lived preview-ticket/session exchange; the UUID is not a credential.
+- **Scene isolation:** Never expose device-management, server, MCP, or AI-provider credentials to scene JavaScript. Serve private assets through trusted endpoints or narrowly scoped, short-lived access.
+- **Embedding:** Public embedding must be explicitly enabled and limited to public content/capabilities, with CSP framing and origin policy configured. Private embedding requires a deliberate session or short-lived scoped mechanism; long-lived bearer tokens in URLs are not the default.
+- **Rationale:** Authentication must match the client and request type, while untrusted presentation code remains separate from management privileges.
+- **Reference:** [Content creation and authoring](../creation-system.md) · [Device handshake](../handshake.md)
+
 ## Proposed / to decide
 
 ### D-007 — Server stack and deployment

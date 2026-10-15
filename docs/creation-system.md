@@ -98,3 +98,16 @@ Publishing a scene must not expose workspace files, development-server controls,
 ## Still to specify
 
 The implementation contract must define workspace creation and cleanup, per-workspace process supervision, proxy routing, authentication, AI editing boundaries, MCP artifact import, supported upload formats and size limits, dependency/network policy, source-editor behavior, preview lifecycle, build/publishing failures, asset storage, revision rollback, private-scene access, public embedding/CSP policy, and whether advanced multi-file scenes are supported in the first release.
+
+## Authentication boundaries
+
+Authentication must be appropriate to the kind of request; “put the credential in an Authorization header” is the default for API calls where the client can set headers, but it does not solve every browser navigation or iframe case.
+
+- **Authoring UI and APIs:** use the authenticated creator session. Same-site browser requests may use a secure, HttpOnly session cookie; API clients that explicitly set headers may use an Authorization header. Do not expose long-lived credentials to scene JavaScript.
+- **Development preview:** the browser's navigation to a preview URL or an ordinary iframe cannot reliably attach an arbitrary Authorization header. Protect the UUID-routed preview through the authenticated reverse proxy, for example with the existing same-site session or a short-lived preview ticket exchanged for a session. The UUID is only an identifier, not a secret.
+- **Signage device APIs:** each approved device authenticates its control-plane requests with its own revocable device credential, normally in an Authorization header. Do not make that credential available to the scene's JavaScript execution context.
+- **Scene assets:** serve assets through a trusted runtime/asset endpoint or issue narrowly scoped, short-lived access where necessary. Do not pass device-management credentials into arbitrary scene code.
+- **Private external embedding:** ordinary iframe navigation cannot set a custom Authorization header. Prefer an explicit same-site session flow where appropriate, or a deliberately designed short-lived, narrowly scoped embed mechanism. Do not use long-lived bearer tokens in query strings.
+- **Public embedding:** it must be explicitly enabled and expose only public content and capabilities. Configure CSP frame-ancestors, origin/cross-origin behavior, and data permissions deliberately; an obscure UUID URL is not access control.
+
+Published scene code should be isolated from the SiSSi management application's origin and privileges wherever practical. Apply a restrictive Content Security Policy and sandboxing appropriate to the supported scene features. Never expose server, MCP, AI-provider, or device-management secrets to scene frontend code.

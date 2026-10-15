@@ -26,6 +26,7 @@ This is the top-level implementation roadmap. Detailed specifications belong in 
 - [ ] Define the default three-file source contract and multiple logical pages within a scene.
 - [ ] Define asset identity/versioning and MCP artifact import validation.
 - [ ] Define private scene access and public embedding policy.
+- [ ] Define authentication boundaries for authoring, preview, device APIs, assets, and embedded scenes.
 - [ ] Define app origin policy and explicit capabilities, including optional camera access.
 
 Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime.md) · [Content and playback model](content-model.md) · [Content creation system](creation-system.md) · [Decision register](decisions/README.md)

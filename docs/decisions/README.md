@@ -4,6 +4,15 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 
 ## Accepted
 
+### D-041 — Scene readiness and start lifecycle
+
+- **Status:** Accepted
+- **Date:** 2026-10-15
+- **Decision:** Push scene bundles and required assets to screens ahead of playback and cache/verify them locally. Every scene signals initialisation readiness by invoking `ready`; the host transitions only after that signal, then invokes optional `start` for scenes that need to begin a timeline or other start-dependent behavior. The playlist configuration determines which policy wins when duration, readiness, and scene completion conflict.
+- **Rationale:** Makes playback cache-first and transitions predictable while supporting both static and time-driven scenes.
+- **Reference:** [D-041](D-041-scene-readiness-and-start-lifecycle.md) · [D-036](D-036-separate-scene-bundles-and-managed-assets.md) · [D-039](D-039-background-preparation-and-hybrid-activation.md) · [D-040](D-040-hybrid-playback-fallback-policy.md) · [Display runtime](../display-runtime.md)
+
+
 ### D-040 — Hybrid playback fallback policy
 
 - **Status:** Accepted

@@ -37,6 +37,8 @@ Use MCP resources primarily for canonical readable state, with resource template
 - `sissi://tenants/{tenantId}/templates/{templateId}`
 - `sissi://tenants/{tenantId}/assets/{assetId}`
 
+Provide a read-only scene resource index at `sissi://tenants/{tenantId}/scenes/{sceneId}/resources` that lists all scene-linked resource URIs visible to the caller. Group entries by purpose and include type/relation, mutable or immutable status, current revision/version where relevant, and a concise description. Cover metadata, content schema/values, source files, template/design-system/palette references, assets, history, proposals, revisions, previews, and publication/deployment state where available. It is the one discovery point for scene-linked resources and must not disclose inaccessible resources.
+
 Provide a scene-dump resource as a revision-stamped, read-only snapshot of the scene context, including its metadata, content schema and values, source-file summaries or source when requested and permitted, selected design-system/template references, relevant assets, current revision, and a summary of pending proposals. The dump must distinguish canonical working state from unaccepted proposals, respect permissions and size limits, and offer a way to retrieve large sections separately rather than silently truncating data. Reading a resource never mutates content.
 
 ### Tools and capabilities

@@ -33,6 +33,14 @@ Every asset record should preserve, where known:
 
 Distinguish immutable origin facts from current usage. Moving an asset to another project or using it in additional scenes must not overwrite its original project or initial-scene provenance. Record any later transfer or relationship separately if auditability is needed.
 
+## AI provenance and authenticity metadata
+
+Assets may be human-created, AI-generated, AI-transformed, externally sourced, or of unknown origin. Keep this separate from uploader identity and credited creator attribution. Where available, preserve the generating tool/provider, model, operation, timestamp, source-version links, and relevant disclosure metadata.
+
+Preserve embedded provenance metadata and C2PA-compatible manifests where available. Record validation outcome and validator version only when SiSSi actually validates a manifest. Distinguish present, verified, invalid, and unavailable states; never infer authenticity merely because a manifest exists. Keep this provenance when deriving thumbnails, transcoding, or optimising media, and link each derivative to its source asset/version. If processing removes embedded metadata, retain available provenance in SiSSi's asset record and note the loss on the derivative.
+
+Maintain applicable AI-transparency label icons as versioned global/system assets with source and licence metadata, separate from user-owned library assets.
+
 ## Reuse, pinning, and scene relationships
 
 - A scene references an asset by stable asset ID and a specific asset version or immutable content hash.

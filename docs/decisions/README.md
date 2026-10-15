@@ -113,6 +113,18 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Rationale:** Allows convenient library updates without unexpected changes to other scenes or displays, while retaining deterministic published playback.
 - **Reference:** [Asset library and provenance](../asset-library.md) · [Content creation and authoring](../creation-system.md)
 
+### D-021 — Content provenance, editorial review, and AI transparency
+
+- **Status:** Accepted architectural direction; detailed legal policy remains context-dependent
+- **Date:** 2026-10-15
+- **Decision:** Provenance is structured data attached to editable content fields and managed assets, with origin and transformation history. MCP tools that create or modify content must supply provenance metadata. Missing or unverifiable provenance stays explicitly unknown; it must not default to human-authored.
+- **Origin and transformations:** Distinguish direct human input, dictated/transcribed input, AI-generated content, AI-assisted transformations, external/tool-sourced material, and unknown origin. Record grammar/spelling corrections as transformations while preserving human-authored origin when the human remains the author. Keep prior lineage rather than overwriting it.
+- **Media:** Preserve AI-generation provenance for images and other assets. Support C2PA-compatible manifest retention and validation where appropriate, alongside SiSSi's own field-level history. Never claim verification unless validation actually succeeded.
+- **Review:** Add a dedicated Review phase before publication. Record reviewer, time, reviewed revision/scope, and outcome. Material changes reopen or invalidate approval. Review does not erase origin history.
+- **Transparency:** Maintain versioned global/system assets for applicable AI-transparency labels, with source/licence metadata. Track provenance, editorial-review status, and disclosure/marking decisions separately. Human review is not a universal exemption from disclosure duties; applicability depends on context and current law.
+- **Rationale:** Makes AI and human contributions traceable, supports editorial accountability, and provides a basis for context-sensitive transparency.
+- **Reference:** [Content creation and authoring](../creation-system.md) · [Asset library and provenance](../asset-library.md) · [European Commission Article 50 guidance](https://digital-strategy.ec.europa.eu/en/faqs/transparency-obligations-under-article-50-ai-act)
+
 ### D-020 — Viewport-aware authoring and structured content editing
 
 - **Status:** Accepted architectural direction

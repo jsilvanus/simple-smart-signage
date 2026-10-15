@@ -72,6 +72,12 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Define a scene content model or equivalent editable bindings that AI can expose as labelled fields grouped by logical page/content area.
 - [ ] Implement structured Content panel controls for text, asset/image/video selection, icons/symbols, and suitable repeatable content groups; update preview without unnecessary layout/source regeneration.
 - [ ] Support safe text paste and constrained semantic formatting; sanitise pasted markup and validate asset references, identifiers, and URLs.
+- [ ] Define field-level and asset-level provenance for human input, dictated/transcribed input, AI generation, assistive transformations, external/tool sources, and unknown origins.
+- [ ] Require MCP content-writing operations to return provenance metadata; preserve unknown provenance when absent or unverifiable.
+- [ ] Preserve AI-generated image/media provenance and support C2PA manifest retention/validation where appropriate.
+- [ ] Add an explicit Review phase before publishing, with provenance inspection, reviewer attribution, revision-scoped approval, and re-review after material changes.
+- [ ] Add global/system AI-transparency label assets with source/licence/version metadata and configurable disclosure policies.
+- [ ] Track provenance, editorial-review status, and disclosure decisions separately; human review is not a universal exemption from disclosure.
 - [ ] Integrate AI-assisted scene creation and editing using the SiSSi design system and three-file source contract.
 - [ ] Support multiple logical pages/views within a scene.
 - [ ] Import and validate artifacts/data produced by MCP-connected tools.

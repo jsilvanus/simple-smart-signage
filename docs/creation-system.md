@@ -91,6 +91,14 @@ This is structured content editing, not an unrestricted contenteditable layer ov
 
 Pasted content must be sanitised. Strip unsafe markup, scripts, event handlers, embedded objects, and unsupported styling; retain supported semantic text formatting where possible. The editor must not execute pasted HTML or treat it as trusted code. Use SiSSi design-system conventions rather than importing arbitrary pasted styling. AI/MCP output, asset metadata, and user-entered URLs remain untrusted inputs and must be validated.
 
+### Provenance and review
+
+Each editable field and managed asset must retain provenance and a history of transformations. MCP tools that create or modify content must supply provenance metadata; absent or unverifiable provenance remains unknown rather than being assumed human-authored. Distinguish direct human input, dictated/transcribed input, AI generation, assistive editing, external/tool-sourced material, and unknown origin. Routine grammar or spelling correction is recorded as a transformation while preserving the human-authored origin. Preserve AI-image provenance and compatible embedded manifests where available; only report a C2PA manifest as verified after actual validation.
+
+Add a dedicated Review phase before publication. Reviewers inspect and can edit content, replace assets, inspect provenance, and explicitly approve a defined revision. Record reviewer, time, scope, and outcome; material changes reopen review. Approval does not erase provenance.
+
+Keep provenance, editorial-review status, and disclosure policy as separate dimensions. Maintain versioned global/system assets for applicable AI-transparency labels, with source and licence metadata. Flag unreviewed AI-generated content and apply or recommend labels according to the publication context and configured policy. Do not assume human review universally removes legal disclosure duties.
+
 ## Design system and scene contract
 
 AI-generated frontend code should follow a versioned SiSSi design system: reusable layout primitives or equivalent CSS conventions, typography, spacing, colours, media handling, responsive rules, and accessible defaults. The system should provide a documented scene contract for readiness, start, stop, and optional completion, while leaving internal timelines, page navigation, and time guards under scene control.

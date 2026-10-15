@@ -29,7 +29,7 @@ This is the top-level implementation roadmap. Detailed specifications belong in 
 - [ ] Define authentication boundaries for authoring, preview, device APIs, assets, and embedded scenes.
 - [ ] Define app origin policy and explicit capabilities, including optional camera access.
 
-Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime.md) · [Content and playback model](content-model.md) · [Content creation system](creation-system.md) · [Asset library and provenance](asset-library.md) · [Decision register](decisions/README.md)
+Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime.md) · [Content and playback model](content-model.md) · [Content creation system](creation-system.md) · [Design systems](design-systems.md) · [Asset library and provenance](asset-library.md) · [Decision register](decisions/README.md)
 
 ## Phase 2 — Server foundation
 
@@ -78,6 +78,10 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Add an explicit Review phase before publishing, with provenance inspection, reviewer attribution, revision-scoped approval, and re-review after material changes.
 - [ ] Add global/system AI-transparency label assets with source/licence/version metadata and configurable disclosure policies.
 - [ ] Track provenance, editorial-review status, and disclosure decisions separately; human review is not a universal exemption from disclosure.
+- [ ] Define shared design-system identity, structured token model, CSS representation, asset references, and access controls; allow multiple systems to coexist.
+- [ ] Implement both structured design-system editing and advanced CSS editing against the same resource, with validation, conflict handling, and preservation of custom rules.
+- [ ] Implement design-system working drafts and immutable releases; draft scenes follow working versions while published scene revisions pin exact design-system and asset versions/hashes.
+- [ ] Show scenes affected by design-system changes and require a new reviewed/published scene revision to apply updates to published content.
 - [ ] Integrate AI-assisted scene creation and editing using the SiSSi design system and three-file source contract.
 - [ ] Support multiple logical pages/views within a scene.
 - [ ] Import and validate artifacts/data produced by MCP-connected tools.

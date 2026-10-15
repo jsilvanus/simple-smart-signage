@@ -111,9 +111,16 @@ When a correction changes facts used by an AI-transparency label or disclosure r
 
 ## Design system and scene contract
 
-AI-generated frontend code should follow a versioned SiSSi design system: reusable layout primitives or equivalent CSS conventions, typography, spacing, colours, media handling, responsive rules, and accessible defaults. The system should provide a documented scene contract for readiness, start, stop, and optional completion, while leaving internal timelines, page navigation, and time guards under scene control.
+AI-generated frontend code should follow a versioned SiSSi design system. A design system is a shared resource—not just one global CSS file—with structured visual tokens, CSS rules, optional reusable component conventions, and references to managed assets such as fonts, logos, and icons. Multiple design systems may coexist, and each scene explicitly selects one primary system. Scene-specific CSS may deliberately extend or override the selected system. The initial model does not layer multiple complete design systems into one scene.
 
-Design-system and runtime-contract versions should be recorded with each published revision so a later change does not silently alter an already published scene.
+Keep three layers distinct: SiSSi platform defaults, the selected design system, and scene-specific styles. Design-system CSS must be scoped/namespaced to avoid leaking into other scenes or the authoring interface. See [Design systems](design-systems.md) for the full contract.
+
+The design-system editor supports both structured controls for common tokens/assets and an advanced CSS editor. Both edit the same underlying resource. Preserve custom CSS that cannot be safely represented by structured controls, surface conflicts, and never silently discard advanced rules. Validate changes and record meaningful human/MCP edits in the Action log.
+
+Use the accepted hybrid update model: drafts follow the selected design system's current working version, so system changes can be assessed in the live preview. Publishing resolves that reference to a specific immutable released version and pins it, plus exact asset versions/hashes, in the scene revision manifest. A published revision or cached bundle must not change when the design system is edited. Applying a design-system update to a published scene requires creating, reviewing, and publishing a new scene revision.
+
+The system should provide a documented scene contract for readiness, start, stop, and optional completion, while leaving internal timelines, logical-page navigation, and time guards under scene control. The scene builder owns the scene's internal structure; the design system supplies visual rules.
+
 
 ## Build and publish
 

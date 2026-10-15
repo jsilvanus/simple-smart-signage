@@ -113,6 +113,16 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Rationale:** Allows convenient library updates without unexpected changes to other scenes or displays, while retaining deterministic published playback.
 - **Reference:** [Asset library and provenance](../asset-library.md) · [Content creation and authoring](../creation-system.md)
 
+### D-022 — Shared design systems and hybrid version pinning
+
+- **Status:** Accepted architectural direction
+- **Date:** 2026-10-15
+- **Decision:** Treat each design system as a shared, versioned resource containing structured visual tokens, CSS rules, optional component conventions, and versioned asset references. Multiple systems may coexist; each scene explicitly selects one primary system. Scene-specific CSS may extend or override that system. The scene builder remains responsible for scene internals and logical-page navigation.
+- **Editing:** Support both structured controls for common tokens/assets and advanced CSS editing. Both edit the same underlying resource. Preserve custom CSS that cannot be safely represented in structured controls, surface conflicts, and never silently discard changes. Validate edits and record meaningful actions.
+- **Versioning:** Draft scenes follow the selected system's current working version. Publishing resolves that reference to a specific immutable released version and pins it, plus exact asset versions/hashes, in the published scene revision. Published revisions and bundles never change when a system changes. Applying an update to published content requires a new reviewed and published scene revision.
+- **Rationale:** Makes visual consistency reusable and editable while allowing multiple visual identities and deterministic published/offline playback.
+- **Reference:** [Design systems](../design-systems.md) · [Content creation and authoring](../creation-system.md) · [Asset library and provenance](../asset-library.md)
+
 ### D-021 — Content provenance, editorial review, and AI transparency
 
 - **Status:** Accepted architectural direction; detailed legal policy remains context-dependent

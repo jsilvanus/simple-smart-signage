@@ -199,6 +199,10 @@ A UUID is not a secret. Private URLs must not rely on obscurity alone. Query-str
 
 Publishing a scene must not expose workspace files, development-server controls, MCP credentials, AI provider secrets, or device-management credentials. Hosted production delivery and downloadable bundles are separate delivery choices; a transient authoring URL must never be published as though it were a stable production URL.
 
+## Execution provider and isolation
+
+Scene authoring and build execution use a server-side, runtime-independent execution-provider boundary. Podman is the first target, preferably rootless where practical; see [D-034](decisions/D-034-pluggable-execution-provider.md). Keep persistent Vite preview sessions distinct from disposable validation/build jobs. Do not expose a general-purpose shell, arbitrary host paths, a public Podman socket, or host/container-management privileges to MCP or scene code. A successful build is not a security verdict, and only validated candidate artifacts proceed through the separate publication workflow. Whether workers need an in-container supervisor/API remains undecided.
+
 ## Isolation and safety requirements
 
 - Give each active authoring workspace a unique UUID and an isolated filesystem/process boundary.

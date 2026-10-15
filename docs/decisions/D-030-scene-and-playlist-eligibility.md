@@ -9,27 +9,27 @@ SiSSi needs content to become eligible or ineligible based on both time and exte
 
 ## Decision
 
-Both **playlists and scenes have first-class display-eligibility policies**. Each policy may include time windows and condition rules. These policies are evaluated independently at their own scope and combined with assignment/schedule rules; they do not mutate playlist contents or immutable scene revisions.
+**Playlists and playlist entries have time/condition eligibility policies.** Scene entries and child-playlist entries can each be eligible or ineligible in the context of their containing playlist. The scene itself independently evaluates its own guards; playlist eligibility does not replace, duplicate, or configure scene-owned guards.
 
 - **Playlist eligibility** answers whether a playlist may be selected/played now. Example: a service playlist is eligible during the service window and only while the livestream is active.
-- **Scene eligibility** answers whether a particular scene occurrence may be displayed now. Example: an announcement scene is eligible only between two dates, on weekdays, or while an API condition is true.
+- **Scene-entry eligibility** answers whether a particular occurrence of a scene may be selected by its playlist now. Example: an announcement entry is selectable only between two dates, on weekdays, or while an API condition is true.
 - **Element-level scene guards** remain distinct: they hide/show parts of a scene without making the whole scene ineligible.
 - **Assignments and schedules** determine where and when a playlist is assigned. Assignment does not itself override playlist or scene eligibility.
-- **Playlist-item settings** may add narrower contextual restrictions, but cannot bypass a scene's eligibility policy.
+- **Child-playlist-entry eligibility** controls whether a nested playlist may be selected by its parent. Playlist entries never bypass or take ownership of the scene's own guards.
 
 ## Evaluation and playback behavior
 
 - Eligibility should use a shared policy/evaluation model so scenes and playlists can refer to the same reusable condition definitions where appropriate. External HTTP/API checks run on the server (see [D-028](D-028-conditional-playlist-activation.md)); clients receive resolved state, not connector credentials.
 - Where a policy has multiple rules, define explicit AND/OR composition and time-zone semantics. Time windows must handle overnight ranges, daylight-saving transitions, and exceptions deliberately.
-- A scene that becomes ineligible during playback should be stopped and replaced by the next eligible playlist item without unnecessarily blanking the display. If no scene in a playlist is eligible, the player follows an explicit playlist fallback/empty-state policy rather than looping forever or showing ineligible content.
+- If a scene entry is ineligible, skip it and consider the next eligible entry. The scene independently handles its own runtime guards. If no entry is eligible, follow an explicit playlist fallback/empty-state policy rather than looping forever.
 - An ineligible playlist assignment must not displace a currently eligible assignment. Selection among multiple eligible playlists remains governed by explicit assignment precedence, priority, and schedule rules.
 - A condition that is unknown, stale, times out, or errors must follow a configured policy; never silently coerce it to true or false. Record enough evaluation status to explain why content was or was not eligible.
 - Eligibility is not a security boundary. Tenant/resource authorization, publishing/review permissions, and display-target permissions remain enforced independently.
 
 ## Consequences
 
-- Scene-level time guards should be formalized as the time-capable part of scene display eligibility, while element-level guards remain presentation logic.
-- Playlist activation conditions from D-028 become one part of playlist eligibility rather than a separate competing mechanism.
+- Playlist-level and entry-level eligibility must be distinct from scene-owned guards, which the scene evaluates independently.
+- Playlist activation conditions from D-028 become part of playlist-level or playlist-entry eligibility, as appropriate.
 - Exact schemas, shared condition references, fallback precedence, client/server responsibilities, and tests remain to be defined before implementation.
 
 ## References

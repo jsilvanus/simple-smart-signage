@@ -20,7 +20,7 @@ This is the top-level implementation roadmap. Detailed specifications belong in 
 - [ ] Define screen/group assignment and device permissions.
 - [ ] Define SSE events, event IDs, reconnect, and reconciliation.
 - [ ] Define heartbeat payload and online/offline thresholds.
-- [ ] Define the content model: playlists, playlist items, scenes, scene revisions, scene timelines, scene time guards, display assignments, screen groups, conditional playlist activation, and special-broadcast compositions.
+- [ ] Define the content model: playlists, playlist items, scenes, scene revisions, scene timelines, scene and playlist display-eligibility policies, element-level scene guards, display assignments, screen groups, shared condition evaluation, and special-broadcast compositions.
 - [ ] Define reusable, versioned templates as scene starting points with placeholder values and structured content schemas.
 - [ ] Define display-target schema: hosted URL, packaged web bundle, and media.
 - [ ] Define scene authoring workspace, UUID proxy routing, source editing, preview, build, publishing, and artifact contracts.
@@ -104,13 +104,14 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Implement playlist resources and MCP tools to discover/edit playlists, manage ordered items and playback policies, assign playlists to screens/groups, push desired configuration, and inspect synchronization/health.
 - [ ] Define special-broadcast composition schema, initial PiP/vertical-split/horizontal-split layouts, activation/expiry/priority rules, audio focus, device capability negotiation, and fallback behavior.
 - [ ] Implement display-client multi-region composition so a secondary broadcast can play alongside the base playlist without resetting its playback position; support start/stop/status for displays and screen groups.
-- [ ] Define condition/connector schemas and supported predicates for conditional playlist activation, including YouTube Live state and mapped JSON values/URLs.
+- [ ] Define reusable condition/connector schemas and supported predicates for scene and playlist eligibility, assignments, and special broadcasts, including YouTube Live state and mapped JSON values/URLs.
+- [ ] Define shared time-window semantics, AND/OR composition, timezone/DST behavior, and explicit unknown/error/stale-result policies for eligibility.
 - [ ] Add `varfetch` as a server runtime dependency when the application package manifest is created; configure trusted SSRF allow/deny policy and keep credentials server-side.
 - [ ] Implement server-side condition evaluation, polling/cache freshness, manual test/status display, audit events, and explicit unknown/error fallback behavior.
 - [ ] Implement explicit private/restricted and public/embed-enabled scene access policies.
 - [ ] Publish versioned bundles for cacheable/offline display playback.
 - [ ] Create playlists and playlist items, including playback policies and transitions.
-- [ ] Configure scene-owned time guards and evaluate scene eligibility during playback.
+- [ ] Configure scene and playlist display-eligibility policies; evaluate eligibility during playlist selection and playback, including safe fallback when all playlist items or assignments are ineligible.
 - [ ] Create schedules and assignments for screens and screen groups.
 - [ ] Track content revisions and client sync status.
 - [ ] Provide explicit origin/capability controls for web apps.

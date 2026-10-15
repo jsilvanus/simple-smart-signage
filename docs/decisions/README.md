@@ -284,5 +284,5 @@ Keep this index updated when a decision is accepted or superseded.
 
 - **Status:** Accepted architectural direction; exact schema and selection semantics remain to be specified
 - **Date:** 2026-10-15
-- **Decision:** A screen or screen group has an assignment queue that selects a programme. A programme can be a conditional, explicitly ordered sequence of reusable playlists; each playlist entry has eligibility rules and a sort order. Playlist eligibility and order are separate. Scene guards remain independently handled by the scene.
+- **Decision:** A screen or screen group has a 24-hour assignment schedule; uncovered time is off time unless explicitly configured otherwise. A programme can be a conditional, explicitly ordered sequence of reusable playlists. Playlist entries can have time/condition eligibility and either loop continuously or run a finite number of times; reaching the limit exhausts the entry for the current scheduled occurrence. Scene guards remain independently handled by the scene.
 - **Reference:** [Assignment queues](D-031-playlist-composition.md) · [Content and playback model](../content-model.md)

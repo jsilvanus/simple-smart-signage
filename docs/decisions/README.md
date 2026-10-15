@@ -280,9 +280,9 @@ Keep this index updated when a decision is accepted or superseded.
 - **Reference:** [Decision details](D-030-scene-and-playlist-eligibility.md) · [Content and playback model](../content-model.md)
 
 
-### D-031 — Playlist composition and nested playlists
+### D-031 — Screen and screen-group assignment queues
 
-- **Status:** Accepted architectural direction; exact schemas and playback semantics remain to be specified
+- **Status:** Accepted architectural direction; exact schema and selection semantics remain to be specified
 - **Date:** 2026-10-15
-- **Decision:** Playlists can contain typed scene entries and child-playlist entries. Time/condition eligibility can apply to the playlist as a whole and to each entry. Scene entries are selected by playlist rules while scenes independently handle their own internal guards. Parent playlists explicitly choose sequential or conditional-selection composition modes.
-- **Reference:** [Playlist composition](D-031-playlist-composition.md) · [Content and playback model](../content-model.md)
+- **Decision:** A screen or screen group has an assignment queue of candidate playlists with time/condition eligibility, priority, and fallback behavior. No playlist-of-playlists content type is needed; playlists remain reusable sequences of scene entries. Scene guards remain independently handled by the scene.
+- **Reference:** [Assignment queues](D-031-playlist-composition.md) · [Content and playback model](../content-model.md)

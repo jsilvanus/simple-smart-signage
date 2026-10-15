@@ -206,7 +206,7 @@ Scene editing, editorial review, publication, playlist editing, screen/group ass
 
 The Vite dev server is the live authoring and preview mechanism. It is not the permanent production runtime for signage devices.
 
-Publishing builds the scene into a versioned, immutable delivery artifact—initially a static web bundle plus a manifest. The publisher validates references, records exact asset versions/hashes, and checks that required resources are available. Published revisions remain immutable if a source asset is later updated. The display runtime downloads and verifies the artifact before activation, and retains its last known-good revision if preparation fails.
+Publishing builds the scene into a versioned, immutable delivery artifact: a static web bundle plus a dependency manifest. The bundle contains the built scene application, not the payloads of managed media assets. The manifest records exact managed-asset versions/hashes and distinguishes required from optional dependencies. External URLs, if allowed, are declared separately and are not treated as immutable managed assets. The publisher validates references and confirms that required resources are available. Published revisions remain immutable if a source asset is later updated. On delivery, the client downloads and validates the bundle first, then downloads any missing required asset versions, reusing verified cached versions where possible. It activates only after the bundle and all required dependencies are verified and ready; otherwise it retains its last-known-good revision.
 
 The published build is served by SiSSi at a stable scene URL based on the scene UUID. This production URL is separate from the development preview URL. A scene can be published with one of two access policies:
 

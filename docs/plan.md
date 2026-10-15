@@ -20,7 +20,7 @@ This is the top-level implementation roadmap. Detailed specifications belong in 
 - [ ] Define screen/group assignment and device permissions.
 - [ ] Define SSE events, event IDs, reconnect, and reconciliation.
 - [ ] Define heartbeat payload and online/offline thresholds.
-- [ ] Define the content model: playlists, playlist items, scenes, scene revisions, scene timelines, scene time guards, and display assignments.
+- [ ] Define the content model: playlists, playlist items, scenes, scene revisions, scene timelines, scene time guards, display assignments, screen groups, and conditional playlist activation.
 - [ ] Define reusable, versioned templates as scene starting points with placeholder values and structured content schemas.
 - [ ] Define display-target schema: hosted URL, packaged web bundle, and media.
 - [ ] Define scene authoring workspace, UUID proxy routing, source editing, preview, build, publishing, and artifact contracts.
@@ -30,7 +30,7 @@ This is the top-level implementation roadmap. Detailed specifications belong in 
 - [ ] Define authentication boundaries for authoring, preview, device APIs, assets, and embedded scenes.
 - [ ] Define app origin policy and explicit capabilities, including optional camera access.
 
-Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime.md) · [Content and playback model](content-model.md) · [Content creation system](creation-system.md) · [Design systems](design-systems.md) · [Reusable templates](decisions/D-024-reusable-templates.md) · [Asset library and provenance](asset-library.md) · [Decision register](decisions/README.md)
+Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime.md) · [Content and playback model](content-model.md) · [Content creation system](creation-system.md) · [Design systems](design-systems.md) · [Reusable templates](decisions/D-024-reusable-templates.md) · [Conditional playlist activation](decisions/D-028-conditional-playlist-activation.md) · [Asset library and provenance](asset-library.md) · [Decision register](decisions/README.md)
 
 ## Phase 2 — Server foundation
 
@@ -102,6 +102,9 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Build, validate, and publish immutable scene revisions at stable UUID-based SiSSi URLs.
 - [ ] Implement permissioned MCP publication/deployment operations with review gates, target preview/confirmation, immutable revision pinning, idempotent rollout, per-client status, and safe rollback.
 - [ ] Implement playlist resources and MCP tools to discover/edit playlists, manage ordered items and playback policies, assign playlists to screens/groups, push desired configuration, and inspect synchronization/health.
+- [ ] Define condition/connector schemas and supported predicates for conditional playlist activation, including YouTube Live state and mapped JSON values/URLs.
+- [ ] Add `varfetch` as a server runtime dependency when the application package manifest is created; configure trusted SSRF allow/deny policy and keep credentials server-side.
+- [ ] Implement server-side condition evaluation, polling/cache freshness, manual test/status display, audit events, and explicit unknown/error fallback behavior.
 - [ ] Implement explicit private/restricted and public/embed-enabled scene access policies.
 - [ ] Publish versioned bundles for cacheable/offline display playback.
 - [ ] Create playlists and playlist items, including playback policies and transitions.

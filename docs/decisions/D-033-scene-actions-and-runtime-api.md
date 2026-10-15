@@ -9,9 +9,16 @@ Scenes are reusable content, while layouts compose scenes and playback concepts 
 
 ## Decision
 
-Each scene definition may declare a versioned list of callable actions and the permissions/capabilities it requires. At runtime, the scene receives only the API surface declared and granted for that scene. The declaration is a contract for validation, documentation and authorization; it is not permission by itself.
+**Scene editing is where the author chooses which actions that particular scene can invoke.** The editor presents a discoverable action catalogue containing built-in runtime actions and actions registered by installed/configured plugins. The author adds the needed actions to the scene definition, configures their allowed parameters where applicable, and sees each action's description, required capabilities and permission status.
 
-The host player and server-side dispatcher retain control of execution. Scene code requests an action; SiSSi validates the request, current playback context, parameters, capability availability and effective permissions before performing it. A scene cannot directly mutate playlists, choose arbitrary resources, access credentials, or call arbitrary plugins/endpoints.
+The catalogue and scene declaration have different jobs:
+
+- The **action registry** defines which actions exist, their stable identifiers and versions, parameter/result schemas, provider, capability requirements, and execution contract. Built-in actions are supplied by SiSSi; plugins register additional actions through a controlled manifest/registration process.
+- The **scene definition** declares the subset of those actions that the scene is designed to call, plus any scene-level parameter configuration. The editor must not let authors invent arbitrary API endpoints or executable server functions.
+- **Tenant/display permissions and integration configuration** determine whether the declared action is actually authorized and available in a given context. Selecting an action in the editor is not itself a grant of permission.
+- The **runtime dispatcher** validates and executes calls using the registry contract and effective permissions.
+
+At runtime, the scene receives only its declared API surface. The host player and server-side dispatcher retain control of execution. Scene code requests an action; SiSSi validates the caller, current playback context, parameters, capability availability and effective permissions before performing it. A scene cannot directly mutate playlists, choose arbitrary resources, access credentials, or call arbitrary plugins/endpoints.
 
 ## Built-in lifecycle and playback requests
 
@@ -38,7 +45,7 @@ Plugins may register named, versioned action definitions, for example `lighting.
 - Expected errors and whether the action can run on a client, server or external service
 - Audit and privacy requirements
 
-A scene may declare and request only registered actions. A tenant administrator must grant the required permissions and configure the relevant integration/resource. For example, a scene may request a lighting preset that turns supported lights down; the plugin resolves the configured lighting system and checks the caller's authority. The scene never receives the lighting API credential. Unknown, ungranted, unsupported or invalid actions fail closed with a structured result.
+The scene editor lets an author select and configure only registered actions. A tenant administrator must grant the required permissions and configure the relevant integration/resource. For example, a scene may request a lighting preset that turns supported lights down; the plugin resolves the configured lighting system and checks the caller's authority. The scene never receives the lighting API credential. Unknown, ungranted, unsupported or invalid actions fail closed with a structured result.
 
 ## Execution contract
 

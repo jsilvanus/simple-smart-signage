@@ -20,7 +20,7 @@ This is the top-level implementation roadmap. Detailed specifications belong in 
 - [ ] Define screen/group assignment and device permissions.
 - [ ] Define SSE events, event IDs, reconnect, and reconciliation.
 - [ ] Define heartbeat payload and online/offline thresholds.
-- [ ] Define the content model: playlists, playlist items, scenes, scene revisions, scene timelines, playlist-level and playlist-entry eligibility, screen/group assignment queues, scene-owned guards, shared condition evaluation, and special-broadcast overlay/replacement modes.
+- [ ] Define the content model: playlists, playlist items, scenes, scene revisions, scene timelines, playlist-level and playlist-entry eligibility, 24-hour screen/group assignment schedules with off-time gaps, conditional playlist sequences, playlist time windows and finite/loop run policies, scene-owned guards, shared condition evaluation, and special-broadcast overlay/replacement modes.
 - [ ] Define reusable, versioned templates as scene starting points with placeholder values and structured content schemas.
 - [ ] Define display-target schema: hosted URL, packaged web bundle, and media.
 - [ ] Define scene authoring workspace, UUID proxy routing, source editing, preview, build, publishing, and artifact contracts.
@@ -105,7 +105,7 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Define special-broadcast composition schema, initial PiP/vertical-split/horizontal-split layouts, activation/expiry/priority rules, audio focus, device capability negotiation, and fallback behavior.
 - [ ] Implement display-client multi-region composition so a secondary broadcast can play alongside the base playlist without resetting its playback position; support start/stop/status for displays and screen groups.
 - [ ] Define reusable condition/connector schemas and supported predicates for playlist-level and playlist-entry eligibility, assignments, and special broadcasts, including YouTube Live state and mapped JSON values/URLs.
-- [ ] Define screen/group assignment-queue selection, assignment priority and precedence, condition/time evaluation, per-screen overrides, and no-eligible-assignment fallback.
+- [ ] Define 24-hour screen/group assignment schedules, off-time gaps, conditional playlist-sequence ordering, playlist time windows and loop/finite run limits, count reset semantics, assignment priority/precedence, condition evaluation, and per-screen overrides.
 - [ ] Define shared time-window semantics, AND/OR composition, timezone/DST behavior, and explicit unknown/error/stale-result policies for eligibility.
 - [ ] Add `varfetch` as a server runtime dependency when the application package manifest is created; configure trusted SSRF allow/deny policy and keep credentials server-side.
 - [ ] Implement server-side condition evaluation, polling/cache freshness, manual test/status display, audit events, and explicit unknown/error fallback behavior.

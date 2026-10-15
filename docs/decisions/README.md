@@ -48,6 +48,16 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Camera note:** Browser-based webcam access and local person detection may be possible, but are not guaranteed. Camera access is an explicit capability and must be tested on each target platform and hardware combination. Arbitrary web apps receive no camera permission by default.
 - **Reference:** [Display runtime](../display-runtime.md)
 
+### D-013 — No identity recording or image-to-person-data linking
+
+- **Status:** Accepted
+- **Date:** 2026-10-15
+- **Decision:** SiSSi must never identify or attempt to recognise people through its camera capabilities, record their identities, or link camera images, frames, or camera-derived observations to a person's identity or other personal data.
+- **Prohibited:** Face recognition; face templates or embeddings used to recognise or track people; persistent person tracking; storing or transmitting camera images/video; and joining camera-derived data with names, accounts, device identifiers, attendance records, religious-affiliation data, or other personal records.
+- **Permitted boundary:** If an approved use case needs camera input, processing must be transient and on-device. It may produce only the minimum non-identifying signal needed for the immediate function (for example, a temporary presence trigger to select a family-event slide). Do not retain raw frames or create person-level histories. Any aggregate output must be designed so it cannot reasonably be used to identify or single out a person.
+- **Implementation requirement:** This is a product-level constraint, not a setting that an administrator or displayed web app may override. Camera access remains optional, off by default, separately authorised, and subject to applicable law and transparent notice.
+- **Reference:** [Privacy and camera boundaries](../privacy-and-camera.md)
+
 ## Proposed / to decide
 
 ### D-007 — Server stack and deployment
@@ -82,7 +92,7 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 
 ## Adding decisions
 
-For a substantial architecture choice, add a file such as `D-013-short-title.md` with:
+For a substantial architecture choice, add a file such as `D-014-short-title.md` with:
 
 - Status and date
 - Context

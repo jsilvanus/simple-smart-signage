@@ -43,7 +43,12 @@ Before claiming webcam support on a platform, test the actual hardware, browser 
 - A displayed app must not receive device-enrollment secrets or privileged management tokens.
 - Prefer on-device processing when practical. Sending camera frames to a server is a separate, higher-risk capability requiring explicit design, access controls, retention rules, and privacy review.
 - Person detection should return only the minimum data required for the use case. Avoid retaining or transmitting images by default.
+- **Binding privacy constraint:** SiSSi must never identify or attempt to recognise people through cameras, record identities, or link camera images, frames, or camera-derived observations to identity or other personal data. Do not use face recognition, identity-oriented face templates/embeddings, persistent person tracking, stored/transmitted camera footage, or joins to names, accounts, device identifiers, attendance, religious-affiliation data, or other personal records.
+- If camera input is approved for a use case, process it transiently on-device and discard frames immediately after processing. The output may only be a minimal non-identifying signal needed for the immediate function, such as a temporary presence trigger. Do not create person-level histories; aggregate outputs must not reasonably enable identification or singling out.
+- This constraint is a product-level rule, not a configurable permission. An administrator or displayed web app cannot override it.
 - Treat packaged web bundles as executable code: only authorised administrators may publish/assign them; validate bundle integrity and use a controlled update process.
+
+See [Privacy and camera boundaries](privacy-and-camera.md) for the binding privacy decision.
 
 ## Platform notes
 

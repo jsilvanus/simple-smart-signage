@@ -1,38 +1,39 @@
-# D-031 — Playlist composition and nested playlists
+# D-031 — Screen and screen-group assignment queues
 
-- **Status:** Accepted architectural direction; exact schemas and playback semantics remain to be specified
+- **Status:** Accepted architectural direction; exact schema and selection semantics remain to be specified
 - **Date:** 2026-10-15
 
 ## Context
 
-SiSSi needs reusable playlists that can be composed into higher-level programmes. A church may have separate playlists for announcements, worship, events, and livestreams, then define a programme that selects or sequences those playlists according to time and conditions. Copying their scene entries into a new playlist would duplicate content and make maintenance harder.
+SiSSi needs to choose which reusable playlist should run on a screen or screen group based on schedules, conditions, priority, and fallback behavior. A separate playlist-of-playlists content type would duplicate responsibilities that naturally belong to the target's playlist assignments.
 
 ## Decision
 
-Support a **playlist of playlists** as a first-class composition. A playlist may contain scene entries and/or child-playlist entries, with the item type explicit. Child playlists remain independently managed and reusable; composition does not copy or mutate their contents.
+A **screen or screen group has an assignment queue** of candidate playlist assignments. There is no separate playlist-of-playlists content type in this model.
 
-- A scene entry may have its own time window and condition policy. If it is ineligible, the player skips it and considers the next eligible entry. The referenced scene retains its own internal guards, which it handles independently.
-- A child-playlist entry may have its own time window and condition policy controlling whether that child playlist is eligible for selection within its parent.
-- A playlist may also define eligibility conditions for the playlist as a whole. This is distinct from eligibility on any one of its entries.
-- Parent composition modes must be explicit. At minimum, support sequential sequencing of child playlists and conditional selection among eligible child playlists. Do not infer the mode from entry order.
-- Define behavior for nested composition, loops/cycles, empty child playlists, no eligible entries, child completion/return, and whether child playback resumes or restarts when selected again. Prevent cycles or detect and reject them at validation time.
-- Keep display assignment/scheduling distinct from playlist composition and from item-level eligibility. The same playlist can be reused in multiple parent programmes and assigned to different screen groups.
+- A playlist remains a reusable, ordered sequence of scene entries.
+- Each scene entry can have its own time window and condition policy; ineligible entries are skipped. The scene itself independently handles its internal guards.
+- Each playlist assignment in a screen/group queue can have time windows, conditions, priority, and explicit selection/fallback behavior.
+- The queue selects which eligible playlist is active for the target. It does not copy, merge, or mutate playlists.
+- Screen groups are reusable targets. Per-screen assignments may override or refine group assignments according to explicit precedence rules.
+- Playlist-level eligibility and assignment-level eligibility are distinct: the assignment says whether this playlist is a candidate for this target now; the playlist's own policy says whether the playlist itself may run.
 
-## Evaluation
+## Evaluation and behavior
 
-- Evaluate time windows and external conditions server-side where they require connectors; clients receive resolved playback configuration, not secrets (see [D-028](D-028-conditional-playlist-activation.md)).
-- Define explicit AND/OR rule composition, time-zone and daylight-saving behavior, freshness, and unknown/error handling.
-- Make selection deterministic and observable: status should explain why an entry or child playlist was selected, skipped, or unavailable.
-- Eligibility must not be confused with authorization. Access and publication permissions remain independently enforced.
+- Selection among multiple eligible assignments must be deterministic and observable, with reasons for selection and rejection.
+- Define explicit behavior when multiple assignments match, none match, condition results are unknown/stale/errors, or the selected playlist becomes ineligible while playing.
+- Preserve current playback state only where the applicable switching/override policy says to do so; ordinary playlist switching and special-broadcast interruption have distinct semantics.
+- Evaluate external API conditions server-side; display clients receive resolved state, not credentials.
+- Enforce tenant and display permissions independently of eligibility.
 
 ## Consequences
 
-The content model must distinguish playlist-level eligibility from per-entry eligibility and from playlist composition mode. Scene guards remain entirely scene-owned runtime behavior and are not duplicated as playlist eligibility rules.
+The content model, APIs, and editor should expose assignment queues as a screen/group programming concept, not as nested playlists. A playlist is authored and maintained once and can be referenced from many queues.
 
 ## References
 
 - [Content and playback model](../content-model.md)
 - [Conditional playlist activation](D-028-conditional-playlist-activation.md)
-- [Shared scene and playlist eligibility](D-030-scene-and-playlist-eligibility.md)
+- [Shared playlist and entry eligibility](D-030-scene-and-playlist-eligibility.md)
 
 This decision records the intended model, not an implemented feature.

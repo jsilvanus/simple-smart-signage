@@ -21,6 +21,7 @@ This is the top-level implementation roadmap. Detailed specifications belong in 
 - [ ] Define SSE events, event IDs, reconnect, and reconciliation.
 - [ ] Define heartbeat payload and online/offline thresholds.
 - [ ] Define the scene-first content model: reusable scene and layout concepts (layouts group scenes and support user-defined free split); scene lifecycle API and end-of-scene policies; separate playback concepts (playlists, programmes, assignments, schedules, eligibility, run policies, shared conditions, concurrent playlist playback, and special-broadcast overrides).
+- [ ] Define the scene action declaration schema, built-in lifecycle/navigation requests, host-owned lifecycle events, plugin action registry and manifests, capability grants, structured results, timeouts, idempotency, audit, and failure behavior.
 - [ ] Define reusable, versioned templates as scene starting points with placeholder values and structured content schemas.
 - [ ] Define display-target schema: hosted URL, packaged web bundle, and media.
 - [ ] Define scene authoring workspace, UUID proxy routing, source editing, preview, build, publishing, and artifact contracts.

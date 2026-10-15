@@ -72,11 +72,12 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 
 - **Status:** Accepted
 - **Date:** 2026-10-15
-- **Decision:** Content creation starts from reusable uploaded assets (initially images, PDFs, and MP4 video), AI-authored frontend scenes, and artifacts or data imported from MCP-connected tools. AI-generated frontend code follows a versioned SiSSi design system and scene contract.
-- **Authoring runtime:** Each scene has an isolated Vite development workspace, started with `npm run dev` and exposed through a UUID-addressed reverse proxy for live editing and preview. The UUID is a routing identifier, not an authentication secret.
-- **Publishing boundary:** A Vite dev server is the authoring/preview environment, not by default the permanent display runtime. Publishing creates an immutable scene revision and a versioned delivery artifact, initially a static web bundle plus manifest. Hosted production scenes may be considered separately; a transient authoring URL must not be published as if it were a stable production URL.
-- **Security requirements:** Authoring workspaces must be isolated and access-controlled. Uploaded files, MCP output, and generated code are untrusted until validated. Server secrets, MCP credentials, and device-management credentials must never be exposed to scene frontend code or display clients.
-- **Rationale:** Gives creators a flexible AI-assisted frontend authoring workflow while retaining predictable, cacheable, reviewable display releases.
+- **Decision:** Content creation starts from reusable uploaded assets (initially images, PDFs, and MP4 video), AI-authored frontend scenes, manually edited source code, and artifacts or data imported from MCP-connected tools. AI-generated frontend code follows a versioned SiSSi design system and scene contract.
+- **Source contract:** The default AI-editable scene consists of `index.html`, `style.css`, and `script.js`, with uploaded/generated assets managed separately. A scene may contain multiple logical pages or views, with navigation handled inside the scene. Advanced multi-file scenes may be defined separately.
+- **Authoring runtime:** Vite runs on the SiSSi server in an isolated per-scene workspace, started with `npm run dev` and exposed through an authenticated UUID-addressed reverse proxy for live preview. Signage clients never run the development server.
+- **Publishing and URL:** Publishing builds an immutable scene revision and serves it from a stable SiSSi URL based on the scene UUID. Access policy is explicitly private/restricted or public/embed-enabled. A versioned bundle is also the basis for reliable cacheable display delivery. A transient authoring URL is never a production scene URL.
+- **Security requirements:** Authoring workspaces must be isolated and access-controlled. Uploaded files, MCP output, and generated code are untrusted until validated. Server secrets, MCP credentials, and device-management credentials must never be exposed to scene frontend code or display clients. Private access should not rely on UUID obscurity or long-lived bearer tokens in URLs.
+- **Rationale:** Gives creators a flexible AI-assisted frontend authoring workflow while retaining predictable, cacheable, reviewable display releases and optional public embedding.
 - **Reference:** [Content creation and authoring](../creation-system.md) · [Content and playback model](../content-model.md)
 
 ## Proposed / to decide

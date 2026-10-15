@@ -12,8 +12,9 @@ Display assignment / schedule
     ├── Playlist item ──> Scene revision
     ├── Playlist item ──> Scene revision
     └── Playlist item ──> Scene revision
-                             ├── Frontend presentation
+                             ├── HTML / CSS / JavaScript presentation
                              ├── Referenced media assets
+                             ├── Logical pages / views
                              ├── Internal presentation timeline
                              └── Scene-owned time guards
 ```
@@ -28,7 +29,9 @@ A playlist item references a scene and defines how that scene is used in this pl
 
 ### Scene and scene revision
 
-A scene is a reusable unit of presentation content. It is created in SiSSi's AI-assisted frontend authoring environment and may combine uploaded assets, MCP-created artifacts or data, and custom frontend code using the SiSSi design system. A scene can be a static layout, animated presentation, data-driven page, video composition, or other supported presentation behavior.
+A scene is a reusable unit of presentation content. It is created in SiSSi's AI-assisted frontend authoring environment and may combine uploaded assets, MCP-created artifacts or data, and custom frontend code using the SiSSi design system. A scene can be a static layout, animated presentation, data-driven page, video composition, or other supported presentation behavior. One scene may contain multiple logical pages or views.
+
+The default AI-editable source contract consists of `index.html`, `style.css`, and `script.js`. Assets are managed separately. Navigation among logical pages in a scene belongs to the scene's own frontend, not to the playlist. An advanced multi-file scene mode may be defined separately.
 
 A scene revision identifies an immutable version of its frontend, presentation definition, design-system/runtime contract, and references to versioned assets. Content identity is separate from where and when it is used.
 
@@ -67,9 +70,9 @@ A schedule/assignment determines which playlist is active on a display or displa
 
 ## Authoring and delivery
 
-The authoring environment uses an isolated Vite development server per scene workspace, started with `npm run dev` and exposed through a UUID-addressed reverse proxy. This URL is for authenticated editing and live preview, not a permanent production address.
+The authoring environment uses an isolated Vite development server on the SiSSi server, started with `npm run dev` and exposed through an authenticated UUID-addressed reverse proxy. It is for editing and live preview; signage clients do not run Vite.
 
-Publishing creates an immutable scene revision and a versioned delivery artifact, initially a static web bundle plus a manifest. The authoring and publishing contract is specified in [Content creation and authoring](creation-system.md).
+Publishing builds an immutable scene revision and serves it from a stable SiSSi URL based on the scene UUID, with an explicit private/restricted or public/embed-enabled access policy. A versioned bundle is also the preferred basis for verified, cacheable offline playback. The authoring and publishing contract is specified in [Content creation and authoring](creation-system.md).
 
 Hosted URL and bundle scenes should share a defined display lifecycle contract: prepare, ready, start, stop, and optionally completion. A bundle should be downloaded and verified before activation and should support offline playback to the extent that its declared dependencies permit. Failed downloads or preparation must not displace the last known-good content.
 

@@ -22,8 +22,10 @@ This is the top-level implementation roadmap. Detailed specifications belong in 
 - [ ] Define heartbeat payload and online/offline thresholds.
 - [ ] Define the content model: playlists, playlist items, scenes, scene revisions, scene timelines, scene time guards, and display assignments.
 - [ ] Define display-target schema: hosted URL, packaged web bundle, and media.
-- [ ] Define scene authoring workspace, UUID proxy routing, preview access, publishing, and artifact contracts.
+- [ ] Define scene authoring workspace, UUID proxy routing, source editing, preview, build, publishing, and artifact contracts.
+- [ ] Define the default three-file source contract and multiple logical pages within a scene.
 - [ ] Define asset identity/versioning and MCP artifact import validation.
+- [ ] Define private scene access and public embedding policy.
 - [ ] Define app origin policy and explicit capabilities, including optional camera access.
 
 Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime.md) · [Content and playback model](content-model.md) · [Content creation system](creation-system.md) · [Decision register](decisions/README.md)
@@ -37,7 +39,7 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Implement per-device credential issuance, revocation, and audit events.
 - [ ] Implement authenticated handshake, configuration, SSE, and heartbeat endpoints.
 - [ ] Implement authorised web-app assignment and versioned bundle metadata.
-- [ ] Define isolated authoring-workspace process and reverse-proxy management.
+- [ ] Define isolated authoring-workspace process, Vite lifecycle, and reverse-proxy management.
 
 ## Phase 3 — First display client
 
@@ -56,11 +58,15 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 
 - [ ] Manage reusable uploaded assets, initially images, PDFs, and MP4 video.
 - [ ] Define supported upload types, size limits, storage, validation, and asset versioning.
-- [ ] Implement per-scene Vite authoring workspace using `npm run dev`.
+- [ ] Implement per-scene Vite authoring workspace on the SiSSi server using `npm run dev`.
 - [ ] Expose each workspace through an authenticated UUID-addressed reverse proxy.
-- [ ] Integrate AI-assisted scene creation and editing using the SiSSi design system.
+- [ ] Build the authoring view with live preview, HTML/CSS/JavaScript editors, and MCP/AI action log.
+- [ ] Integrate AI-assisted scene creation and editing using the SiSSi design system and three-file source contract.
+- [ ] Support multiple logical pages/views within a scene.
 - [ ] Import and validate artifacts/data produced by MCP-connected tools.
-- [ ] Preview, validate, and publish immutable scene revisions as versioned bundles.
+- [ ] Build, validate, and publish immutable scene revisions at stable UUID-based SiSSi URLs.
+- [ ] Implement explicit private/restricted and public/embed-enabled scene access policies.
+- [ ] Publish versioned bundles for cacheable/offline display playback.
 - [ ] Create playlists and playlist items, including playback policies and transitions.
 - [ ] Configure scene-owned time guards and evaluate scene eligibility during playback.
 - [ ] Create schedules and assignments for screens and screen groups.
@@ -76,6 +82,7 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Test cold boot, scheduled TV power, and app auto-start on actual hardware.
 - [ ] Test packaged-app offline behaviour and rollback.
 - [ ] Test workspace isolation, resource limits, proxy authorisation, and cleanup.
+- [ ] Test public embedding restrictions and private-scene access revocation.
 - [ ] Document installation, upgrades, recovery, and operator procedures.
 
 ## Phase 6 — Additional platforms and release

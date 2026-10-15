@@ -36,10 +36,10 @@ The UUID is a routing identifier, not an access credential. Authoring URLs must 
 
 The delivery order is deliberate:
 
-1. **MVP — native media scenes:** directly display a managed image, PDF, or video using the built-in display runtime. These are structured scene definitions with asset references and type-specific settings; they do not require a scene-specific HTML/CSS/JavaScript application, bundle build, or Node/Vite workspace.
+1. **MVP — native media scenes:** directly display a managed image or video using the built-in display runtime. PDF is not in the native-media MVP and may be considered later. These are structured scene definitions with asset references and type-specific settings; they do not require a scene-specific HTML/CSS/JavaScript application, bundle build, or Node/Vite workspace.
 2. **Immediately afterward — AI-authored web scenes:** add custom compositions, layouts, overlays, and interactions through AI-authored or manually edited frontend scenes, with live preview, isolated authoring workspaces, validation/build, review, and publication.
 
-Both remain reusable scenes in the same scene/playback model. Keep native media types deliberately narrow rather than building a general-purpose native composition system. For compositions such as text over an image or a title over a video, start from a suitable template that creates a normal AI-editable web scene. In the basic use case, the creator describes the desired result and supplies/selects content; AI writes and maintains the code, while the creator reviews the preview. Templates may expose structured content fields for routine edits without requiring code regeneration. The native-media MVP must not be blocked by the full web-scene authoring system.
+Both remain reusable scenes in the same scene/playback model. Keep native media types deliberately narrow rather than building a general-purpose native composition system. For compositions such as text over an image or a title over a video, start from a suitable template that creates a normal AI-editable web scene. In the basic use case, the creator describes the desired result and supplies/selects content; AI writes and maintains the code, while the creator reviews the preview. A template is a complex scene whose AI or human coder has deliberately exposed structured inputs (for example, heading text, date, liturgical colour, or animation colour). It is not a separate renderer or necessarily a fixed layout. The coding agent should expose useful human-editable inputs wherever practical. Humans can edit the full HTML/CSS/JavaScript scene at any time; structured editing is the convenient path for common changes, not a restriction on full editing. The native-media MVP must not be blocked by the full web-scene authoring system.
 
 ## Preview execution lifecycle
 
@@ -250,3 +250,17 @@ Authentication must be appropriate to the kind of request; “put the credential
 - **Public embedding:** it must be explicitly enabled and expose only public content and capabilities. Configure CSP frame-ancestors, origin/cross-origin behavior, and data permissions deliberately; an obscure UUID URL is not access control.
 
 Published scene code should be isolated from the SiSSi management application's origin and privileges wherever practical. Apply a restrictive Content Security Policy and sandboxing appropriate to the supported scene features. Never expose server, MCP, AI-provider, or device-management secrets to scene frontend code.
+
+
+## API connectors and scene variables
+
+SiSSi uses tenant-level API connectors for external data. Connector configuration includes the base URL, authentication and headers, configured requests, and response mappings to named variables. Credentials and privileged outbound requests remain server-side. Reuse the existing `varfetch` core and adapt the connector model from [live-captions-yt](https://github.com/jsilvanus/live-captions-yt/blob/main/docs/plans/plan_api_connectors_variables.md) to SiSSi's tenant and resource-permission model; see also [varfetch](https://github.com/jsilvanus/varfetch).
+
+- Standard interpolation syntax is `{{var}}`; namespaced connector variables use `{{connector.variable}}`.
+- The additional `[alias]` reference form is supported; define its exact resolution semantics in the variable-reference contract.
+- Authoring recognises variable references as a creator types them and can offer variables exposed by configured connectors.
+- Variable discovery/configuration is separate from fetching a value. Each use specifies **creation-time**, **build-time**, or **runtime** resolution. Writing a variable reference never triggers a fetch by itself.
+- Creation-time values can be incorporated into authored content; build-time values are resolved during publication/build; runtime values are fetched through an explicit host-mediated action or runtime policy. Scene code must not receive connector credentials.
+- Variables can be used both in ordinary scene source and as structured inputs exposed in the Content editor. AI and human coders should make useful content values editable without preventing full source editing.
+
+Exact alias behaviour, variable type metadata, cache/fallback rules, runtime refresh policies, and failure presentation remain to be specified.

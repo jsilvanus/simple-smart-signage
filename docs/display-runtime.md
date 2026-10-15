@@ -11,10 +11,10 @@ The display target assigned to a device may be one of:
 
 1. **Hosted web app** — load an assigned HTTPS URL, such as an application built with Vite.
 2. **Packaged web app** — download a versioned static web bundle, verify it, cache it locally, and display its entry page.
-3. **Native SiSSi layout** — render structured layouts and standard widgets using a built-in renderer.
-4. **Media** — display images and video using a managed player.
+3. **Native media scene** — display one managed image, video, or PDF with type-specific playback settings using the built-in runtime.
+4. **Packaged web scene** — run a published web scene bundle for custom compositions, overlays, layouts, and interactions.
 
-The initial implementation should prioritise the full-screen web runtime. Native layouts and media can be added as complementary display types without changing the device-management architecture.
+The initial delivery should start with the narrow native media scene types, followed by the full-screen web runtime for custom compositions. Keep native media rendering separate from general web-scene composition; templates create ordinary AI-editable web scenes when creators need overlays or richer layouts. Both use the same scene, publication, playlist, and playback model.
 
 ## Hosted and packaged web apps
 

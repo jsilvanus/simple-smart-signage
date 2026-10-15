@@ -113,15 +113,17 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Rationale:** Allows convenient library updates without unexpected changes to other scenes or displays, while retaining deterministic published playback.
 - **Reference:** [Asset library and provenance](../asset-library.md) · [Content creation and authoring](../creation-system.md)
 
-### D-020 — Viewport-aware authoring and visual text editing
+### D-020 — Viewport-aware authoring and structured content editing
 
 - **Status:** Accepted architectural direction
 - **Date:** 2026-10-15
 - **Decision:** Scene creation does not require an initial physical-screen or orientation choice. Both authoring views provide compact viewport controls for common landscape, portrait, and square profiles, plus custom dimensions. The preview renders the live scene at the selected logical viewport dimensions and aspect ratio.
 - **Final review:** Before publishing, creators can review one or more target-screen profiles and inspect automated findings such as overflow, clipping, missing assets, and runtime errors. Automated checks do not replace human visual approval. Target compatibility is distinct from device assignment.
-- **Visual text editing:** The main authoring view provides a WYSIWYG-style editor for identifiable editable text blocks, allowing typing/pasting and a constrained set of semantic formatting. The editor and the same scene source stay synchronised; the manual HTML/CSS/JavaScript view remains available for advanced editing.
-- **Safety and consistency:** This is not unrestricted editing of arbitrary rendered DOM. Pasted markup is sanitised, unsafe code and embedded objects are removed, and supported formatting follows the SiSSi design system. Non-editable, decorative, or data-driven elements may require AI or manual source editing.
-- **Rationale:** Lets non-technical creators work with text naturally while retaining responsive previews, source transparency, and predictable output across screen shapes.
+- **Main authoring layout:** Place the live preview beside one shared side panel containing both a structured Content editor and a unified Action log. A separate Manual view provides HTML/CSS/JavaScript source editing and preview; both views use the same scene workspace.
+- **AI-defined content fields:** AI may determine which meaningful fields a scene exposes, label them clearly, and group them by logical page/content area. The Content panel can edit text and structured values, switch images/media from permitted assets, choose icons/symbols/logos from supported libraries or assets, and manage suitable repeatable content groups. Changes update the preview through the scene's content model without unnecessary layout regeneration.
+- **Unified action history:** The Action log records meaningful human content edits and manual source edits as well as AI/MCP operations. Entries should identify actor/action type, affected field or source where possible, and outcome. Group ordinary typing into edit transactions rather than logging every keystroke; support inspection and undo/review where practical.
+- **Safety and consistency:** The content panel is a structured editing interface, not unrestricted editing of arbitrary rendered DOM. The content model is the shared source of truth for panel controls and preview. Pasted markup is sanitised, unsafe code and embedded objects are removed, and supported formatting follows the SiSSi design system. Asset references must obey permissions and versioning/pinning rules. Content that cannot be safely exposed remains AI/manual-source edited.
+- **Rationale:** Lets non-technical creators manage a scene's actual content—including text and visual assets—without needing to manipulate its layout, while retaining responsive previews, source transparency, and a useful history of both human and AI-assisted work.
 - **Reference:** [Content creation and authoring](../creation-system.md) · [Roadmap](../plan.md)
 
 ### D-017 — Gesture interaction and strict no-audio boundary

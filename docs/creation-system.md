@@ -52,14 +52,16 @@ Independently addressable HTML documents or a more complex multi-file applicatio
 
 ## Authoring interface
 
-The creation view should combine live preview, source editing, and an MCP/AI action log. A useful starting layout is:
+The main authoring layout has two primary areas:
 
-- **Large live preview** of the running Vite scene.
-- **Source editor panes** for HTML, CSS, and JavaScript.
-- **MCP/AI action log** showing tool actions and their results, with enough context to inspect what the assistant did.
-- **Prompt/action area** for requesting changes and reviewing proposed edits.
+- **Live preview:** a large preview of the running scene, with compact viewport controls.
+- **Shared side panel:** a panel beside the preview that contains both the scene's structured **Content** editor and a unified **Action log**. These are views within the same side panel, not separate competing panels.
 
-The UI may offer a full-screen preview mode as well as a source-focused split view. The preview and editors should stay synchronized as the source changes. Tool actions and code changes should be inspectable and reversible where practical.
+The Content view lets creators edit the meaningful content of a scene without needing to understand its layout or code. The Action log records AI/MCP operations and human edits, so the creator can understand what changed, by whom or by what mechanism, and inspect or reverse changes where practical. Human edits are first-class log entries, not invisible changes outside the AI/MCP history. Record meaningful edit transactions rather than flooding the log with every individual keystroke; consecutive typing may be grouped into one change.
+
+A separate **Manual** authoring view provides source editor panes for HTML, CSS, and JavaScript alongside the preview. The creator can move between the main preview/content workflow and manual source editing without losing work. Both views share the viewport controls and stay synchronised with the same scene workspace. A full-screen preview may also be available.
+
+The creator can request AI changes through a prompt/action area. AI/MCP actions, content edits, and source changes should be inspectable and reversible where practical. The log should distinguish the actor and action type (for example, AI change, MCP result, human content edit, or manual source edit), identify the affected content or source where possible, and communicate success or failure.
 
 ### Viewport controls and target-screen review
 
@@ -69,13 +71,25 @@ The preview must render the running scene at the selected CSS viewport dimension
 
 Before publishing, provide a target-screen review step. The creator can select one or more preview profiles, inspect each result, and review detectable issues such as overflow, clipped content, missing assets, and runtime errors. Automated checks are aids, not a guarantee of visual quality; allow the creator to review and approve the result. A scene's intended/verified compatibility is separate from assigning it to actual devices. Do not imply that a scene is suitable for every orientation just because it can be rendered there.
 
-### Visual text editing
+### Structured content panel and editable fields
 
-In the main authoring view, provide a WYSIWYG-style way to create and edit ordinary text without requiring the creator to edit HTML. The creator should be able to select an editable text region in the preview (or open it in a text-editing panel), type or paste content, and apply a small, predictable set of formatting such as headings, paragraphs, emphasis, lists, and links. The preview updates immediately. The manual source view remains available for full control.
+The Content view in the shared side panel exposes the scene's meaningful, creator-editable content. **AI may decide which fields to expose**, based on the scene's purpose and structure, and should give them clear human-readable labels and group them by logical page or content area. Creators should not have to click arbitrary text or objects on the preview to discover how to edit them.
 
-This is a structured editing affordance, not an unrestricted contenteditable layer over arbitrary scene output. AI-authored scenes should expose identifiable editable text blocks/fields where appropriate; complex decorative or data-driven elements may remain source/AI-edited. The text editor and source files must stay synchronized, and changes should be inspectable and reversible where practical. Use the SiSSi design system for typography and formatting rather than importing arbitrary pasted styling.
+Editable fields are not limited to text. Depending on the scene, they may include:
 
-Pasted content must be sanitised. Strip unsafe markup, scripts, event handlers, embedded objects, and unsupported styling; retain supported semantic text formatting where possible. The editor must not execute pasted HTML or treat it as trusted code. A creator can always switch to manual HTML/CSS/JavaScript editing for advanced cases.
+- Text fields such as titles, paragraphs, labels, dates, and links, with a constrained set of semantic formatting (headings, paragraphs, emphasis, lists, and links).
+- Image or video selections, including choosing a different item from the reusable asset library, uploading a replacement, and seeing a thumbnail/preview where practical.
+- Icons, symbols, logos, and other visual choices selected from supported libraries or approved assets.
+- Repeatable content groups such as event entries, announcements, people-free schedules, or cards, with actions to add, remove, reorder, and edit entries when appropriate.
+- Simple structured values such as dates, times, URLs, and other scene-specific data.
+
+The panel should be tailored to the scene, not a generic dump of every variable. AI-generated scenes should declare a clear content model or equivalent set of editable bindings that maps labelled controls to scene data/presentation. The model can represent text, asset references, icon/symbol identifiers, and repeatable records. It should preserve the distinction between content and presentation: changing a title, image, icon, or event entry should update the preview immediately without unnecessarily regenerating the layout or rewriting unrelated source code. If a field cannot safely or meaningfully be edited through the panel, leave it to AI-assisted or manual source editing.
+
+The same underlying content model must drive the side-panel controls and the preview; it must not become a second, conflicting source of truth. Human changes to these fields are recorded in the unified Action log as meaningful edit transactions and should support undo/review where practical. Asset selection must respect library permissions and preserve asset identity/versioning rules; published revisions continue to pin exact asset versions.
+
+This is structured content editing, not an unrestricted contenteditable layer over arbitrary scene output. Direct preview selection may be offered as a convenience, but it is not required and must not be the primary way to discover or edit content. The manual HTML/CSS/JavaScript view remains available for advanced cases.
+
+Pasted content must be sanitised. Strip unsafe markup, scripts, event handlers, embedded objects, and unsupported styling; retain supported semantic text formatting where possible. The editor must not execute pasted HTML or treat it as trusted code. Use SiSSi design-system conventions rather than importing arbitrary pasted styling. AI/MCP output, asset metadata, and user-entered URLs remain untrusted inputs and must be validated.
 
 ## Design system and scene contract
 

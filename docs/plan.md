@@ -64,10 +64,14 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] On asset update, prompt with the referencing-scene list and allow selective propagation; never mutate published revisions in place.
 - [ ] Implement per-scene Vite authoring workspace on the SiSSi server using `npm run dev`.
 - [ ] Expose each workspace through an authenticated UUID-addressed reverse proxy.
-- [ ] Build the authoring view with live preview, HTML/CSS/JavaScript editors, and MCP/AI action log.
+- [ ] Build the main authoring view with live preview and a shared side panel containing the structured Content editor and unified Action log.
+- [ ] Build a separate Manual view with HTML/CSS/JavaScript editors and preview; keep both authoring views synchronised with the same scene workspace.
+- [ ] Record meaningful human content edits and manual source edits in the same Action log as AI/MCP operations, with actor/action/target/result context and practical undo/review.
 - [ ] Add compact viewport controls (landscape, portrait, square, custom) shared by both authoring views; render the live scene at the selected logical dimensions.
 - [ ] Add a pre-publish target-screen review for one or more profiles, with detectable layout/runtime/resource checks and explicit creator review.
-- [ ] Add WYSIWYG editing for identified editable text blocks, including paste and safe supported formatting, synchronised with the scene source.
+- [ ] Define a scene content model or equivalent editable bindings that AI can expose as labelled fields grouped by logical page/content area.
+- [ ] Implement structured Content panel controls for text, asset/image/video selection, icons/symbols, and suitable repeatable content groups; update preview without unnecessary layout/source regeneration.
+- [ ] Support safe text paste and constrained semantic formatting; sanitise pasted markup and validate asset references, identifiers, and URLs.
 - [ ] Integrate AI-assisted scene creation and editing using the SiSSi design system and three-file source contract.
 - [ ] Support multiple logical pages/views within a scene.
 - [ ] Import and validate artifacts/data produced by MCP-connected tools.

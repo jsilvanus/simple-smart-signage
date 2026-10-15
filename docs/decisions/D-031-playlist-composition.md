@@ -13,6 +13,9 @@ A **screen or screen group has an assignment queue** that selects an active prog
 
 - A playlist remains a reusable, ordered sequence of scene entries.
 - A programme sequence contains playlist references, each with its own eligibility rules and explicit order. It evaluates these entries in order, skips ineligible playlists, and plays eligible playlists sequentially.
+- A playlist reference can define a time window (for example, 09:00–18:00) and a run policy: loop continuously or complete a configured number of runs.
+- When a finite run limit is reached, that playlist entry becomes ineligible for the remainder of that scheduled occurrence, even if its time window remains open. The sequence continues to the next eligible entry or follows its explicitly configured no-eligible-content behavior.
+- Run counts are scoped to a defined schedule/sequence occurrence and reset behavior must be explicit. A new scheduled occurrence may reset the count; time-window boundaries, restart/reconnect, and manual intervention must not accidentally reset or increment it.
 - Time/condition eligibility and ordering are separate: eligibility decides whether an entry can run; its order value decides where it sits in the sequence.
 - Use an explicit integer order/sort key (for example, 10, 20, 30) with a deterministic tie-breaker or validation requiring unique order within a sequence.
 - Each screen/group assignment can select a programme and can itself have time windows, conditions, priority, and explicit fallback/selection behavior.
@@ -23,15 +26,17 @@ A **screen or screen group has an assignment queue** that selects an active prog
 ## Evaluation and behavior
 
 - Selection among multiple eligible screen/group assignments must be deterministic and observable, with reasons for selection and rejection.
+- The assignment queue represents a 24-hour schedule; uncovered time is off time unless an explicit assignment says otherwise.
 - Within a conditional playlist sequence, evaluate entries in configured order; when multiple entries are eligible, the order defines which runs first. After a playlist completes, continue to the next eligible entry.
-- Define explicit behavior when multiple assignments match, none match, condition results are unknown/stale/errors, a playlist becomes ineligible while playing, or the sequence reaches its end (loop, wait, or restart).
+- Support a continuous-loop run policy and a finite run-count policy. Reaching the configured count makes the entry ineligible for the rest of that schedule/sequence occurrence, regardless of remaining time in its window.
+- Define explicit behavior when multiple assignments match, none match, condition results are unknown/stale/errors, a playlist becomes ineligible while playing, a finite run limit is reached, or the sequence reaches its end. Off time must not be silently converted into fallback content.
 - Preserve current playback state only where the applicable switching/override policy says to do so; ordinary playlist switching and special-broadcast interruption have distinct semantics.
 - Evaluate external API conditions server-side; display clients receive resolved state, not credentials.
 - Enforce tenant and display permissions independently of eligibility.
 
 ## Consequences
 
-The content model, APIs, and editor should distinguish screen/group assignment queues from conditional playlist sequences. A playlist is authored and maintained once and can be referenced from many programmes.
+The content model, APIs, and editor should distinguish the 24-hour screen/group assignment schedule from conditional playlist sequences. Playlist-entry time windows and run limits determine eligibility; finite run limits exhaust an entry for the current occurrence. A playlist is authored and maintained once and can be referenced from many programmes.
 
 ## References
 

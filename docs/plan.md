@@ -101,6 +101,13 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Consider a separate inference service only as a later, explicitly reviewed fallback. It must discard frames after inference and must not store them; any transmission of frames would require revising the current binding camera privacy decision before implementation.
 - [ ] Keep this capability out of the MVP. Until separately approved, use scheduled signage only; no camera-based inference is authorised by this roadmap item.
 
+## Future research — gesture interaction (not MVP)
+
+- [ ] Research optional on-device pose/gesture interaction (calibrated pointing and visual clap detection) under D-017; no audio input or analysis.
+- [ ] Define an opt-in capability and a minimal, non-identifying event contract; keep camera frames local and transient.
+- [ ] Test calibration, false-positive handling, cancellation, accessibility, latency, and target-device feasibility before implementation.
+- [ ] Preserve the binding prohibition on microphone access, sound detection, recording, speech recognition, and audio analysis.
+
 ## Delivery rule
 
 A phase is not complete merely because the happy path works. Include failure recovery, permission checks, and tests appropriate to the phase before marking its tasks complete.

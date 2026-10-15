@@ -91,6 +91,19 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Rationale:** Authentication must match the client and request type, while untrusted presentation code remains separate from management privileges.
 - **Reference:** [Content creation and authoring](../creation-system.md) · [Device handshake](../handshake.md)
 
+### D-017 — Gesture interaction and strict no-audio boundary
+
+- **Status:** Accepted direction for future research; not an MVP feature
+- **Date:** 2026-10-15
+- **Decision:** SiSSi may investigate optional camera-based human-pose and hand-gesture interaction, such as calibrated pointing, hand raising, or visually detected clapping, to trigger a presentation response or send a minimal event to an explicitly authorised scene/AI interaction layer. This is gesture interaction, not identity recognition or person tracking.
+- **Privacy boundary:** Inference must run on-device where feasible, process frames transiently, and discard them immediately. Do not store or transmit camera frames/video, identify people, create persistent tracking identifiers, or link gesture events to names, accounts, device IDs, attendance, religious-affiliation, or other personal records. Do not keep person-level gesture histories.
+- **Calibration and uncertainty:** Pointing-to-target interaction may require an explicit, temporary calibration step. Interaction must be opt-in, visibly indicated, and have a clear cancel/timeout path. Ambiguous gestures must not trigger consequential actions; use a deliberate confirmation gesture or dwell threshold where appropriate.
+- **AI boundary:** Gestures may produce only narrowly defined, non-identifying events for the current interaction. They must not grant general access to AI tools, privileged APIs, or device management. The scene/runtime mediates allowed actions.
+- **Binding audio prohibition:** SiSSi must not use microphones or perform sound/audio detection, audio recording, speech recognition, or audio analysis for this feature. A clap is detected from visual hand movement alone; no sound is captured or analysed. This is an explicit product constraint and is not relaxed by this proposal.
+- **Scope:** Research only, outside the MVP. Verify camera and pose-estimation feasibility, latency, calibration, false positives, accessibility, consent/notice, and on-device performance on target hardware before proposing implementation.
+- **Rationale:** Enables natural, low-friction interaction while preserving the existing no-identification camera boundary and a strict no-audio policy.
+- **Reference:** [Privacy and camera boundaries](../privacy-and-camera.md) · [Roadmap](../plan.md)
+
 ## Proposed / to decide
 
 ### D-007 — Server stack and deployment

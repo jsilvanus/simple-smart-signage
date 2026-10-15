@@ -286,3 +286,11 @@ Keep this index updated when a decision is accepted or superseded.
 - **Date:** 2026-10-15
 - **Decision:** A screen or screen group has a 24-hour assignment schedule; uncovered time is off time unless explicitly configured otherwise. A programme can be a conditional, explicitly ordered sequence of reusable playlists. Playlist entries can have time/condition eligibility and either loop continuously or run a finite number of times; reaching the limit exhausts the entry for the current scheduled occurrence. Scene guards remain independently handled by the scene.
 - **Reference:** [Assignment queues](D-031-playlist-composition.md) · [Content and playback model](../content-model.md)
+
+
+### D-033 — Declared scene actions and host-mediated runtime API
+
+- **Status:** Accepted architectural direction; API names and schemas remain to be specified
+- **Date:** 2026-10-15
+- **Decision:** Scene definitions declare callable actions and required capabilities. The host validates and dispatches lifecycle/navigation requests and registered plugin actions under tenant, resource and playback permissions. Host-owned lifecycle outcomes (such as interruption and runtime failure) are distinct from scene requests. Plugin actions use versioned schemas, structured results, bounded execution and audit.
+- **Reference:** [Scene actions and runtime API](D-033-scene-actions-and-runtime-api.md) · [Content and playback model](../content-model.md)

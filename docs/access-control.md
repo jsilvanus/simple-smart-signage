@@ -15,6 +15,12 @@ Use one global human account per person, capable of belonging to multiple tenant
 
 Tenant context must be explicit in application operations. Never infer tenant access merely because a user knows a resource ID or URL.
 
+## Tenant short codes and cross-tenant discovery
+
+Each tenant has a unique, case-insensitively allocated short code of 1–6 lowercase alphanumeric characters. This code is intended for readable search results, labels, and disambiguation, not authentication or authorization. Use the immutable internal tenant ID for canonical resource identity and access-control checks. A code must be unique across the installation/platform namespace in which cross-tenant search operates. If code changes are supported later, they must be explicit and must not change resource identity.
+
+A user-facing global search can return results from every tenant in which the current user has relevant discovery permission. Each result includes the tenant code and stable resource identity. Search must filter inaccessible resources before returning results; knowing a tenant code, resource ID, or URI never grants access. MCP resource reads and tool calls must still re-check current tenant membership and resource grants.
+
 ## Authorization model
 
 Use permission-based authorization with understandable built-in role templates and resource-scoped grants. Roles are convenient bundles of permissions, not a substitute for checking each operation against the target resource and tenant. Enforce access server-side in APIs, background jobs, asset delivery, search, scene authoring, publishing, and MCP tools.

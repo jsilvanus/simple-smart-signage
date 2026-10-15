@@ -144,6 +144,36 @@ Use the accepted hybrid update model: drafts follow the selected design system's
 The system should provide a documented scene contract for readiness, start, stop, and optional completion, while leaving internal timelines, logical-page navigation, and time guards under scene control. The scene builder owns the scene's internal structure; the design system supplies visual rules.
 
 
+## MCP v2 content creation and discovery
+
+MCP v2 is a first-class authoring interface, not merely an import endpoint. It supports discovery, structured content editing, source editing, asset operations, validation, preview, provenance correction, and change review. The full contract is recorded in [D-025](decisions/D-025-mcp-content-creation.md).
+
+### Tenant-aware search and scene metadata
+
+MCP clients can search scenes, templates, and assets across all tenants the authenticated user is authorised to access. Search results include the tenant's short code, stable object ID, and useful descriptive metadata so similarly named items can be distinguished. Search is a tool because it accepts variable filters and may return paginated results. It must enforce the same tenant and resource permissions as direct reads; a tenant code or object ID is never a credential.
+
+Each tenant has a case-insensitively unique, 1–6 character lowercase alphanumeric code for display and discovery. Canonical resource identity and authorization use an immutable internal tenant ID, not this short code. The short-code limit is a product constraint, not an assumption that Git-style short hashes are inherently unique.
+
+Scenes carry rich searchable metadata. The initial model should allow a title, description, tags, intended use/purpose, relevant event or occasion, seasonal relevance or date window, optional event URL, and extensible additional metadata. Exact field types, controlled vocabularies, and validation remain to be defined. Descriptive metadata helps creators find and understand content; it does not replace schedule assignments or scene time guards.
+
+### MCP resources and tools
+
+Use resources primarily for readable canonical state, and tools for searches, mutations, validation, preview requests, and workflow actions. Resource templates address individual tenant-owned objects and subresources. Canonical resource URIs refer to mutable working state using stable internal IDs; immutable releases and snapshots use explicit version/revision identifiers. The proposed URI convention is documented in D-025 and remains a contract to finalise.
+
+Provide a read-only scene-dump resource that gives a revision-stamped consolidated snapshot of relevant scene context: metadata, content schema and values, current revision, design-system/template references, asset references, and pending-proposal summaries. Include source content only when requested and permitted. Large sections must remain separately retrievable; the dump must not silently truncate data. Canonical content and pending proposals are always represented separately.
+
+Both structured content editing and source editing are first-class MCP capabilities. Structured tools edit schema-defined fields and repeatable items; source tools edit the permitted `index.html`, `style.css`, and `script.js` files. Asset upload/attachment, scene validation, viewport preview, history, and provenance correction are explicit capabilities. Publishing, template/design-system release, and display assignment remain separate permissioned workflows.
+
+### MCP edit and propose modes
+
+The scene editor exposes **MCP edits** and **MCP proposes** modes. MCP edits is the default. In edits mode, an authorized mutation changes the working draft immediately and creates an auditable history transaction. In proposes mode, the same requested changes create a separate proposal and leave canonical content unchanged until acceptance.
+
+Proposals form an inspectable stack/list of change sets. Each records its actor, time, base revision, target fields/files, proposed patch, provenance, and status, with validation/preview results where available. Overlapping proposals do not silently overwrite each other or the canonical draft. A proposal can explicitly supersede another proposal, with the relationship recorded; otherwise proposals remain independent. The scene-dump resource includes pending-proposal summaries but never folds unaccepted changes into canonical content.
+
+Accepting a proposal checks whether its base revision and affected content still match the current draft. A stale or overlapping proposal produces an explicit conflict requiring resolution/rebase or regeneration. Successful acceptance creates a normal edit transaction and new working revision. Discarded, rejected, superseded, and applied proposals remain auditable under the retention policy. Proposal acceptance is not editorial approval and does not publish the scene.
+
+The effective mode is controlled in the scene editor and enforced by the server for that authoring context; an MCP caller cannot bypass proposal mode by changing an argument. Every mutation retains the provenance and history requirements in the [provenance section](#provenance-and-review).
+
 ## Build and publish
 
 The Vite dev server is the live authoring and preview mechanism. It is not the permanent production runtime for signage devices.

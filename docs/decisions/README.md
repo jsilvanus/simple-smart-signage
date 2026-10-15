@@ -175,6 +175,13 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Reference:** [Tenancy, identity, authorization, and MCP OAuth](../access-control.md) · [Device handshake](../handshake.md) · [Content creation and authoring](../creation-system.md)
 
 
+### D-025 — MCP v2 content creation, discovery, and edit proposals
+
+- **Status:** Accepted architectural direction; exact schemas and tool/resource names remain to be specified
+- **Date:** 2026-10-15
+- **Decision:** MCP v2 supports tenant-aware cross-tenant search across only accessible resources, with a unique 1–6 character tenant code for display/disambiguation and immutable internal tenant IDs for identity and authorization. Scenes support rich searchable metadata including tags, intended use/event, seasonal relevance or date window, and optional event URL. MCP resources represent canonical readable state; tools perform search and mutations. Canonical working-state URIs use stable IDs, while immutable releases/revisions/snapshots use explicit version identifiers. A read-only scene-dump resource supplies consolidated, revision-stamped context without merging pending proposals into canonical state. Structured content and source editing are equally first-class. The scene editor provides MCP edits (default) and MCP proposes modes. Proposals are independent, auditable change sets based on a specific revision; overlapping/stale proposals require explicit resolution and never silently overwrite canonical content. Accepting a proposal changes the working draft only and does not publish.
+- **Reference:** [MCP v2 content creation](../creation-system.md#mcp-v2-content-creation-and-discovery) · [Decision details](D-025-mcp-content-creation.md)
+
 ### D-024 — Reusable content templates
 
 - **Status:** Accepted architectural direction; detailed schemas and update workflow remain to be specified

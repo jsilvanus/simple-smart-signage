@@ -89,6 +89,11 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Show scenes affected by design-system changes and require a new reviewed/published scene revision to apply updates to published content.
 - [ ] Integrate AI-assisted scene creation and editing using the SiSSi design system and three-file source contract.
 - [ ] Support multiple logical pages/views within a scene.
+- [ ] Implement MCP v2 scene/template/asset search across accessible tenants, including tenant codes and pagination.
+- [ ] Implement scene metadata fields and searchable filters for tags, intended use/event, seasonal relevance, date windows, and event URLs.
+- [ ] Expose canonical scene/content/source/history/proposal resources and the consolidated read-only scene-dump resource, with explicit versioned immutable resources.
+- [ ] Implement MCP edits (default) and MCP proposes modes, proposal review/application/discard, revision-base conflict detection, and auditable supersession.
+- [ ] Implement semantic MCP tools for scene creation, structured content and repeatable-item edits, source edits, asset upload/attachment, validation, preview, history details, and provenance correction.
 - [ ] Import and validate artifacts/data produced by MCP-connected tools.
 - [ ] Build, validate, and publish immutable scene revisions at stable UUID-based SiSSi URLs.
 - [ ] Implement explicit private/restricted and public/embed-enabled scene access policies.
@@ -135,6 +140,9 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 
 ## Tenancy, authorization, and MCP access
 
+- [ ] Specify MCP v2 resources, resource templates, semantic tools, tenant-aware search, canonical and versioned URI conventions, and scene-dump resource.
+- [ ] Define rich searchable scene metadata (tags, intended use/event, season/date window, optional event URL) and tenant short-code constraints.
+- [ ] Define MCP edit/propose modes, proposal stack lifecycle, stale-base conflict handling, and audit/provenance contracts.
 - [ ] Define tenant-aware data ownership and enforce tenant isolation in API handlers, background jobs, assets, search, and MCP tools.
 - [ ] Define platform super-admin and tenant-admin boundaries for multi-tenant and single-tenant deployments.
 - [ ] Define initial role templates and permission keys for users, scenes/content, design systems, publishing, displays/display groups, MCP, and audit.

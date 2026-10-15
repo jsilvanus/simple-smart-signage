@@ -20,6 +20,17 @@ Scene editing is also where the author defines the scene's required capabilities
 
 The host must not give scene code secrets or unrestricted server-side network access. Server-side connectors validate destination and resource scope, block SSRF/private-network access by default unless explicitly trusted, enforce timeouts and response/payload limits, and apply authentication and audit policy. The scene can request APIs and actions, but it cannot bypass SiSSi authorization, directly mutate player-owned state, or access credentials.
 
+## Connections versus actions
+
+A configured API connection and an action are separate concepts:
+
+- A **connection** identifies an external service and its base configuration, authentication method, server-held credentials, permitted destinations/resources, and request/response handling policy.
+- An **action** defines a specific operation, including its stable identifier/version, input and output schemas, required scopes/capabilities, and execution contract. An action may use a configured connection.
+- A **scene** can call public/browser-accessible endpoints directly where appropriate, and can call named SiSSi connections or privileged actions through documented interfaces. It must never receive connection secrets.
+- **Authorization** is evaluated independently of scene authoring. Declaring or selecting an action does not itself grant permission to execute it.
+
+For example, one configured event-service connection could support separate operations such as `event.list`, `event.get`, and `event.register`. A public information scene may be authorized to read events, while a registration scene may also be authorized to submit registrations. These operations need not each be implemented as a separate plugin: ordinary public API calls remain ordinary scene code, while credentialed or privileged operations go through SiSSi's controlled connection/action interfaces.
+
 ## Built-in lifecycle and playback requests
 
 The runtime should distinguish **requests made by a scene** from **lifecycle events/outcomes owned by the host**.

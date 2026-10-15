@@ -68,6 +68,17 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Rationale:** Separates reusable content from programming and playback context while supporting animations, time-limited scenes, multiple playlists, and offline bundle playback.
 - **Reference:** [Content and playback model](../content-model.md) · [Display runtime](../display-runtime.md)
 
+### D-015 — AI-assisted scene authoring and asset-first content creation
+
+- **Status:** Accepted
+- **Date:** 2026-10-15
+- **Decision:** Content creation starts from reusable uploaded assets (initially images, PDFs, and MP4 video), AI-authored frontend scenes, and artifacts or data imported from MCP-connected tools. AI-generated frontend code follows a versioned SiSSi design system and scene contract.
+- **Authoring runtime:** Each scene has an isolated Vite development workspace, started with `npm run dev` and exposed through a UUID-addressed reverse proxy for live editing and preview. The UUID is a routing identifier, not an authentication secret.
+- **Publishing boundary:** A Vite dev server is the authoring/preview environment, not by default the permanent display runtime. Publishing creates an immutable scene revision and a versioned delivery artifact, initially a static web bundle plus manifest. Hosted production scenes may be considered separately; a transient authoring URL must not be published as if it were a stable production URL.
+- **Security requirements:** Authoring workspaces must be isolated and access-controlled. Uploaded files, MCP output, and generated code are untrusted until validated. Server secrets, MCP credentials, and device-management credentials must never be exposed to scene frontend code or display clients.
+- **Rationale:** Gives creators a flexible AI-assisted frontend authoring workflow while retaining predictable, cacheable, reviewable display releases.
+- **Reference:** [Content creation and authoring](../creation-system.md) · [Content and playback model](../content-model.md)
+
 ## Proposed / to decide
 
 ### D-007 — Server stack and deployment

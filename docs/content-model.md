@@ -12,9 +12,10 @@ Display assignment / schedule
     ├── Playlist item ──> Scene revision
     ├── Playlist item ──> Scene revision
     └── Playlist item ──> Scene revision
-                             ├── Content: hosted URL or bundle
+                             ├── Frontend presentation
+                             ├── Referenced media assets
                              ├── Internal presentation timeline
-                             └── Availability rules
+                             └── Scene-owned time guards
 ```
 
 ### Playlist
@@ -27,9 +28,17 @@ A playlist item references a scene and defines how that scene is used in this pl
 
 ### Scene and scene revision
 
-A scene is a reusable unit of presentation content. It may be a hosted URL or a packaged bundle, and it may contain a static layout, animations, timed content changes, video, or other supported presentation behavior. A scene revision identifies an immutable version of its content and presentation definition. Content identity is separate from where and when it is used.
+A scene is a reusable unit of presentation content. It is created in SiSSi's AI-assisted frontend authoring environment and may combine uploaded assets, MCP-created artifacts or data, and custom frontend code using the SiSSi design system. A scene can be a static layout, animated presentation, data-driven page, video composition, or other supported presentation behavior.
+
+A scene revision identifies an immutable version of its frontend, presentation definition, design-system/runtime contract, and references to versioned assets. Content identity is separate from where and when it is used.
 
 A scene may suggest a default playback duration. The playlist item determines the effective duration for a particular use.
+
+### Source assets and generated artifacts
+
+Images, PDFs, MP4 videos, and other supported uploads are managed as reusable source assets. An asset can be shown directly where supported or used inside a scene's frontend. MCP-connected tools may create or retrieve artifacts and data for incorporation into a scene. Imported material must be validated before it is used or published.
+
+Source assets, editable scene workspace files, published scene revisions, and device-side caches are distinct concepts. Updating a source asset or workspace must not silently mutate an already published revision.
 
 ### Scene timeline
 
@@ -52,12 +61,16 @@ A schedule/assignment determines which playlist is active on a display or displa
 | Time concept | Owner | Purpose |
 |---|---|---|
 | Internal timeline | Scene revision/runtime | Animation and timed changes within the presentation |
+| Scene time guards | Scene | Element visibility and scene eligibility |
 | Playback slot | Playlist item | How long this playlist occurrence is shown |
-| Calendar eligibility | Scene availability rule | When a scene may be selected |
 | Playlist activation | Schedule/assignment | When a playlist is active on a display |
 
-## Delivery and offline behavior
+## Authoring and delivery
 
-Hosted URL and bundle scenes should share a defined lifecycle contract: prepare, ready, start, stop, and optionally completion. A hosted scene may depend on network resources; a bundle should be downloaded and verified before activation and should support offline playback to the extent that its declared dependencies permit. Failed downloads or preparation must not displace the last known-good content.
+The authoring environment uses an isolated Vite development server per scene workspace, started with `npm run dev` and exposed through a UUID-addressed reverse proxy. This URL is for authenticated editing and live preview, not a permanent production address.
+
+Publishing creates an immutable scene revision and a versioned delivery artifact, initially a static web bundle plus a manifest. The authoring and publishing contract is specified in [Content creation and authoring](creation-system.md).
+
+Hosted URL and bundle scenes should share a defined display lifecycle contract: prepare, ready, start, stop, and optionally completion. A bundle should be downloaded and verified before activation and should support offline playback to the extent that its declared dependencies permit. Failed downloads or preparation must not displace the last known-good content.
 
 This document records the accepted domain model, not a finished API schema or implemented feature. Phase 1 must define exact schemas, conflict rules, lifecycle events, validation, and error behavior before implementation.

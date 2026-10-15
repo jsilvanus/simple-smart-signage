@@ -128,6 +128,17 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Test calibration, false-positive handling, cancellation, accessibility, latency, and target-device feasibility before implementation.
 - [ ] Preserve the binding prohibition on microphone access, sound detection, recording, speech recognition, and audio analysis.
 
+## Tenancy, authorization, and MCP access
+
+- [ ] Define tenant-aware data ownership and enforce tenant isolation in API handlers, background jobs, assets, search, and MCP tools.
+- [ ] Define platform super-admin and tenant-admin boundaries for multi-tenant and single-tenant deployments.
+- [ ] Define initial role templates and permission keys for users, scenes/content, design systems, publishing, displays/display groups, MCP, and audit.
+- [ ] Implement resource-scoped grants for individual displays and display groups, with auditable effective access.
+- [ ] Specify human sign-in, invitations, tenant membership, account disable/removal, and audit behavior.
+- [ ] Implement MCP OAuth discovery/authorization, user consent, tenant-scoped and audience-bound access tokens, expiration/revocation, and permission checks on every tool call.
+- [ ] Decide OAuth provider/library, supported MCP protocol version, scopes, client registration, refresh-token policy, and any separate service-identity flow.
+- [ ] Add tests for cross-tenant isolation, role/grant changes, revoked OAuth grants, and unauthorized publishing/display actions.
+
 ## Delivery rule
 
 A phase is not complete merely because the happy path works. Include failure recovery, permission checks, and tests appropriate to the phase before marking its tasks complete.

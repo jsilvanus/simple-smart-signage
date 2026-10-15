@@ -194,6 +194,17 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Proposal:** Version endpoints under `/api/v1/`.
 - **To decide:** Compatibility policy and minimum supported client protocol.
 
+### D-023 — Multi-tenant authorization and OAuth-based MCP access
+
+- **Status:** Accepted architectural direction; detailed policy and schemas remain to be specified
+- **Date:** 2026-10-15
+- **Decision:** SiSSi supports centrally operated multi-tenant deployments and single-tenant/self-hosted installs using the same underlying tenant-aware authorization model. Platform super-administrators manage tenant lifecycle; tenant administrators manage only their tenant. Human identity is separate from tenant membership, and a user may have different roles/grants in different tenants.
+- **Permissions:** Use consistent permission-based authorization with tenant roles and resource-scoped grants. Support rights for user/account administration, content creation/update, design-system editing/release, review/publishing, MCP/integrations, and individual displays or display groups. Creating/editing content does not automatically confer publication or target-screen rights. Enforce permissions server-side for every operation.
+- **MCP OAuth:** MCP clients obtain OAuth authorisation for a signed-in user, selected tenant, and explicitly granted capabilities. Use suitable standard OAuth/MCP discovery and protected-resource metadata, Authorization Code with PKCE for interactive clients where applicable, scoped/audience-bound expiring tokens, revocation, and audit. Tokens do not bypass current resource permissions. Separate non-interactive service identities, if supported, from normal interactive user authorisation.
+- **Isolation and audit:** All tenant-owned records and operations must be tenant-scoped. Platform support access to tenant content is not automatically implied by the super-admin role; exceptional access must be explicit and audited. Record security-sensitive role, grant, OAuth, MCP, and publishing actions without logging secrets.
+- **Rationale:** Supports SaaS and self-hosted deployment without duplicating the authorization system, while keeping permissions understandable and MCP access accountable.
+- **Reference:** [Tenancy, identity, authorization, and MCP OAuth](../access-control.md) · [Device handshake](../handshake.md) · [Content creation and authoring](../creation-system.md)
+
 ## Adding decisions
 
 For a substantial architecture choice, add a file such as `D-014-short-title.md` with:

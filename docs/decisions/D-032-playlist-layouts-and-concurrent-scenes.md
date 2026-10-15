@@ -11,25 +11,19 @@ SiSSi signage is primarily intended for static or slowly changing content such a
 
 A playlist owns a **layout** that groups one or more scene occurrences into one composed presentation. Separately, SiSSi supports **concurrent playlist composition**, which displays multiple independently running playlists together. Do not conflate a layout inside one playlist with a composition of multiple playlists.
 
-Supported layout presets should include:
+Layouts inside a playlist support free split all the way: the user can define region count, position, size, overlap and stacking order rather than being limited to fixed presets. PiP, split and 4-split may be offered as convenient starting templates, but are not hard limits or a separate layout model.
 
-For a layout inside a playlist:
-- Full screen / one region
-- Multi-region layouts, including configurable free split
-
-For concurrent playlists:
-- Picture-in-picture (PiP): one primary playlist and one inset playlist
-- Split: two playlists in separate regions
-- 4-split: four playlists concurrently
-- Free split: multiple playlists in configurable regions with adjustable positions and sizes
-
-These are presets over a common region-composition model, not separate playback engines. Regions may have unequal sizes. The model must not hardcode four equal quadrants as the only four-scene arrangement. Exact supported region counts and device limits remain capability-dependent.
+Concurrent playlist composition is a separate level. It can display independent playlists together using PiP, split, 4-split or free split. The user can configure the regions rather than being restricted to equal quadrants. Device capability and resource limits still apply.
 
 Within a playlist layout, each region references a scene occurrence. In a concurrent-playlist composition, each region references a distinct playlist, which retains its own sequence, eligibility and playback state. Each region advances independently; one scene or playlist must not block another.
 
-## Scene completion and closure
+## Scene completion, closure and scene-callable functions
 
-A scene reporting completion/closure inside a playlist layout must not have an implicit global meaning. The layout or region defines the response. A playlist ending inside a concurrent-playlist composition follows the composition's explicit end-of-playlist policy and must not implicitly stop other playlists. Supported policies should include:
+A scene reporting completion/closure inside a playlist layout must not have an implicit global meaning. The layout or region defines the response. A playlist ending inside a concurrent-playlist composition follows the composition's explicit end-of-playlist policy and must not implicitly stop other playlists.
+
+Scenes need a small, documented runtime API for signaling lifecycle and interaction events to the host player. For example, `close()` requests that the current scene occurrence close. It does not directly remove DOM, stop a playlist, or decide what replaces the scene; the host applies the configured end-of-scene policy for that region. A distinct `complete()` signal may be provided for normal completion, while `close()` can represent a request to dismiss/exit an interactive scene. Exact names and payloads remain to be finalized.
+
+The API should also support safe, scoped interaction needs such as reporting interaction state or requesting a supported action, without granting arbitrary access to the player, other scenes, cameras, or tenant resources. Calls must be validated against the scene's runtime context and permissions. The host should ignore or safely reject unsupported calls and record useful diagnostics. Supported policies should include:
 
 - **Hold:** keep the last rendered frame visible.
 - **Advance:** replace the completed scene with the next eligible scene for that region.
@@ -44,6 +38,8 @@ Completion/closure is distinct from a runtime error. Errors use the player recov
 ## Runtime and composition requirements
 
 - Scene regions have defined bounds, stacking order, fit/scaling, clipping, and optional transition behavior.
+- Scene-callable lifecycle functions signal intent to the host; the host remains responsible for applying configured behavior.
+- Camera-based interaction (for example, tracking a person's hand as a pointer) is an input source, not a special layout. It may send pointer/gesture events to an authorized scene, and the scene may call `close()` when the interaction is finished. Camera access and event delivery must be permissioned, explicitly enabled, and fail safely when unavailable.
 - PiP permits overlap and therefore needs explicit z-order and placement rules.
 - A scene closing in one region must not automatically stop other regions within its playlist layout.
 - A playlist ending or failing in a concurrent-playlist composition must not automatically stop the other playlists.

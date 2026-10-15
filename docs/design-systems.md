@@ -27,6 +27,18 @@ A design system may define these groups. A system need not supply every token or
 
 The system should favour semantic tokens (for example, a text role or surface role) over requiring every scene to hard-code raw values. This allows a design system to change its palette or type scale coherently. Components and patterns are optional conventions, not a requirement that every scene use a fixed component framework.
 
+## Composable palette overlays and accessibility-constrained colour sets
+
+A scene may use one primary design system and, where allowed, narrowly scoped overlays. An overlay is not automatically another complete design system: it declares its purpose, supported token groups, precedence, compatibility requirements, and version. The initial overlay type includes a **palette overlay** that changes semantic colour tokens without replacing the base system's typography, spacing, components, layout rules, or assets.
+
+A palette overlay may define named four-colour sets. Each set contains four explicit colour values with semantic roles, allowed foreground/background pairings, and usage constraints. It must not imply that every arbitrary pairing of the four colours is accessible simply because the palette as a whole has been approved.
+
+For church tenants configured to require an approved church palette, scene creation and publication must select a permitted four-colour set or compatible released palette overlay. Validation flags arbitrary colour overrides in scene CSS and requires a policy-approved exception where one is allowed. This is tenant/design-system policy, not a universal constraint on every SiSSi tenant.
+
+**WCAG AA validation:** Store tested colour pairings, contrast ratios, applicable criterion/threshold, and test/version metadata. Ordinary text requires at least 4.5:1; qualifying large text requires at least 3:1. Other visual elements and focus indicators have their own applicable requirements. Check actual foreground/background pairings in context, not only individual colours. An approved palette does not guarantee that every possible composition is compliant.
+
+Palette overlays follow normal draft/release versioning. Published scene revisions pin the exact released overlay version and colour-set identity. Preview and validation show the active base system, overlays, selected four-colour set, and any approved accessibility exceptions.
+
 ## Three layers and CSS precedence
 
 Keep these layers distinct:

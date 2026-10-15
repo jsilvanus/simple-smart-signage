@@ -45,6 +45,31 @@ Candidate scene requests:
 
 The exact names and signatures are not yet final. A scene should not be allowed to fabricate host-owned states such as device offline, operator interruption, or successful publishing. Events such as `interrupted`, `finished`, and runtime `error` should be delivered by the host as lifecycle notifications where appropriate. The host owns authoritative state transitions and distinguishes normal completion, requested closure, interruption, and failure.
 
+## Scene-exposed functions callable by the controller
+
+A scene definition may also declare **scene-specific functions that the SiSSi controller can invoke**. These are distinct from scene-to-host requests: a scene request asks the host to do something, while a controller-invoked function asks the scene to perform one of its own supported behaviors.
+
+Examples for a timeline-driven animation include `restart`, `pause`, `resume`, and `skipToEnd`. Other scene types may expose entirely different functions, such as `showNextSlide`, `setLanguage`, or `showEventDetails`. These are examples, not a universal mandatory function list.
+
+- The scene manifest declares each exposed function's stable name, human-readable label/description, and input schema; result schemas and availability/state hints may also be declared.
+- The scene implementation provides the corresponding behavior. The runtime validates the declaration and invocation, then dispatches it through the scene bridge.
+- The controller discovers functions from the scene definition and can build suitable controls or automation hooks without assuming that every scene supports the same functions.
+- A function may be unavailable while the scene is stopped, not ready, completed, or in another incompatible state. The interface should expose availability where practical, and the runtime must still handle invalid-state calls safely.
+- Scene-exposed functions are not arbitrary host commands and do not grant additional privileges. Host APIs, player state, external connections, and privileged actions remain behind the existing authorization and capability checks.
+- Function calls are asynchronous, bounded, and return structured success/failure results. Calls should identify the active scene occurrence and revision so stale commands cannot accidentally affect a different playback occurrence.
+
+## Scene lifecycle signals and requests
+
+The contract distinguishes scene-to-host signals/requests from authoritative host-owned lifecycle outcomes:
+
+- **Ready:** the scene has initialized and can be presented. This is a readiness signal, not proof that every asynchronous asset or optional feature succeeded unless the scene contract explicitly says so.
+- **Complete:** the scene reports that its intended presentation or interaction has finished. The host applies the configured playback policy; completion does not inherently mean “advance immediately” or “stop everything.”
+- **Close request:** the scene requests that its current occurrence be closed. The host applies the configured end-of-scene policy. A close request is not the same as natural completion.
+- **Error:** the host/runtime owns authoritative runtime-failure state; scene-reported application errors are bounded diagnostic reports and do not let the scene fabricate host state.
+- **Interrupted/stopped:** authoritative outcomes are reported by the host, not asserted by scene code.
+
+The host may deliver lifecycle notifications to the scene where relevant. Timeline completion, explicit close, controller interruption, playback timeout, and runtime failure remain distinguishable so that playlist and recovery policies can treat them appropriately. The scene controls its internal timeline and decides when to report natural completion; the playlist item and controller determine the consequence.
+
 ## Plugin-provided actions
 
 Plugins may register named, versioned action definitions, for example `lighting.setPreset` or `lighting.setLevel`. Each action definition specifies:

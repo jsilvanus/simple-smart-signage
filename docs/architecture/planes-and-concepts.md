@@ -3,7 +3,7 @@
 - **Status:** Architecture overview
 - **Date:** 2026-10-15
 - **Scope:** Conceptual map of the system, its responsibilities, and the boundaries between them.
-- **Related decisions:** D-014, D-015, D-016, D-018–D-021, D-022–D-031, D-033–D-034.
+- **Related decisions:** D-014, D-015, D-016, D-018–D-021, D-022–D-031, D-033–D-036.
 
 This document groups SiSSi's concepts into architectural planes. A plane describes responsibility; it does not require a separate service or package. The implementation may combine several planes while preserving their conceptual boundaries.
 
@@ -58,7 +58,8 @@ Concepts:
 - **Asset identity and versions:** Stable asset IDs with versions/content hashes. Published revisions pin exact asset versions.
 - **Asset provenance:** Original source, uploader, creator attribution when known, initial project/scene context, rights notes, and derived-preview lineage.
 - **Scene revision:** An immutable published build of a scene, including the design-system release and asset versions it depends on.
-- **Bundle:** A cacheable set of built scene files and required dependencies for display clients.
+- **Scene bundle:** A cacheable set of built scene application files plus a manifest; managed media payloads are not embedded in the bundle.
+- **Bundle dependency manifest:** Pins exact managed-asset versions/hashes and identifies required versus optional dependencies. External URLs are declared separately and are not treated as immutable managed assets.
 - **Access policy:** Explicit private/restricted or public/embed-enabled access; a UUID is an identifier, not a secret or authorization mechanism.
 - **Derived artifacts:** Thumbnails, renders, previews, and generated variants distinguished from original sources.
 
@@ -126,7 +127,7 @@ Concepts:
 - **Display client:** A managed shell with a pluggable runtime; Android TV is the initial target, with Tizen as a possible additional target.
 - **Display runtime:** Runs supported display types, including hosted web apps and versioned locally cached web bundles.
 - **Desired state:** The server's currently intended assignment/composition for a screen, including revisions, schedules, and active overrides.
-- **Preparation and activation:** Download and verify required assets before switching to a new revision; preserve last-known-good playback if preparation fails.
+- **Preparation and activation:** Download and validate the scene bundle first, then ensure its required managed assets are cached and verified before switching to a new revision; reuse cached asset versions across bundles and preserve last-known-good playback if preparation fails.
 - **Local cache / offline playback:** Retain approved content and continue playback during temporary network/server outages, within policy and expiry limits.
 - **Heartbeat and runtime status:** Authenticated device health reports and playback/runtime diagnostics.
 - **Device enrollment:** New clients self-register into a pending state and show a verification number. An administrator approves the device before it receives trusted access.

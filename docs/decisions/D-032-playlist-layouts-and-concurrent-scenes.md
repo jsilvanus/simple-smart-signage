@@ -1,25 +1,23 @@
-# D-032 — Playlist layouts and concurrent playlist composition
+# D-032 — Scene-first content model and layout composition
 
 - **Status:** Accepted architectural direction; exact schema and runtime contract remain to be specified
 - **Date:** 2026-10-15
 
 ## Context
 
-SiSSi signage is primarily intended for static or slowly changing content such as announcements, event information, notices, and advertisements. Such content benefits both from grouping scenes within one playlist and from displaying multiple playlists concurrently. These are separate concepts.
+SiSSi signage is primarily intended for static or slowly changing content such as announcements, event information, notices, and advertisements. Content authoring and playback orchestration are separate concerns. Scenes are the primary reusable content units; layouts compose scenes visually, while playlists and schedules govern playback.
 
 ## Decision
 
-A playlist owns a **layout** that groups one or more scene occurrences into one composed presentation. Separately, SiSSi supports **concurrent playlist composition**, which displays multiple independently running playlists together. Do not conflate a layout inside one playlist with a composition of multiple playlists.
+A **scene** is the primary reusable content unit. A **layout** is a reusable visual composition that groups one or more scenes and defines their regions and relationships. Layouts support free split all the way: users define region count, position, size, overlap and stacking order. PiP, split and 4-split are convenient starting templates, not restrictions on the layout model.
 
-Layouts inside a playlist support free split all the way: the user can define region count, position, size, overlap and stacking order rather than being limited to fixed presets. PiP, split and 4-split may be offered as convenient starting templates, but are not hard limits or a separate layout model.
+**Playlists, programmes, assignments and schedules are playback concepts.** A playlist references scenes and/or layouts as ordered playback entries; it does not own the definition of the layout. Concurrent playlist playback, where configured, remains distinct from a layout grouping scenes: each playlist retains its own playback sequence and state.
 
-Concurrent playlist composition is a separate level. It can display independent playlists together using PiP, split, 4-split or free split. The user can configure the regions rather than being restricted to equal quadrants. Device capability and resource limits still apply.
-
-Within a playlist layout, each region references a scene occurrence. In a concurrent-playlist composition, each region references a distinct playlist, which retains its own sequence, eligibility and playback state. Each region advances independently; one scene or playlist must not block another.
+Within a layout, each region references a scene occurrence or an explicitly supported scene instance. A layout is content composition; it does not own playlist sequencing or schedule eligibility.
 
 ## Scene completion, closure and scene-callable functions
 
-A scene reporting completion/closure inside a playlist layout must not have an implicit global meaning. The layout or region defines the response. A playlist ending inside a concurrent-playlist composition follows the composition's explicit end-of-playlist policy and must not implicitly stop other playlists.
+A scene reporting completion/closure inside a layout must not have an implicit global meaning. The layout or region defines the response. Playback policies remain owned by the playlist/player layer.
 
 Scenes need a small, documented runtime API for signaling lifecycle and interaction events to the host player. For example, `close()` requests that the current scene occurrence close. It does not directly remove DOM, stop a playlist, or decide what replaces the scene; the host applies the configured end-of-scene policy for that region. A distinct `complete()` signal may be provided for normal completion, while `close()` can represent a request to dismiss/exit an interactive scene. Exact names and payloads remain to be finalized.
 
@@ -41,8 +39,8 @@ Completion/closure is distinct from a runtime error. Errors use the player recov
 - Scene-callable lifecycle functions signal intent to the host; the host remains responsible for applying configured behavior.
 - Camera-based interaction (for example, tracking a person's hand as a pointer) is an input source, not a special layout. It may send pointer/gesture events to an authorized scene, and the scene may call `close()` when the interaction is finished. Camera access and event delivery must be permissioned, explicitly enabled, and fail safely when unavailable.
 - PiP permits overlap and therefore needs explicit z-order and placement rules.
-- A scene closing in one region must not automatically stop other regions within its playlist layout.
-- A playlist ending or failing in a concurrent-playlist composition must not automatically stop the other playlists.
+- - A scene closing in one region must not automatically stop other regions in the layout.
+- Playlist sequencing, eligibility, scheduling and end behavior remain separate from layout composition.
 - Playlist schedule eligibility and finite/loop run policies remain distinct from the layout's region-level scene completion behavior.
 - Special broadcasts can compose with or replace the whole current playlist layout according to their own explicit mode and scope.
 - The client compositor is responsible for rendering the layout; it must not assume the display hardware provides native PiP.
@@ -50,7 +48,7 @@ Completion/closure is distinct from a runtime error. Errors use the player recov
 - Keep audio focus explicit; default to avoiding simultaneous audible sources.
 - Layout definitions and published scene revisions must be versioned so a published composition is reproducible.
 
-Free split is supported for concurrent playlists as well as configurable scene regions within a playlist layout. This decision records the intended model, not an implemented feature or final API schema.
+Free split is the general layout model for grouping scenes; PiP, split and 4-split are starting templates. Concurrent playlists are a separate playback composition capability. This decision records the intended model, not an implemented feature or final API schema.
 
 ## References
 

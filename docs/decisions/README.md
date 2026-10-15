@@ -4,6 +4,14 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 
 ## Accepted
 
+### D-045 — Complex-scene security enforcement requirements
+
+- **Status:** Accepted requirements; implementation details remain open
+- **Date:** 2026-10-16
+- **Decision:** Refine D-044 with ten enforcement requirements: per-scene network allowlists bounded by tenant policy; generated CSP from approved scene requirements; typed bridge schemas with a generic extension payload; frame identity plus per-instance nonce and sequence; content hashes bound to the approved revision; policy-based offline grace; connector host allowlists with validated dynamic paths and SSRF defenses; platform-specific budgets/watchdogs; minimal operational logs; and automated security tests plus a platform security matrix before enabling untrusted authored scenes. These requirements do not replace D-044's isolation, authorization or defense-in-depth architecture.
+- **Open implementation details:** Destination and CSP schemas, extension-payload limits, nonce/sequence lifecycle, manifest/hash format, offline grace/revocation semantics, connector URL/DNS/redirect validation, per-platform budgets/watchdogs, minimal log fields/retention, and test evidence/sign-off.
+- **Reference:** [D-045](D-045-complex-scene-security-enforcement.md) · [D-044](D-044-complex-scene-security-model.md)
+
 ### D-044 — Complex-scene security model
 
 - **Status:** Accepted architectural direction

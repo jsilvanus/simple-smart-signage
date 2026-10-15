@@ -4,6 +4,14 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 
 ## Accepted
 
+### D-046 — Shared job execution and SaarnaVideo export
+
+- **Status:** Accepted architectural direction; integration contracts and implementation details remain open
+- **Date:** 2026-10-16
+- **Decision:** Reuse the existing Prometheus/Grafana/Loki stack, plan PostgreSQL with PITR and S3-compatible object storage, and keep SiSSi modular with bounded background jobs. Treat [fffleet](https://github.com/jsilvanus/fffleet) as the preferred existing candidate for thumbnail/media jobs and potentially other work, including build orchestration, without weakening D-034 isolation: authored scene code must run only inside the approved isolated execution provider, not directly with ordinary worker privileges. Plan a SaarnaVideo-to-SiSSi export that imports selected generated outputs (initially video, thumbnail, and where useful caption sidecars) as verified SiSSi-managed assets with provenance. Import does not automatically publish or assign content; SiSSi retains authority over review, publication, and playback.
+- **Open implementation details:** Job ownership/status mapping, trusted wrapper and isolation policy, object storage/recovery, SaarnaVideo authentication and export UX/API, supported output metadata, idempotent transfer, and operational dashboards/alerts.
+- **Reference:** [D-046](D-046-shared-job-execution-and-saarnavideo-export.md) · [D-034](D-034-pluggable-execution-provider.md) · [fffleet](https://github.com/jsilvanus/fffleet) · [SaarnaVideo](https://github.com/jsilvanus/saarnavideo)
+
 ### D-045 — Complex-scene security enforcement requirements
 
 - **Status:** Accepted requirements; implementation details remain open

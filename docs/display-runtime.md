@@ -28,6 +28,23 @@ The server distributes a versioned bundle of static web assets. The client downl
 
 A packaged app is more suitable for offline playback, but it is not automatically fully offline: APIs, remote fonts, images, authentication, and other external dependencies may still require connectivity. Apps should declare their required capabilities and offline expectations.
 
+## Content and playback model
+
+SiSSi's programming unit is the **playlist**. A playlist is an ordered sequence of playlist items; each item references a reusable scene and supplies playback-specific settings. The content model is specified in [Content and playback model](content-model.md).
+
+- **Scene:** reusable presentation content delivered as a hosted URL or versioned bundle. A scene may contain its own timeline for animations, timed element changes, or media playback.
+- **Scene revision:** an immutable version of scene content and its presentation definition.
+- **Scene availability:** conditions defining when a scene is eligible to be shown, such as weekdays from 07:00 to 11:00 in a specified time zone.
+- **Playlist item:** a reference to a scene plus playback policy, such as allocated duration, transition, and end behavior. The same scene may be used more than once with different settings.
+- **Playlist:** ordered playlist items and the playlist's repeat/advance policy.
+- **Schedule / assignment:** determines which playlist is active on which display or display group and during what periods.
+
+Keep three kinds of time separate: scene-internal timeline time, playlist-item playback time, and calendar-based schedule/availability time. A scene's availability determines eligibility; it does not define its animation timeline or playback duration. Playlist-item duration may override a scene's suggested default. Scene availability constraints must not be silently bypassed by a playlist-item override.
+
+The runtime should select the next eligible item, prepare its content, and activate it only when required assets are ready. If an item's availability ends while it is playing, stop presenting that scene and advance to eligible content. Define explicit behavior for empty playlists, no eligible items, overnight windows, time-zone and daylight-saving transitions, and clock uncertainty before implementation.
+
+A scene timeline can loop, play once and hold, remain static, or signal completion. These are candidate behaviors whose exact contract must be defined; they are not yet API enums. The outer playlist controller owns playback slots, while the scene runtime owns the internal presentation timeline. The lifecycle contract must define readiness, start, stop, and completion signaling for both hosted and packaged scenes.
+
 ## Webcam and browser capabilities
 
 Web content can use browser APIs such as `navigator.mediaDevices.getUserMedia()` when all required platform conditions are met. This can enable a web app to access a webcam and run local computer-vision models, including person detection.

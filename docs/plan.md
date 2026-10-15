@@ -20,10 +20,11 @@ This is the top-level implementation roadmap. Detailed specifications belong in 
 - [ ] Define screen/group assignment and device permissions.
 - [ ] Define SSE events, event IDs, reconnect, and reconciliation.
 - [ ] Define heartbeat payload and online/offline thresholds.
+- [ ] Define the content model: playlists, playlist items, scenes, scene revisions, scene timelines, scene availability, and display assignments.
 - [ ] Define display-target schema: hosted URL, packaged web bundle, native layout, and media.
 - [ ] Define app origin policy and explicit capabilities, including optional camera access.
 
-Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime.md) · [Decision register](decisions/README.md)
+Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime.md) · [Content and playback model](content-model.md) · [Decision register](decisions/README.md)
 
 ## Phase 2 — Server foundation
 
@@ -52,7 +53,10 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 
 - [ ] Create and manage media assets.
 - [ ] Create, validate, and version web-app bundles.
-- [ ] Create playlists and schedules.
+- [ ] Create and manage scenes and versioned scene content.
+- [ ] Create playlists and playlist items, including playback policies and transitions.
+- [ ] Configure scene availability windows and evaluate eligibility during playback.
+- [ ] Create schedules and assignments for screens and screen groups.
 - [ ] Assign display targets to individual screens and screen groups.
 - [ ] Preview content and validate schedules.
 - [ ] Track content revisions and client sync status.

@@ -58,6 +58,16 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Implementation requirement:** This is a product-level constraint, not a setting that an administrator or displayed web app may override. Camera access remains optional, off by default, separately authorised, and subject to applicable law and transparent notice.
 - **Reference:** [Privacy and camera boundaries](../privacy-and-camera.md)
 
+### D-014 — Playlist-first content and playback model
+
+- **Status:** Accepted
+- **Date:** 2026-10-15
+- **Decision:** The playlist is SiSSi's primary programming unit and consists of ordered playlist items. Each playlist item references a reusable scene and carries playback-specific settings. Scenes can be delivered as hosted URLs or versioned bundles and may define an internal presentation timeline. Scene availability rules determine when a scene is eligible to appear; schedules/assignments determine when a playlist is active on a display.
+- **Time separation:** Keep scene-internal timeline time, playlist-item playback duration, and calendar-based schedule/availability separate. A scene may suggest a default duration, but the playlist item owns the effective playback duration. A playlist-item override must not silently bypass scene availability restrictions.
+- **Runtime behavior:** The runtime selects eligible items, prepares content before activation, and advances when the playback policy or availability boundary requires it. Failed preparation must not replace the last known-good display state. Exact timeline modes, API schemas, empty-playlist behavior, time-zone/DST handling, and no-eligible-scene fallback remain to be specified.
+- **Rationale:** Separates reusable content from programming and playback context while supporting animations, time-limited scenes, multiple playlists, and offline bundle playback.
+- **Reference:** [Content and playback model](../content-model.md) · [Display runtime](../display-runtime.md)
+
 ## Proposed / to decide
 
 ### D-007 — Server stack and deployment

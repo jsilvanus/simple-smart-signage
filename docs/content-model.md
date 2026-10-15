@@ -55,9 +55,17 @@ A scene may therefore contain multiple time guards at different scopes: element-
 
 A playlist item may add contextual restrictions, but must not silently bypass a scene's own guards. If a scene-level availability guard becomes false while the scene is playing, the runtime should stop presenting the scene and advance to eligible content. An element-level guard should only affect the element it governs. The runtime should avoid blanking the display while preparing a replacement.
 
-### Schedule and display assignment
+### Schedule, display assignment, and screen groups
 
-A schedule/assignment determines which playlist is active on a display or display group and during which calendar periods. It does not own the internal timeline of a scene or the duration of an individual playlist item.
+A schedule/assignment determines which playlist is active on a display or display group and during which calendar periods. It does not own the internal timeline of a scene or the duration of an individual playlist item. Screen groups are reusable publishing targets: administrators can assign a playlist to a group (for example, all foyer screens) rather than configuring each display separately. Group membership and playlist assignment are distinct, and precedence between group assignments, per-screen overrides, schedules, and overlapping assignments must be defined explicitly.
+
+### Conditional playlist activation
+
+A playlist assignment or playlist-selection rule may also have an external condition. Examples include selecting a live-service playlist only while a YouTube Live broadcast is active, or selecting a playlist when a configured API returns a JSON field with a particular value or URL. This is server-side conditional activation, separate from calendar schedules and scene-owned time guards; it never edits a playlist or immutable scene revision.
+
+Use the planned `varfetch` package (`varfetch@^0.3.0` as of 2026-10-15) as the server-side HTTP connector primitive for configured requests, safe variable interpolation, SSRF protections, and JSON-path response mapping. The repository does not yet contain an application package manifest, so the actual npm dependency is to be added when the server application is scaffolded. See [D-028](decisions/D-028-conditional-playlist-activation.md).
+
+Conditions must have explicit predicates, evaluation cadence, timeout and response limits, last-success/freshness tracking, and a configured policy for unknown or failed evaluations. Never implicitly interpret a timeout or malformed/missing response as either true or false. Keep API credentials and connector configuration on the server; signage clients receive only the resolved desired configuration. Private-network targets are blocked by default, with exceptions allowed only through trusted server-side configuration. Any response-derived URL must be validated against the intended use before it can be fetched or displayed.
 
 ## Time ownership
 

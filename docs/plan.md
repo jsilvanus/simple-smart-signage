@@ -21,6 +21,7 @@ This is the top-level implementation roadmap. Detailed specifications belong in 
 - [ ] Define SSE events, event IDs, reconnect, and reconciliation.
 - [ ] Define heartbeat payload and online/offline thresholds.
 - [ ] Define the content model: playlists, playlist items, scenes, scene revisions, scene timelines, scene time guards, and display assignments.
+- [ ] Define reusable, versioned templates as scene starting points with placeholder values and structured content schemas.
 - [ ] Define display-target schema: hosted URL, packaged web bundle, and media.
 - [ ] Define scene authoring workspace, UUID proxy routing, source editing, preview, build, publishing, and artifact contracts.
 - [ ] Define the default three-file source contract and multiple logical pages within a scene.
@@ -29,7 +30,7 @@ This is the top-level implementation roadmap. Detailed specifications belong in 
 - [ ] Define authentication boundaries for authoring, preview, device APIs, assets, and embedded scenes.
 - [ ] Define app origin policy and explicit capabilities, including optional camera access.
 
-Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime.md) · [Content and playback model](content-model.md) · [Content creation system](creation-system.md) · [Design systems](design-systems.md) · [Asset library and provenance](asset-library.md) · [Decision register](decisions/README.md)
+Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime.md) · [Content and playback model](content-model.md) · [Content creation system](creation-system.md) · [Design systems](design-systems.md) · [Reusable templates](decisions/D-024-reusable-templates.md) · [Asset library and provenance](asset-library.md) · [Decision register](decisions/README.md)
 
 ## Phase 2 — Server foundation
 
@@ -70,6 +71,9 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Add compact viewport controls (landscape, portrait, square, custom) shared by both authoring views; render the live scene at the selected logical dimensions.
 - [ ] Add a pre-publish target-screen review for one or more profiles, with detectable layout/runtime/resource checks and explicit creator review.
 - [ ] Define a scene content model or equivalent editable bindings that AI can expose as labelled fields grouped by logical page/content area.
+- [ ] Define template creation, discovery, access controls, versioning, and instantiation into an independent editable scene.
+- [ ] Provide ready-to-use templates with placeholder copy and structured content fields so creators can fill fields, replace images, preview, review, and publish without editing source code.
+- [ ] Ensure template edits never silently mutate scenes already created from earlier template versions; define explicit update/rebase behavior separately.
 - [ ] Implement structured Content panel controls for text, asset/image/video selection, icons/symbols, and suitable repeatable content groups; update preview without unnecessary layout/source regeneration.
 - [ ] Support safe text paste and constrained semantic formatting; sanitise pasted markup and validate asset references, identifiers, and URLs.
 - [ ] Define field-level and asset-level provenance for human input, dictated/transcribed input, AI generation, assistive transformations, external/tool sources, and unknown origins.
@@ -79,6 +83,7 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Add global/system AI-transparency label assets with source/licence/version metadata and configurable disclosure policies.
 - [ ] Track provenance, editorial-review status, and disclosure decisions separately; human review is not a universal exemption from disclosure.
 - [ ] Define shared design-system identity, structured token model, CSS representation, asset references, and access controls; allow multiple systems to coexist.
+- [ ] Implement configurable design-system release permissions, defaulting to owner-only release; keep draft saving separate from immutable release.
 - [ ] Implement both structured design-system editing and advanced CSS editing against the same resource, with validation, conflict handling, and preservation of custom rules.
 - [ ] Implement design-system working drafts and immutable releases; draft scenes follow working versions while published scene revisions pin exact design-system and asset versions/hashes.
 - [ ] Show scenes affected by design-system changes and require a new reviewed/published scene revision to apply updates to published content.
@@ -134,7 +139,7 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Define platform super-admin and tenant-admin boundaries for multi-tenant and single-tenant deployments.
 - [ ] Define initial role templates and permission keys for users, scenes/content, design systems, publishing, displays/display groups, MCP, and audit.
 - [ ] Implement resource-scoped grants for individual displays and display groups, with auditable effective access.
-- [ ] Specify human sign-in, invitations, tenant membership, account disable/removal, and audit behavior.
+- [ ] Specify human sign-in, invitations, tenant membership, account disable/removal, and audit behavior; use one global human account with independent memberships/grants in multiple tenants.
 - [ ] Implement MCP OAuth discovery/authorization, user consent, tenant-scoped and audience-bound access tokens, expiration/revocation, and permission checks on every tool call.
 - [ ] Decide OAuth provider/library, supported MCP protocol version, scopes, client registration, refresh-token policy, and any separate service-identity flow.
 - [ ] Add tests for cross-tenant isolation, role/grant changes, revoked OAuth grants, and unauthorized publishing/display actions.

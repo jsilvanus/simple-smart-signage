@@ -54,7 +54,7 @@ MCP tools must be able to inspect and edit both structured properties and advanc
 
 ## Multiple systems, identity, and permissions
 
-Each design system has a stable ID, human-readable name, description, ownership/access policy, working draft, and immutable released versions. Scenes refer to the stable system identity and the relevant version policy; they must not identify a system by a mutable display name or a URL alone.
+Each design system has a stable ID, human-readable name, description, ownership/access policy, working draft, and immutable released versions. Saving changes updates the working draft; it is distinct from creating an immutable release. Release permission is configurable per design system, with the default allowing the system owner to release it. An owner may explicitly grant release rights to other permitted users or roles. Editing rights alone do not imply release rights, and every release records its actor and exact content/assets. Scenes refer to the stable system identity and the relevant version policy; they must not identify a system by a mutable display name or a URL alone.
 
 Design systems are shared resources, not embedded copies of the same global CSS in every scene. Access controls govern who may view, edit, release, or retire a system. A scene creator must be able to see which system is selected and whether it follows the working version or is pinned. Removing or retiring a system must not break published revisions that already reference a released version.
 
@@ -77,6 +77,10 @@ A draft preview may therefore change when a shared design system changes. That i
 Design-system edits should update the live authoring preview. Provide representative previews and support the scene's viewport controls, while making clear that testing a design-system sample is not a substitute for checking actual scenes. Before releasing a system, validate CSS syntax, referenced assets, font availability, and relevant token values. Detect or flag likely problems such as missing assets, invalid values, insufficient contrast where measurable, and reduced-motion omissions where applicable.
 
 Before publishing a scene, target-screen review remains required under the scene authoring contract. The selected design-system version and its assets are part of the inputs to that review. A system update that materially changes the rendered result should prompt renewed scene review before a new scene revision is published.
+
+## Release permissions
+
+Use a configurable release policy per design system. The default is that only the design-system owner can create an immutable release; the owner may explicitly grant this capability to selected roles or users. Saving edits to the working draft is a separate operation and does not itself create a release. A release captures the exact structured tokens, CSS, metadata, and asset versions/hashes. Scene publication may use only a validated released version, and the scene publisher must also have the relevant scene-publishing permission. Log changes to release policy and every release.
 
 ## Boundaries and still to specify
 

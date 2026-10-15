@@ -109,6 +109,28 @@ Distinguish tool assertions, machine-readable metadata, successful cryptographic
 
 When a correction changes facts used by an AI-transparency label or disclosure recommendation, recalculate or flag that decision for review. Keep the provenance correction, editorial approval, and applicable disclosure decision distinct. MCP tools may propose classifications but must not silently undo or overwrite a human correction; any later conflicting claim must be recorded and surfaced for resolution.
 
+## Reusable templates
+
+A **template** is a nearly finished, reusable starting point for creating a scene. It combines a scene structure/layout and behavior with a structured content schema, sensible placeholder/default values, and references to the managed assets it needs. Examples include an upcoming-event announcement, weekly schedule, worship/service information, a notice, or a rotating set of announcements. A template should be useful immediately after a creator fills in the relevant content and should not require HTML/CSS/JavaScript editing for ordinary use.
+
+### Template content and structured fields
+
+- Templates expose named, labelled fields grouped by meaningful content area or logical page, using the same structured content model as the scene Content panel.
+- Fields can include text, dates/times, links, icons, logos, images/video, and repeatable entries such as events, cards, notices, or schedule rows where appropriate.
+- Placeholder text must be visibly identified as example/default content, not mistaken for confirmed real-world information. Templates may provide illustrative sample values, but should not invent current dates, event details, contact information, or other facts for the creator.
+- Asset slots should identify suitable dimensions/roles and accept permitted managed assets. Replacing an image should update the structured binding without requiring a layout rewrite.
+- Templates may specify a compatible/default design system and expected viewport profiles. The creator can inspect the result in live preview and adjust structured fields before publishing.
+
+### Instantiating and versioning templates
+
+Choosing a template creates a new, independent editable scene initialized from a specific template version. The new scene has its own stable scene identity, content values, editable source/workspace, history, and publication lifecycle. It is not a live instance that automatically changes whenever the source template changes. Template and scene assets follow the asset-library permission and versioning rules; published scene revisions pin exact asset versions/hashes and the exact released design-system version.
+
+Templates themselves are reusable, versioned resources with identity, ownership/tenant scope, access controls, provenance for included text/media, and immutable released versions. A template author can save a working draft separately from releasing a version. Template-use permission does not automatically grant permission to edit the template, and editing a template does not grant permission to publish the resulting scene to every display. Creating or updating a template must follow content validation and provenance rules.
+
+An existing scene remains based on the template version from which it was created. Later template releases must not silently overwrite it. A future explicit update/rebase workflow may compare changes and let a creator selectively adopt them; exact merge semantics remain to be specified. For the initial implementation, creating a fresh scene from the latest template is supported without requiring rebase support.
+
+The basic workflow is: choose a permitted template, create a scene from its released version, fill or replace the structured fields/assets, preview relevant target-screen profiles, review provenance and content, then publish using the normal scene publication permissions and workflow.
+
 ## Design system and scene contract
 
 AI-generated frontend code should follow a versioned SiSSi design system. A design system is a shared resource—not just one global CSS file—with structured visual tokens, CSS rules, optional reusable component conventions, and references to managed assets such as fonts, logos, and icons. Multiple design systems may coexist, and each scene explicitly selects one primary system. Scene-specific CSS may deliberately extend or override the selected system. The initial model does not layer multiple complete design systems into one scene.

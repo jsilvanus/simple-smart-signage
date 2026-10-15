@@ -162,6 +162,24 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Rationale:** Enables natural, low-friction interaction while preserving the existing no-identification camera boundary and a strict no-audio policy.
 - **Reference:** [Privacy and camera boundaries](../privacy-and-camera.md) · [Roadmap](../plan.md)
 
+
+### D-023 — Multi-tenant authorization and OAuth-based MCP access
+
+- **Status:** Accepted architectural direction; detailed policy and schemas remain to be specified
+- **Date:** 2026-10-15
+- **Decision:** SiSSi supports centrally operated multi-tenant deployments and single-tenant/self-hosted installs using the same underlying tenant-aware authorization model. Platform super-administrators manage tenant lifecycle; tenant administrators manage only their tenant. Human identity is separate from tenant membership, and a user may have different roles/grants in different tenants.
+- **Permissions:** Use consistent permission-based authorization with tenant roles and resource-scoped grants. Support rights for user/account administration, content creation/update, design-system editing/release, review/publishing, MCP/integrations, and individual displays or display groups. Creating/editing content does not automatically confer publication or target-screen rights. Enforce permissions server-side for every operation.
+- **MCP OAuth:** MCP clients obtain OAuth authorisation for a signed-in user, selected tenant, and explicitly granted capabilities. Use suitable standard OAuth/MCP discovery and protected-resource metadata, Authorization Code with PKCE for interactive clients where applicable, scoped/audience-bound expiring tokens, revocation, and audit. Tokens do not bypass current resource permissions. Separate non-interactive service identities, if supported, from normal interactive user authorisation.
+- **Isolation and audit:** All tenant-owned records and operations must be tenant-scoped. Platform support access to tenant content is not automatically implied by the super-admin role; exceptional access must be explicit and audited. Record security-sensitive role, grant, OAuth, MCP, and publishing actions without logging secrets.
+- **Rationale:** Supports SaaS and self-hosted deployment without duplicating the authorization system, while keeping permissions understandable and MCP access accountable.
+- **Reference:** [Tenancy, identity, authorization, and MCP OAuth](../access-control.md) · [Device handshake](../handshake.md) · [Content creation and authoring](../creation-system.md)
+
+
+### D-024 — Reusable content templates
+
+- **Status:** Accepted architectural direction; detailed schemas and update workflow remain to be specified
+- **Decision:** Templates are versioned, nearly finished scene starting points with structured content fields, visibly identified placeholders/defaults, and managed asset references. Instantiating a released template creates an independent editable scene pinned to the source template version. Template changes never silently mutate existing scenes. Ordinary updates should require only structured field edits, asset replacement, preview, review, and normal publication permissions.
+- **Reference:** [Reusable templates and content creation](../creation-system.md) · [Decision details](D-024-reusable-templates.md)
 ## Proposed / to decide
 
 ### D-007 — Server stack and deployment
@@ -194,16 +212,6 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Proposal:** Version endpoints under `/api/v1/`.
 - **To decide:** Compatibility policy and minimum supported client protocol.
 
-### D-023 — Multi-tenant authorization and OAuth-based MCP access
-
-- **Status:** Accepted architectural direction; detailed policy and schemas remain to be specified
-- **Date:** 2026-10-15
-- **Decision:** SiSSi supports centrally operated multi-tenant deployments and single-tenant/self-hosted installs using the same underlying tenant-aware authorization model. Platform super-administrators manage tenant lifecycle; tenant administrators manage only their tenant. Human identity is separate from tenant membership, and a user may have different roles/grants in different tenants.
-- **Permissions:** Use consistent permission-based authorization with tenant roles and resource-scoped grants. Support rights for user/account administration, content creation/update, design-system editing/release, review/publishing, MCP/integrations, and individual displays or display groups. Creating/editing content does not automatically confer publication or target-screen rights. Enforce permissions server-side for every operation.
-- **MCP OAuth:** MCP clients obtain OAuth authorisation for a signed-in user, selected tenant, and explicitly granted capabilities. Use suitable standard OAuth/MCP discovery and protected-resource metadata, Authorization Code with PKCE for interactive clients where applicable, scoped/audience-bound expiring tokens, revocation, and audit. Tokens do not bypass current resource permissions. Separate non-interactive service identities, if supported, from normal interactive user authorisation.
-- **Isolation and audit:** All tenant-owned records and operations must be tenant-scoped. Platform support access to tenant content is not automatically implied by the super-admin role; exceptional access must be explicit and audited. Record security-sensitive role, grant, OAuth, MCP, and publishing actions without logging secrets.
-- **Rationale:** Supports SaaS and self-hosted deployment without duplicating the authorization system, while keeping permissions understandable and MCP access accountable.
-- **Reference:** [Tenancy, identity, authorization, and MCP OAuth](../access-control.md) · [Device handshake](../handshake.md) · [Content creation and authoring](../creation-system.md)
 
 ## Adding decisions
 

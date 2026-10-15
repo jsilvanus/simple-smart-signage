@@ -17,6 +17,8 @@ The design-system model distinguishes SiSSi platform defaults, the selected desi
 
 **Scene update model:** use hybrid versioning. Draft scenes follow the selected design system's current working version and show its changes in preview. Publishing resolves that mutable reference to a specific immutable released version and pins the exact design-system version and asset versions/hashes in the published scene revision. Published revisions and cached bundles do not change when the design system is edited. To apply an update to a published scene, create and review a new scene revision, then publish it.
 
+**Release permissions (option C):** release rights are configurable per design system. The default is owner-only release, with the owner able to grant release rights to selected users or roles. Saving the working draft is distinct from creating an immutable release. Editing a system does not automatically grant release rights.
+
 Design systems are independent of scene internals. The scene builder owns the scene's markup, logical pages, navigation, and behavior; the design-system layer supplies visual rules and assets.
 
 ## Consequences
@@ -26,7 +28,7 @@ Design systems are independent of scene internals. The scene builder owns the sc
 - System changes must be traceable and affected drafts/revisions identifiable.
 - Publishing must record exact immutable design-system and asset dependencies in the scene manifest.
 - Retired systems cannot be deleted while retained published revisions still depend on their released versions.
-- Exact token schemas, CSS conflict handling, release permissions, and retention rules remain implementation details to specify.
+- Exact token schemas, CSS conflict handling, and retention rules remain implementation details to specify; release permissions follow the configurable owner-default policy above.
 
 ## Alternatives considered
 

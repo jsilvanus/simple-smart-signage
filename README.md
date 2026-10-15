@@ -12,6 +12,7 @@ SiSSi is a centrally managed digital-signage system for televisions and other di
 ## Project docs
 
 - [Plan index](docs/plan.md)
+- [Architecture planes and concepts](docs/architecture/planes-and-concepts.md)
 - [Device handshake and enrollment](docs/handshake.md)
 - [Display runtime and camera capabilities](docs/display-runtime.md)
 - [Decision register](docs/decisions/README.md)

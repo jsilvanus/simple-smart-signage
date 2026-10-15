@@ -70,6 +70,18 @@ The contract distinguishes scene-to-host signals/requests from authoritative hos
 
 The host may deliver lifecycle notifications to the scene where relevant. Timeline completion, explicit close, controller interruption, playback timeout, and runtime failure remain distinguishable so that playlist and recovery policies can treat them appropriately. The scene controls its internal timeline and decides when to report natural completion; the playlist item and controller determine the consequence.
 
+## Scene execution boundary and bridge transport
+
+**Decision: authored scenes run in an isolated iframe and communicate with the trusted player through a typed message bridge.** Same-document execution is not the default for authored scene code.
+
+- The `@sissi/scene-sdk` exposes a typed facade for lifecycle signals, permitted host requests, scene inputs, and controller-invoked scene functions. Its transport to the host uses `postMessage`.
+- The player remains authoritative for playback, schedules, transitions, permissions, and privileged actions. The scene must not access or mutate player internals directly.
+- The host validates every incoming message, including message schema, sender/frame identity, tenant and scene revision, active occurrence, allowed operation, and authorization. A message is only a request; the ability to send one grants no capability by itself.
+- The iframe sandbox and origin model must be designed deliberately. Do not treat an iframe alone as a complete security boundary; avoid granting unnecessary browser privileges, and use an origin strategy that supports robust source validation.
+- The bridge is versioned as part of the scene API contract. Unsupported messages and actions fail safely with structured errors. Lifecycle messages must be correlated to the active scene occurrence so stale messages cannot affect later playback.
+
+Exact message schemas, sandbox flags, origin strategy, and API names remain implementation details to specify before implementation.
+
 ## Plugin-provided actions
 
 Plugins may register named, versioned action definitions, for example `lighting.setPreset` or `lighting.setLevel`. Each action definition specifies:

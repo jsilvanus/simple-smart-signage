@@ -3,7 +3,7 @@
 - **Status:** Architecture overview
 - **Date:** 2026-10-15
 - **Scope:** Conceptual map of the system, its responsibilities, and the boundaries between them.
-- **Related decisions:** D-014, D-015, D-016, D-018–D-021, D-022–D-031, D-033.
+- **Related decisions:** D-014, D-015, D-016, D-018–D-021, D-022–D-031, D-033–D-034.
 
 This document groups SiSSi's concepts into architectural planes. A plane describes responsibility; it does not require a separate service or package. The implementation may combine several planes while preserving their conceptual boundaries.
 
@@ -33,6 +33,7 @@ Concepts:
 - **Layout:** A reusable composition that places scenes or other supported content in regions. It is separate from playlist sequencing.
 - **Scene editor:** Structured content editing and manual source editing over the same working scene. The default web-scene contract uses the files index.html, style.css, and script.js, with assets managed separately.
 - **Live preview:** An authenticated server-side authoring preview at a chosen logical viewport, separate from production playback.
+- **Execution provider:** A runtime-independent server-side boundary for preview sessions and disposable validation/build jobs. Podman is the first target; other sandbox/runtime implementations may be added later.
 - **Action log / change history:** Auditable human, AI, and MCP edits; proposals can be reviewed and resolved rather than silently overwriting canonical work.
 - **Review:** Approval of a particular revision/scope before publication; material changes can invalidate approval.
 - **Template:** A versioned starting point instantiated as an independent scene.

@@ -9,13 +9,13 @@ SiSSi needs content to become eligible or ineligible based on both time and exte
 
 ## Decision
 
-**Playlists and playlist entries have time/condition eligibility policies.** Scene entries and child-playlist entries can each be eligible or ineligible in the context of their containing playlist. The scene itself independently evaluates its own guards; playlist eligibility does not replace, duplicate, or configure scene-owned guards.
+**Playlists and playlist entries have time/condition eligibility policies.** Scene entries can be eligible or ineligible in the context of their containing playlist. Playlist assignments can separately be eligible or ineligible in the screen or screen-group assignment queue. The scene itself independently evaluates its own guards; playlist eligibility does not replace, duplicate, or configure scene-owned guards.
 
 - **Playlist eligibility** answers whether a playlist may be selected/played now. Example: a service playlist is eligible during the service window and only while the livestream is active.
 - **Scene-entry eligibility** answers whether a particular occurrence of a scene may be selected by its playlist now. Example: an announcement entry is selectable only between two dates, on weekdays, or while an API condition is true.
 - **Element-level scene guards** remain distinct: they hide/show parts of a scene without making the whole scene ineligible.
 - **Assignments and schedules** determine where and when a playlist is assigned. Assignment does not itself override playlist or scene eligibility.
-- **Child-playlist-entry eligibility** controls whether a nested playlist may be selected by its parent. Playlist entries never bypass or take ownership of the scene's own guards.
+- **Assignment eligibility** controls whether a playlist is a candidate in a screen/group assignment queue. It is distinct from the playlist's own eligibility policy.
 
 ## Evaluation and playback behavior
 
@@ -29,7 +29,7 @@ SiSSi needs content to become eligible or ineligible based on both time and exte
 ## Consequences
 
 - Playlist-level and entry-level eligibility must be distinct from scene-owned guards, which the scene evaluates independently.
-- Playlist activation conditions from D-028 become part of playlist-level or playlist-entry eligibility, as appropriate.
+- Conditions from D-028 can be used for playlist-level eligibility, playlist-entry eligibility, or assignment eligibility, depending on the question being evaluated.
 - Exact schemas, shared condition references, fallback precedence, client/server responsibilities, and tests remain to be defined before implementation.
 
 ## References

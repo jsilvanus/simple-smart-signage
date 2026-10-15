@@ -160,6 +160,8 @@ Scenes carry rich searchable metadata. The initial model should allow a title, d
 
 Use resources primarily for readable canonical state, and tools for searches, mutations, validation, preview requests, and workflow actions. Resource templates address individual tenant-owned objects and subresources. Canonical resource URIs refer to mutable working state using stable internal IDs; immutable releases and snapshots use explicit version/revision identifiers. The proposed URI convention is documented in D-025 and remains a contract to finalise.
 
+Provide a read-only **scene resource index** at `sissi://tenants/{tenantId}/scenes/{sceneId}/resources`. It lists every scene-linked resource URI that the caller may discover, grouped by purpose and annotated with type/relation, mutable-versus-versioned status, current revision where relevant, and a short description. Include metadata, content schema/values, source files, template/design-system/palette references, assets, history, proposals, revisions, previews, and publication/deployment status where available. This is the single discovery point for scene-linked resources; it must not expose inaccessible URIs or leak cross-tenant resource existence.
+
 Provide a read-only scene-dump resource that gives a revision-stamped consolidated snapshot of relevant scene context: metadata, content schema and values, current revision, design-system/template references, asset references, and pending-proposal summaries. Include source content only when requested and permitted. Large sections must remain separately retrievable; the dump must not silently truncate data. Canonical content and pending proposals are always represented separately.
 
 Both structured content editing and source editing are first-class MCP capabilities. Structured tools edit schema-defined fields and repeatable items; source tools edit the permitted `index.html`, `style.css`, and `script.js` files. Asset upload/attachment, scene validation, viewport preview, history, and provenance correction are explicit capabilities. Publishing, template/design-system release, and display assignment remain separate permissioned workflows.
@@ -173,6 +175,14 @@ Proposals form an inspectable stack/list of change sets. Each records its actor,
 Accepting a proposal checks whether its base revision and affected content still match the current draft. A stale or overlapping proposal produces an explicit conflict requiring resolution/rebase or regeneration. Successful acceptance creates a normal edit transaction and new working revision. Discarded, rejected, superseded, and applied proposals remain auditable under the retention policy. Proposal acceptance is not editorial approval and does not publish the scene.
 
 The effective mode is controlled in the scene editor and enforced by the server for that authoring context; an MCP caller cannot bypass proposal mode by changing an argument. Every mutation retains the provenance and history requirements in the [provenance section](#provenance-and-review).
+
+## MCP publishing, playlists, and deployment
+
+MCP publishing tools are separate from scene authoring tools. The proposed semantic capabilities are: publish a reviewed and validated immutable scene revision; search and read playlists; create/edit playlists and ordered items; configure durations, transitions, playback policies, and time windows; assign playlists to screens or screen groups; push/reconcile a chosen playlist or assignment revision as desired state; inspect rollout and per-client synchronization status; and roll back to a known-good immutable revision.
+
+Publishing must pin the exact scene source, design-system and palette-overlay releases, and asset versions/hashes. Playlist changes and target assignments are explicit operations with separate permissions. Before deployment, show the affected screens/groups and exact revision. Return an operation/deployment identifier and report each client's synchronization separately; accepting a push request does not mean all clients have applied it. Operations should be idempotent, auditable, tenant-scoped, and recoverable. Rollback selects a known-good version rather than mutating a published revision.
+
+Scene editing, editorial review, publication, playlist editing, screen/group assignment, and deployment are distinct permissions. Creating or editing a scene does not grant permission to publish it or change what a display plays. Exact tool names, schemas, rollout state machine, confirmation policy, and rollback semantics remain to be specified.
 
 ## Build and publish
 

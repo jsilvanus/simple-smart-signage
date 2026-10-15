@@ -4,6 +4,15 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 
 ## Accepted
 
+### D-037 — Minimal native media scenes and AI-authored composition templates
+
+- **Status:** Accepted
+- **Date:** 2026-10-15
+- **Decision:** Keep native image, video, and PDF scenes deliberately narrow. Compositions beyond one native media item—such as text over an image or a title over a video—use AI-editable web-scene templates. AI generates and maintains the code; creators describe the result, supply/select content, and review it. Templates may expose structured fields for routine edits.
+- **Rationale:** Keeps native renderers simple while making custom composition accessible without requiring humans to code.
+- **Reference:** [D-037](D-037-minimal-native-media-scenes-and-ai-authored-templates.md) · [Content creation and authoring](../creation-system.md)
+
+
 ### D-036 — Separate scene bundles from managed assets
 
 - **Status:** Accepted

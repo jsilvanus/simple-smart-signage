@@ -83,6 +83,8 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Add global/system AI-transparency label assets with source/licence/version metadata and configurable disclosure policies.
 - [ ] Track provenance, editorial-review status, and disclosure decisions separately; human review is not a universal exemption from disclosure.
 - [ ] Define shared design-system identity, structured token model, CSS representation, asset references, and access controls; allow multiple systems to coexist.
+- [ ] Define composable design-system overlays, beginning with palette overlays that select named four-colour sets without replacing the base design system.
+- [ ] Define approved church palette sets, permitted semantic foreground/background pairings, WCAG AA contrast evidence, and tenant policy for required palette selection; validate raw CSS colour overrides.
 - [ ] Implement configurable design-system release permissions, defaulting to owner-only release; keep draft saving separate from immutable release.
 - [ ] Implement both structured design-system editing and advanced CSS editing against the same resource, with validation, conflict handling, and preservation of custom rules.
 - [ ] Implement design-system working drafts and immutable releases; draft scenes follow working versions while published scene revisions pin exact design-system and asset versions/hashes.
@@ -92,10 +94,14 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Implement MCP v2 scene/template/asset search across accessible tenants, including tenant codes and pagination.
 - [ ] Implement scene metadata fields and searchable filters for tags, intended use/event, seasonal relevance, date windows, and event URLs.
 - [ ] Expose canonical scene/content/source/history/proposal resources and the consolidated read-only scene-dump resource, with explicit versioned immutable resources.
+- [ ] Expose a scene resource-index resource listing all permitted URI resources linked to a scene, including metadata, source files, design-system/palette references, assets, proposals, revisions, previews, and publication state.
+- [ ] Specify MCP publishing and deployment tools separately from authoring: publish reviewed scene revisions, search/read/edit playlists, assign playlists to screens/groups, push versioned desired state to clients, inspect rollout/sync status, and roll back safely.
 - [ ] Implement MCP edits (default) and MCP proposes modes, proposal review/application/discard, revision-base conflict detection, and auditable supersession.
 - [ ] Implement semantic MCP tools for scene creation, structured content and repeatable-item edits, source edits, asset upload/attachment, validation, preview, history details, and provenance correction.
 - [ ] Import and validate artifacts/data produced by MCP-connected tools.
 - [ ] Build, validate, and publish immutable scene revisions at stable UUID-based SiSSi URLs.
+- [ ] Implement permissioned MCP publication/deployment operations with review gates, target preview/confirmation, immutable revision pinning, idempotent rollout, per-client status, and safe rollback.
+- [ ] Implement playlist resources and MCP tools to discover/edit playlists, manage ordered items and playback policies, assign playlists to screens/groups, push desired configuration, and inspect synchronization/health.
 - [ ] Implement explicit private/restricted and public/embed-enabled scene access policies.
 - [ ] Publish versioned bundles for cacheable/offline display playback.
 - [ ] Create playlists and playlist items, including playback policies and transitions.

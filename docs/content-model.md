@@ -2,78 +2,46 @@
 
 - **Status:** Accepted architectural direction
 - **Date:** 2026-10-15
-- **Decision:** Playlist-first programming, with reusable scenes and independent timing/availability rules.
+- **Decision:** Scene-first content model. Layouts group scenes into a visual composition; playlists, programmes, assignments and schedules determine playback.
 
 ## Core hierarchy
 
 ```text
-Display assignment / schedule
-Screen / screen-group assignment queue
-├── Eligible playlist assignment ──> Playlist
-├── Eligible playlist assignment ──> Playlist
-└── Eligible playlist assignment ──> Playlist
-                                    └── Scene entries ──> Scene revisions
+CONTENT CONCEPTS                         PLAYBACK CONCEPTS
+Scene revisions ──> Layouts              Schedule / assignment queue
+       │                │                        │
+       └────────────────┘                        v
+        reusable content                 Programme / Playlist(s)
+                                                  │
+                                                  v
+                                      Scene or layout references
 ```
+
+Scenes and layouts describe what can be shown. Playlists, programmes, assignments and schedules describe when and how content is played.
+
+### Scene
+
+A **scene** is the primary reusable content unit: a presentation, page, interactive experience, video composition or other authored content. A scene can have immutable published revisions and can be referenced by multiple layouts or playlists.
+
+### Layout
+
+A **layout** is a visual composition/group of scenes. It defines the regions in which scenes appear, including free split with user-defined region count, placement, size, overlap and stacking order. PiP, split and 4-split are convenient starting templates, not restrictions on the composition model.
+
+The author configures what happens when a scene ends within a layout: hold its last frame, advance/replace that region, clear it or show a placeholder, collapse/reflow where supported, or end the layout when explicitly selected. Scene completion is distinct from runtime failure.
+
+Scenes expose a small host-mediated runtime API. For example, `close()` requests closure of the current scene occurrence; the host applies the configured end behavior rather than letting a scene directly control the playlist or compositor. A separate `complete()` signal may distinguish normal completion from dismissal. Exact names and payloads remain to be finalized. This can support interactive scenes such as a camera-driven hand pointer: authorized pointer/gesture events are delivered to a scene, which can request `close()` when its interaction finishes. Camera access is explicitly enabled and permissioned, and unavailable input must fail safely.
 
 ### Playlist
 
-A **playlist** is a reusable ordered sequence of scene entries. A **programme** can be a conditional sequence of reusable playlists, each referenced with an explicit order and eligibility policy. A screen or screen group has an assignment queue that selects which programme is active. This separates target assignment from programme composition. See [D-031 — Screen assignment queues and conditional playlist sequences](decisions/D-031-playlist-composition.md).
+A **playlist** is a playback sequence that references scenes and/or layouts. Its entries define order, effective playback duration, transitions, and end behavior. Entry-level time windows and conditions determine whether an entry is eligible; these are playback rules, not intrinsic properties of the scene or layout.
 
-### Playlist item
+### Programme and assignment queue
 
-A playlist entry references a scene revision and defines its effective playback duration, transition, and playback/end behavior. Each entry may have its own time window and condition policy; when ineligible, that entry is skipped. These are playlist-level selection rules, not guards owned by the scene. The same scene can appear multiple times with different settings.
+A **programme** can be a conditional, explicitly ordered sequence of reusable playlists. A screen or screen group has an assignment queue that selects the active programme or playback target. Assignment eligibility, programme selection, playlist-entry eligibility, and scene-internal interaction logic are distinct layers. See [D-031 — Screen assignment queues and conditional playlist sequences](decisions/D-031-playlist-composition.md).
 
-### Scene and scene revision
+### Scene and layout revisions
 
-A scene is a reusable unit of presentation content. It is created in SiSSi's AI-assisted frontend authoring environment and may combine uploaded assets, MCP-created artifacts or data, and custom frontend code using the SiSSi design system. A scene can be a static layout, animated presentation, data-driven page, video composition, or other supported presentation behavior. One scene may contain multiple logical pages or views.
-
-The default AI-editable source contract consists of `index.html`, `style.css`, and `script.js`. Assets are managed separately. Navigation among logical pages in a scene belongs to the scene's own frontend, not to the playlist. An advanced multi-file scene mode may be defined separately.
-
-A scene revision identifies an immutable version of its frontend, presentation definition, design-system/runtime contract, and references to versioned assets. Content identity is separate from where and when it is used.
-
-A scene may suggest a default playback duration. The playlist item determines the effective duration for a particular use.
-
-### Source assets and generated artifacts
-
-Images, PDFs, MP4 videos, and other supported uploads are managed as reusable source assets. An asset can be shown directly where supported or used inside a scene's frontend. MCP-connected tools may create or retrieve artifacts and data for incorporation into a scene. Imported material must be validated before it is used or published.
-
-Source assets, editable scene workspace files, published scene revisions, and device-side caches are distinct concepts. Updating a source asset or workspace must not silently mutate an already published revision.
-
-### Scene timeline
-
-The scene's internal timeline governs behavior inside the presentation: animation, revealing or replacing elements, and timed media. It is distinct from the playlist item's playback slot. A scene may loop, play once and hold, remain static, or signal completion; exact supported modes and completion semantics require an explicit runtime contract.
-
-### Playlist and entry eligibility
-
-Time and condition rules belong to the **playlist** or to an individual **playlist entry**, not to the scene's own guards. The scene independently handles its internal guards and presentation behavior.
-
-- **Playlist eligibility** determines whether the playlist as a whole may be selected or run.
-- **Scene-entry eligibility** determines whether that particular occurrence of a scene is selectable within the playlist. Rules may use date ranges, local time windows, weekdays, or external conditions.
-- **Scene-owned guards** remain independent runtime behavior inside the scene; playlist selection must not duplicate or take ownership of them.
-- **Element-level guards** affect parts of a scene and remain internal to its presentation.
-- **Assignments and schedules** determine where and when a playlist is assigned. They are distinct from playlist-level and entry-level eligibility.
-
-If an entry is ineligible, the player skips it and considers the next eligible entry. If no entry is eligible, behavior follows an explicit fallback/empty-state policy rather than showing ineligible content or looping indefinitely. Exact timing semantics, rule composition, and behavior when a condition is unknown, stale, or unavailable must be defined before implementation.
-
-### Schedule, display assignment, and screen groups
-
-A screen or screen group has a 24-hour assignment schedule that selects a programme. For each local calendar date, resolve exactly one schedule: use a configured calendar-date schedule first; if none exists for that target and date, use the applicable weekday schedule. These schedules are exclusive and must not be merged. A calendar-date schedule can represent a holiday or special service. “Copy schedule to date” creates an independent snapshot, so later edits to the source weekday schedule or copied date schedule do not propagate to the other. Uncovered time in the selected schedule is off time; gaps in a calendar-date schedule do not fall through to the weekday schedule. Screen groups are reusable publishing targets, and group membership remains distinct from assignment. Precedence between group assignments and per-screen overrides, including overlapping assignments, must also be defined explicitly.
-
-### Playlist layouts and concurrent playlists
-
-These are two distinct concepts.
-
-**Playlist layout** groups one or more scenes inside a single playlist. Layouts support free split all the way: users can define the number of regions, position, size, overlap and stacking order. PiP, split and 4-split can be offered as starting templates, not as limits on what users can compose.
-
-**Concurrent playlist composition** displays multiple independently running playlists together. It can also use PiP, split, 4-split or free split. Each region references a distinct playlist, and each playlist retains its own sequence, eligibility, timing and playback state. One playlist ending or failing must not automatically stop the others.
-
-Users configure what happens when a scene ends, at layout or region level: hold the last frame, advance that region, clear it/show a placeholder, collapse/reflow where supported, or end the relevant composition if explicitly configured. Normal completion or closure is distinct from runtime failure; failures use recovery and diagnostics.
-
-Scenes expose a small host-mediated runtime API. For example, `close()` requests closure of the current scene occurrence; the host applies the configured end behavior instead of allowing the scene to stop its playlist or manipulate the compositor directly. A separate `complete()` signal may distinguish normal completion from a request to dismiss an interactive scene. Exact API names and payloads remain to be finalized. Calls are scoped, validated and permissioned.
-
-This enables interactions such as a camera tracking a person's hand as a pointer: the host delivers authorized pointer or gesture events to the scene, and the scene can call `close()` when the interaction is finished. Camera input must be explicitly enabled and permissioned, and the scene must handle unavailable input safely. Camera interaction is an input capability, not a special layout.
-
-The client compositor defines region bounds, stacking order, fit/scaling, clipping, transitions and audio focus. It must not assume the display provides native PiP. Check device capabilities and apply an explicit fallback if a requested composition is unsupported. Avoid simultaneous audible sources by default. See [D-032 — Playlist layouts and concurrent playlist composition](decisions/D-032-playlist-layouts-and-concurrent-scenes.md).
+Published scene and layout revisions are immutable and versioned so playback is reproducible. Editing a draft must not change what is already published to screens. A playlist references a specific published revision or an explicitly defined update policy.
 
 ### Special broadcasts and temporary display overrides
 

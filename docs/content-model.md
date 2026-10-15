@@ -8,24 +8,20 @@
 
 ```text
 Display assignment / schedule
-└── Playlist / playlist composition
-    ├── Scene entry ──> Scene revision
-    ├── Scene entry ──> Scene revision
-    └── Child-playlist entry ──> Playlist
-                             ├── HTML / CSS / JavaScript presentation
-                             ├── Referenced media assets
-                             ├── Logical pages / views
-                             ├── Internal presentation timeline
-                             └── Scene-owned time guards
+Screen / screen-group assignment queue
+├── Eligible playlist assignment ──> Playlist
+├── Eligible playlist assignment ──> Playlist
+└── Eligible playlist assignment ──> Playlist
+                                    └── Scene entries ──> Scene revisions
 ```
 
 ### Playlist
 
-A playlist is a reusable programme. It may contain scene entries, child-playlist entries, or both. Its explicit composition mode defines whether entries are sequenced, conditionally selected, or handled by another supported policy. A playlist can be assigned directly or included in a higher-level playlist-of-playlists; child playlists are referenced, never copied. See [D-031 — Playlist composition and nested playlists](decisions/D-031-playlist-composition.md).
+A playlist is a reusable programme containing an ordered sequence of scene entries. It does not contain other playlists. Selection among multiple playlists belongs to the assignment queue of a screen or screen group. See [D-031 — Screen assignment queues](decisions/D-031-playlist-composition.md).
 
 ### Playlist item
 
-A playlist entry is explicitly typed as either a **scene entry** or a **child-playlist entry**. A scene entry references a scene revision and defines its effective playback duration, transition, and playback/end behavior. Each scene entry may have its own time window and condition policy; when ineligible, that entry is skipped. These are playlist-level selection rules, not guards owned by the scene. The same scene can appear multiple times with different settings. A child-playlist entry references another playlist and may have its own time window and conditions controlling selection in the parent.
+A playlist entry references a scene revision and defines its effective playback duration, transition, and playback/end behavior. Each entry may have its own time window and condition policy; when ineligible, that entry is skipped. These are playlist-level selection rules, not guards owned by the scene. The same scene can appear multiple times with different settings.
 
 ### Scene and scene revision
 
@@ -53,12 +49,11 @@ Time and condition rules belong to the **playlist** or to an individual **playli
 
 - **Playlist eligibility** determines whether the playlist as a whole may be selected or run.
 - **Scene-entry eligibility** determines whether that particular occurrence of a scene is selectable within the playlist. Rules may use date ranges, local time windows, weekdays, or external conditions.
-- **Child-playlist-entry eligibility** determines whether a child playlist may be selected within a parent playlist-of-playlists.
 - **Scene-owned guards** remain independent runtime behavior inside the scene; playlist selection must not duplicate or take ownership of them.
 - **Element-level guards** affect parts of a scene and remain internal to its presentation.
 - **Assignments and schedules** determine where and when a playlist is assigned. They are distinct from playlist-level and entry-level eligibility.
 
-If an entry is ineligible, the player skips it according to the playlist's composition policy. If no entry is eligible, or a child playlist has no playable entry, behavior follows an explicit fallback/empty-state policy rather than showing ineligible content or looping indefinitely. Exact timing semantics, rule composition, and behavior when a condition is unknown, stale, or unavailable must be defined before implementation.
+If an entry is ineligible, the player skips it and considers the next eligible entry. If no entry is eligible, behavior follows an explicit fallback/empty-state policy rather than showing ineligible content or looping indefinitely. Exact timing semantics, rule composition, and behavior when a condition is unknown, stale, or unavailable must be defined before implementation.
 
 ### Schedule, display assignment, and screen groups
 
@@ -77,7 +72,7 @@ PiP and split-screen must be implemented by the SiSSi client compositor; do not 
 
 ### Shared condition evaluation
 
-Conditions can be referenced by playlist-level eligibility, individual scene-entry and child-playlist-entry eligibility, playlist selection, and special-broadcast activation. Examples include selecting a live-service playlist only while a YouTube Live broadcast is active, or making a scene eligible when a configured API returns a JSON field with a particular value. Time windows and condition rules are combined according to the policy's explicit rule composition; this never edits a playlist or immutable scene revision.
+Conditions can be referenced by playlist-level eligibility, individual scene-entry eligibility, screen/group playlist assignments, and special-broadcast activation. Examples include selecting a live-service playlist only while a YouTube Live broadcast is active, or making a scene eligible when a configured API returns a JSON field with a particular value. Time windows and condition rules are combined according to the policy's explicit rule composition; this never edits a playlist or immutable scene revision.
 
 Use the planned `varfetch` package (`varfetch@^0.3.0` as of 2026-10-15) as the server-side HTTP connector primitive for configured requests, safe variable interpolation, SSRF protections, and JSON-path response mapping. The repository does not yet contain an application package manifest, so the actual npm dependency is to be added when the server application is scaffolded. See [D-028](decisions/D-028-conditional-playlist-activation.md).
 
@@ -91,8 +86,8 @@ Conditions must have explicit predicates, evaluation cadence, timeout and respon
 | Scene-owned guards | Scene runtime | Internal presentation behavior, independently evaluated by the scene |
 | Element-level guards | Scene presentation | Visibility of individual elements within an eligible scene |
 | Playlist eligibility policy | Playlist | Whether the playlist as a whole may be selected/played now |
-| Entry eligibility policy | Playlist entry | Whether this scene or child playlist entry may be selected now |
-| Playlist composition mode | Playlist | How entries/child playlists are sequenced or selected |
+| Entry eligibility policy | Playlist entry | Whether this scene occurrence may be selected now |
+| Assignment queue | Screen / screen group | Which eligible playlist is selected for the target |
 | Playback slot | Playlist item | How long this playlist occurrence is shown |
 | Playlist activation | Schedule/assignment | When a playlist is active on a display |
 

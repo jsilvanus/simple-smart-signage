@@ -59,9 +59,17 @@ A playlist item may add contextual restrictions, but must not silently bypass a 
 
 A schedule/assignment determines which playlist is active on a display or display group and during which calendar periods. It does not own the internal timeline of a scene or the duration of an individual playlist item. Screen groups are reusable publishing targets: administrators can assign a playlist to a group (for example, all foyer screens) rather than configuring each display separately. Group membership and playlist assignment are distinct, and precedence between group assignments, per-screen overrides, schedules, and overlapping assignments must be defined explicitly.
 
+### Special broadcasts and multi-region composition
+
+A **special broadcast** is a temporary second playlist presented concurrently with the normal/base playlist on a display or screen group. The base playlist continues in its own playback position while the secondary playlist is rendered in a separate region: for example, corner picture-in-picture (PiP), a vertical left/right split, or a horizontal top/bottom split. This is a display composition assignment, not an ordinary playlist item and not a mutation of either playlist.
+
+The composition should define its target display/group, base and secondary playlist references, layout preset/region geometry, priority, activation and expiry rules, and fallback behavior. Initially, support one secondary broadcast per display while keeping the model extensible. Prepare the secondary content before showing it; when it ends, remove that region without restarting the base playlist. Special broadcasts can be activated manually or by the external conditions described below.
+
+PiP and split-screen must be implemented by the SiSSi client compositor; do not assume the television itself provides a usable PiP function. Define per-device capability support, content/media combinations, region scaling, and audio focus. By default, avoid two simultaneous audible sources. If a client cannot support the selected layout, apply a configured fallback and report it rather than silently claiming success. See [D-029](decisions/D-029-special-broadcast-composition.md).
+
 ### Conditional playlist activation
 
-A playlist assignment or playlist-selection rule may also have an external condition. Examples include selecting a live-service playlist only while a YouTube Live broadcast is active, or selecting a playlist when a configured API returns a JSON field with a particular value or URL. This is server-side conditional activation, separate from calendar schedules and scene-owned time guards; it never edits a playlist or immutable scene revision.
+A playlist assignment, playlist-selection rule, or special-broadcast composition may also have an external condition. Examples include selecting a live-service playlist only while a YouTube Live broadcast is active, or selecting a playlist when a configured API returns a JSON field with a particular value or URL. This is server-side conditional activation, separate from calendar schedules and scene-owned time guards; it never edits a playlist or immutable scene revision.
 
 Use the planned `varfetch` package (`varfetch@^0.3.0` as of 2026-10-15) as the server-side HTTP connector primitive for configured requests, safe variable interpolation, SSRF protections, and JSON-path response mapping. The repository does not yet contain an application package manifest, so the actual npm dependency is to be added when the server application is scaffolded. See [D-028](decisions/D-028-conditional-playlist-activation.md).
 

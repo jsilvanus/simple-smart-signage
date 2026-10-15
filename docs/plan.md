@@ -66,6 +66,9 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Define upload limits, server-side validation, storage, checksum/versioning, derived previews, and reference-safe deletion.
 - [ ] Implement explicit asset-version pinning for editable scene references and exact version/hash pinning in published revisions.
 - [ ] On asset update, prompt with the referencing-scene list and allow selective propagation; never mutate published revisions in place.
+- [ ] **MVP first:** implement simple media scenes that display an image, PDF, or video without requiring source-code authoring.
+- [ ] **Immediately after the simple-scene MVP:** implement complex code-driven scenes with the authoring workspace, live Vite preview, validation/build, and publication workflow.
+- [ ] Implement preview lifecycle: isolated environment per active workspace, server-owned shutdown timers, initial 2-minute countdown after explicit editor close, initial 20-minute countdown after meaningful inactivity, cancellation on reopen/activity, restart reconciliation, and workspace persistence after stopping.
 - [ ] Implement per-scene Vite authoring workspace on the SiSSi server using `npm run dev`.
 - [ ] Expose each workspace through an authenticated UUID-addressed reverse proxy.
 - [ ] Build the main authoring view with live preview and a shared side panel containing the structured Content editor and unified Action log.

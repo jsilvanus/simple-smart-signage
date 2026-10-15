@@ -4,6 +4,15 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 
 ## Accepted
 
+### D-033 — Declared scene actions and host-mediated runtime API
+
+- **Status:** Accepted architectural direction
+- **Date:** 2026-10-15
+- **Decision:** Authored scenes run in an isolated iframe and communicate with the trusted player through a typed `postMessage` bridge exposed by `@sissi/scene-sdk`. The host validates message schemas, frame/source identity, scene revision, active occurrence, allowed operations, and authorization. The player retains authority over playback and privileged actions; iframe sandbox and origin configuration must be deliberately secured. Exact schemas and sandbox details remain to be specified.
+- **Rationale:** Supports AI- and user-authored scenes without placing their code in the player's JavaScript environment, while preserving one versioned contract for lifecycle and permitted actions.
+- **Reference:** [D-033](D-033-scene-actions-and-runtime-api.md) · [D-042](D-042-scene-sdk-and-api-versioning.md)
+
+
 ### D-042 — Scene SDK and API versioning
 
 - **Status:** Accepted

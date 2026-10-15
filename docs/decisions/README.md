@@ -175,6 +175,20 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Reference:** [Tenancy, identity, authorization, and MCP OAuth](../access-control.md) · [Device handshake](../handshake.md) · [Content creation and authoring](../creation-system.md)
 
 
+### D-026 — Scene resource index and MCP publishing/deployment tools
+
+- **Status:** Accepted architectural direction; exact schemas and tool names remain to be specified
+- **Date:** 2026-10-15
+- **Decision:** Provide a scene-level resource-index URI listing every scene-linked resource the caller may access. Keep publishing and deployment separate from authoring, with explicit MCP tools for publishing reviewed immutable scene revisions, playlist search/read/edit, screen/group assignment, desired-state push, rollout status, and safe rollback. Report server acceptance separately from per-client synchronization.
+- **Reference:** [Decision details](D-026-mcp-publishing-and-resource-index.md)
+
+### D-027 — Composable palette overlays and approved accessible colour sets
+
+- **Status:** Accepted architectural direction; palette schema and church-specific values remain to be specified
+- **Date:** 2026-10-15
+- **Decision:** Allow compatible palette overlays on a primary design system without replacing its other visual rules. Palette overlays can provide named four-colour sets with semantic roles and documented, tested foreground/background pairings. Where a church tenant policy requires an approved palette, validate selection and flag unapproved CSS colour overrides. Store WCAG AA contrast evidence for tested combinations; do not treat every arbitrary pairing as automatically compliant.
+- **Reference:** [Decision details](D-027-accessible-palette-overlays.md)
+
 ### D-025 — MCP v2 content creation, discovery, and edit proposals
 
 - **Status:** Accepted architectural direction; exact schemas and tool/resource names remain to be specified

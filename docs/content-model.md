@@ -63,11 +63,15 @@ A screen or screen group has a 24-hour assignment schedule that selects a progra
 
 These are two distinct concepts.
 
-**Playlist layout** groups one or more scenes inside a single playlist. It defines region positions and sizes, stacking/overlap, fit/scaling, clipping, transitions, and what happens when a scene reports completion or closure. A layout can contain one scene or multiple scenes; free split allows configurable scene regions.
+**Playlist layout** groups one or more scenes inside a single playlist. Layouts support free split all the way: users can define the number of regions, position, size, overlap and stacking order. PiP, split and 4-split can be offered as starting templates, not as limits on what users can compose.
 
-**Concurrent playlist composition** displays multiple independently running playlists together. Supported modes are PiP (one primary playlist and one inset playlist), split (two playlists in separate regions), 4-split (four playlists concurrently), and free split (multiple playlists in configurable regions with adjustable positions and sizes). Each region references a distinct playlist, and each playlist retains its own sequence, eligibility, timing and playback state. One playlist ending or failing must not automatically stop the others.
+**Concurrent playlist composition** displays multiple independently running playlists together. It can also use PiP, split, 4-split or free split. Each region references a distinct playlist, and each playlist retains its own sequence, eligibility, timing and playback state. One playlist ending or failing must not automatically stop the others.
 
-A scene closing within a playlist layout follows an explicit layout/region policy, such as holding the last frame, advancing that region, clearing it or showing a placeholder, collapsing/reflowing where supported, or ending the composition when explicitly configured. Normal closure is distinct from runtime failure; failures use recovery and diagnostics.
+Users configure what happens when a scene ends, at layout or region level: hold the last frame, advance that region, clear it/show a placeholder, collapse/reflow where supported, or end the relevant composition if explicitly configured. Normal completion or closure is distinct from runtime failure; failures use recovery and diagnostics.
+
+Scenes expose a small host-mediated runtime API. For example, `close()` requests closure of the current scene occurrence; the host applies the configured end behavior instead of allowing the scene to stop its playlist or manipulate the compositor directly. A separate `complete()` signal may distinguish normal completion from a request to dismiss an interactive scene. Exact API names and payloads remain to be finalized. Calls are scoped, validated and permissioned.
+
+This enables interactions such as a camera tracking a person's hand as a pointer: the host delivers authorized pointer or gesture events to the scene, and the scene can call `close()` when the interaction is finished. Camera input must be explicitly enabled and permissioned, and the scene must handle unavailable input safely. Camera interaction is an input capability, not a special layout.
 
 The client compositor defines region bounds, stacking order, fit/scaling, clipping, transitions and audio focus. It must not assume the display provides native PiP. Check device capabilities and apply an explicit fallback if a requested composition is unsupported. Avoid simultaneous audible sources by default. See [D-032 — Playlist layouts and concurrent playlist composition](decisions/D-032-playlist-layouts-and-concurrent-scenes.md).
 

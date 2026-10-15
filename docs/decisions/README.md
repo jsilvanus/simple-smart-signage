@@ -270,3 +270,11 @@ Keep this index updated when a decision is accepted or superseded.
 - **Activation:** Manual or condition-based, targeted to a display or screen group, with priority, expiry, stop, fallback, and audit behavior.
 - **Runtime:** SiSSi's client compositor provides the layout; hardware TV PiP is not assumed. Define capability negotiation, content support, and audio focus; avoid accidental dual audio and report unsupported layouts.
 - **Reference:** [Special broadcast composition](D-029-special-broadcast-composition.md) · [Content and playback model](../content-model.md)
+
+
+### D-030 — Shared scene and playlist display eligibility
+
+- **Status:** Accepted architectural direction; exact schemas and evaluation semantics remain to be specified
+- **Date:** 2026-10-15
+- **Decision:** Both scenes and playlists have first-class display-eligibility policies that can combine time windows and conditions. Assignments/schedules, playlist-item playback behavior, scene element-level guards, and eligibility are distinct concerns. Ineligible content is skipped or falls back according to explicit policies; condition errors are never silently coerced to true or false.
+- **Reference:** [Decision details](D-030-scene-and-playlist-eligibility.md) · [Content and playback model](../content-model.md)

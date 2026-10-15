@@ -4,6 +4,15 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 
 ## Accepted
 
+### D-040 — Hybrid playback fallback policy
+
+- **Status:** Accepted
+- **Date:** 2026-10-15
+- **Decision:** If the intended next item misses its readiness deadline, skip to another eligible, ready item only where playlist/schedule rules permit. Otherwise show the configured fallback scene; if that is unavailable, preserve the last good displayed frame where possible. Time-critical or explicitly scheduled content must not be displaced just because another item is ready.
+- **Rationale:** Keeps playback moving while respecting scheduling and avoiding blank or broken displays.
+- **Reference:** [D-040](D-040-hybrid-playback-fallback-policy.md) · [D-039](D-039-background-preparation-and-hybrid-activation.md) · [Content and playback model](../content-model.md) · [Display runtime](../display-runtime.md)
+
+
 ### D-039 — Background preparation and hybrid playlist activation
 
 - **Status:** Accepted

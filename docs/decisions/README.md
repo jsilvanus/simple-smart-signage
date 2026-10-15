@@ -4,6 +4,15 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 
 ## Accepted
 
+### D-036 — Separate scene bundles from managed assets
+
+- **Status:** Accepted
+- **Date:** 2026-10-15
+- **Decision:** Published scene bundles contain built scene files and a manifest, not managed-media payloads. The manifest pins exact managed-asset versions/hashes and distinguishes required from optional dependencies. Clients validate the bundle first, then ensure required assets are cached and verified, and activate only when all required dependencies are ready. Failures preserve last-known-good playback. External URLs are separate, non-immutable dependencies.
+- **Rationale:** Reuses assets across scenes without duplicating media in bundles, while preserving deterministic publishing, offline playback, and rollback.
+- **Reference:** [D-036](D-036-separate-scene-bundles-from-managed-assets.md) · [Display runtime](../display-runtime.md)
+
+
 ### D-001 — Project name
 
 - **Status:** Accepted

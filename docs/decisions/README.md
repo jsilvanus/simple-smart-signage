@@ -4,6 +4,14 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 
 ## Accepted
 
+### D-044 — Complex-scene security model
+
+- **Status:** Accepted architectural direction
+- **Date:** 2026-10-16
+- **Decision:** Use sandboxed authored scenes with explicit per-capability allowlists, layered authorization, risk-based publication review, profile-based resource budgets, and hybrid network access. Direct requests are limited to explicitly approved public/browser-accessible resources; privileged or credentialed requests use server-side SiSSi connectors. Enforce security in depth across browser, trusted display runtime and server. The MVP prioritizes browser sandboxing/CSP, host-validated bridge messages and server authorization; violation handling initially denies and continues or terminates, with severity-based escalation planned for 2.0. Scenes are intended to be served from the SiSSi application origin, but this is provisional until isolation is demonstrated in a security review.
+- **Rationale:** Keep AI-authored scenes useful without granting them authority over the player, tenant data or privileged services.
+- **Reference:** [D-044](D-044-complex-scene-security-model.md) · [D-033](D-033-scene-actions-and-runtime-api.md) · [D-038](D-038-tenant-connectors-and-scene-variable-bindings.md)
+
 ### D-043 — First-class caption services and persistent caption layers
 
 - **Status:** Accepted architectural direction

@@ -9,6 +9,17 @@
 - **Rationale:** Pre-caching makes playback reliable and transitions smooth, while explicit readiness and an optional start hook let static and time-driven scenes behave predictably.
 - **Reference:** [D-033 — Declared scene actions and host-mediated runtime API](D-033-scene-actions-and-runtime-api.md) · [D-036 — Separate scene bundles from managed assets](D-036-separate-scene-bundles-from-managed-assets.md) · [D-037 — Minimal native media scenes and AI-authored templates](D-037-minimal-native-media-scenes-and-ai-authored-templates.md) · [D-039 — Background preparation and hybrid activation](D-039-background-preparation-and-hybrid-activation.md) · [D-040 — Hybrid playback fallback policy](D-040-hybrid-playback-fallback-policy.md) · [Display runtime](../display-runtime.md)
 
+
+
+## Readiness timeout configuration
+
+- The host provides a general default preparation/readiness timeout.
+- A scene may declare a predefined scene-specific timeout profile when it needs more preparation time. The effective timeout is resolved from the applicable host/runtime and scene configuration; a scene cannot extend or reset its deadline dynamically while running.
+- Preparation may take longer for scenes that genuinely need it. Their declared timeout should allow the expected preparation period plus an appropriate grace period for readiness to be reported. The expected preparation duration and the hard readiness deadline are conceptually distinct, even if the initial implementation exposes them as one configured timeout value.
+- The host enforces the effective hard deadline. If the scene has not signalled `ready` by then, readiness fails and the existing playlist policy and D-040 fallback behavior apply. A scene must never block playback indefinitely.
+- The readiness deadline ends when readiness is accepted. Hangs or failures after readiness belong to separate runtime-health and active-playback handling, not the preparation timeout.
+- Exact timeout fields, allowed values, and precedence rules remain implementation details to specify.
+
 ## Implementation notes
 
 - Specify the callable interface and timing for the existing lifecycle signals/requests and host-controlled activation, including duplicate calls and error reporting.

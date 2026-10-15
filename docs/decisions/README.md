@@ -261,3 +261,12 @@ Keep this index updated when a decision is accepted or superseded.
 - **Dependency:** Plan to use `varfetch@^0.3.0` for configured server-side HTTP requests and JSON-path mapping. Add it to the server application's package manifest when the app is scaffolded; this planning repository currently has no `package.json`.
 - **Safety:** Keep credentials server-side, apply SSRF protections, block private-network targets unless trusted server configuration explicitly allows them, validate response-derived URLs, and define explicit freshness and unknown/error behavior.
 - **Reference:** [Conditional playlist activation](D-028-conditional-playlist-activation.md) · [Content and playback model](../content-model.md)
+
+### D-029 — Special broadcasts and multi-region display composition
+
+- **Status:** Accepted architectural direction
+- **Date:** 2026-10-15
+- **Decision:** A temporary special broadcast can run a secondary playlist concurrently with the normal/base playlist in PiP or split-screen regions. This is a display composition assignment, not a normal playlist item; base playback continues underneath and resumes without resetting when the broadcast ends.
+- **Activation:** Manual or condition-based, targeted to a display or screen group, with priority, expiry, stop, fallback, and audit behavior.
+- **Runtime:** SiSSi's client compositor provides the layout; hardware TV PiP is not assumed. Define capability negotiation, content support, and audio focus; avoid accidental dual audio and report unsupported layouts.
+- **Reference:** [Special broadcast composition](D-029-special-broadcast-composition.md) · [Content and playback model](../content-model.md)

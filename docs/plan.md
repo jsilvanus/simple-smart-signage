@@ -42,6 +42,8 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Implement per-device credential issuance, revocation, and audit events.
 - [ ] Implement authenticated handshake, configuration, SSE, and heartbeat endpoints.
 - [ ] Implement authorised web-app assignment and versioned bundle metadata.
+- [ ] Define the runtime-independent execution-provider contract and initial Podman provider; separate persistent Vite preview sessions from disposable validation/build jobs.
+- [ ] Define workspace/task lifecycle, bounded logs/diagnostics, artifact handoff, cleanup, dependency/network policy, resource limits, and isolation tests; decide later whether an in-container supervisor/API is necessary.
 - [ ] Define isolated authoring-workspace process, Vite lifecycle, and reverse-proxy management.
 
 ## Phase 3 — First display client

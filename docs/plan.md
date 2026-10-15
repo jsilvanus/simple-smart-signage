@@ -20,7 +20,7 @@ This is the top-level implementation roadmap. Detailed specifications belong in 
 - [ ] Define screen/group assignment and device permissions.
 - [ ] Define SSE events, event IDs, reconnect, and reconciliation.
 - [ ] Define heartbeat payload and online/offline thresholds.
-- [ ] Define the content model: playlists, playlist items, scenes, scene revisions, scene timelines, playlist-level and playlist-entry eligibility, 24-hour screen/group assignment schedules with off-time gaps, conditional playlist sequences, playlist time windows and finite/loop run policies, scene-owned guards, shared condition evaluation, and special-broadcast overlay/replacement modes.
+- [ ] Define the content model: playlists, playlist layouts with concurrent scene regions (full-screen, PiP, side-by-side, up to four regions, and free split), scene completion/closure policies per region, playlist items, scenes and revisions, eligibility, 24-hour screen/group schedules, conditional playlist sequences, run policies, shared conditions, and special-broadcast overlay/replacement modes.
 - [ ] Define reusable, versioned templates as scene starting points with placeholder values and structured content schemas.
 - [ ] Define display-target schema: hosted URL, packaged web bundle, and media.
 - [ ] Define scene authoring workspace, UUID proxy routing, source editing, preview, build, publishing, and artifact contracts.
@@ -102,7 +102,7 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Build, validate, and publish immutable scene revisions at stable UUID-based SiSSi URLs.
 - [ ] Implement permissioned MCP publication/deployment operations with review gates, target preview/confirmation, immutable revision pinning, idempotent rollout, per-client status, and safe rollback.
 - [ ] Implement playlist resources and MCP tools to discover/edit playlists, manage ordered items and playback policies, assign playlists to screens/groups, push desired configuration, and inspect synchronization/health.
-- [ ] Define special-broadcast composition schema, initial PiP/vertical-split/horizontal-split layouts, activation/expiry/priority rules, audio focus, device capability negotiation, and fallback behavior.
+- [ ] Define playlist layout schema and compositor contract for concurrent scenes: full-screen, PiP, side-by-side, up to four regions, free split, region sizing/stacking, independent advancement, completion/closure policies, runtime-error recovery, audio focus, device capability negotiation, and fallback behavior.\n- [ ] Define special-broadcast composition schema, activation/expiry/priority rules, audio focus, device capability negotiation, and fallback behavior.
 - [ ] Implement display-client multi-region composition so a secondary broadcast can play alongside the base playlist without resetting its playback position; support start/stop/status for displays and screen groups.
 - [ ] Define reusable condition/connector schemas and supported predicates for playlist-level and playlist-entry eligibility, assignments, and special broadcasts, including YouTube Live state and mapped JSON values/URLs.
 - [ ] Define 24-hour screen/group assignment schedules with calendar-date schedules taking precedence over weekday schedules, exclusive schedule resolution, independent copy-to-date behavior, and off-time gaps; define conditional playlist-sequence ordering, playlist time windows and loop/finite run limits, count reset semantics, assignment priority/precedence, condition evaluation, and per-screen overrides.

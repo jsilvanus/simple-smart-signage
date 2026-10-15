@@ -57,7 +57,7 @@ If an entry is ineligible, the player skips it and considers the next eligible e
 
 ### Schedule, display assignment, and screen groups
 
-A schedule/assignment determines which playlist is active on a display or display group and during which calendar periods. It does not own the internal timeline of a scene or the duration of an individual playlist item. Screen groups are reusable publishing targets: administrators can assign a playlist to a group (for example, all foyer screens) rather than configuring each display separately. Group membership and playlist assignment are distinct, and precedence between group assignments, per-screen overrides, schedules, and overlapping assignments must be defined explicitly.
+A screen or screen group has a 24-hour assignment schedule that selects a programme. For each local calendar date, resolve exactly one schedule: use a configured calendar-date schedule first; if none exists for that target and date, use the applicable weekday schedule. These schedules are exclusive and must not be merged. A calendar-date schedule can represent a holiday or special service. “Copy schedule to date” creates an independent snapshot, so later edits to the source weekday schedule or copied date schedule do not propagate to the other. Uncovered time in the selected schedule is off time; gaps in a calendar-date schedule do not fall through to the weekday schedule. Screen groups are reusable publishing targets, and group membership remains distinct from assignment. Precedence between group assignments and per-screen overrides, including overlapping assignments, must also be defined explicitly.
 
 ### Special broadcasts and temporary display overrides
 
@@ -87,9 +87,8 @@ Conditions must have explicit predicates, evaluation cadence, timeout and respon
 | Element-level guards | Scene presentation | Visibility of individual elements within an eligible scene |
 | Playlist eligibility policy | Playlist | Whether the playlist as a whole may be selected/played now |
 | Entry eligibility policy | Playlist entry | Whether this scene occurrence may be selected now |
-| Programme playlist order and eligibility | Programme sequence entry | Whether/when a referenced playlist runs and its order in the sequence |
-| Assignment schedule | Screen / screen group | Which programme is assigned at each time; uncovered time is off time |
 | Programme playlist order and eligibility | Programme sequence entry | Whether/when a referenced playlist runs, its order, and its run limit |
+| Assignment schedule | Screen / screen group | Select one effective 24-hour schedule per date: calendar-date override first, otherwise weekday; uncovered time is off time |
 | Assignment queue | Screen / screen group | Which eligible programme is selected for the target |
 | Playback slot | Playlist item | How long this playlist occurrence is shown |
 | Playlist activation | Schedule/assignment | When a playlist is active on a display |

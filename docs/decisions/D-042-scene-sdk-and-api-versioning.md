@@ -1,0 +1,12 @@
+# D-042 — Scene SDK and API versioning
+
+- **Status:** Accepted
+- **Date:** 2026-10-15
+- **Decision:** Maintain a dedicated `@sissi/scene-sdk` package in the SiSSi monorepo, shared through the repository's workspace/package tooling. The SDK provides authoring-time lifecycle helpers, host communication abstractions, declared-action helpers, and types. It is a convenience layer, not the authority for playback state or security.
+- **Versioning:** Use semantic versioning for the SDK package. Track the scene-to-host contract with a separate `sceneApi` version in the published scene manifest. SDK patch/minor changes that preserve the contract do not require changing `sceneApi`; incompatible contract changes require a new API version and a controlled compatibility/migration plan.
+- **Consumption:** Authoring workspaces, AI-generated scenes, manual source projects, and templates consume a pinned SDK version. The scene build bundles the SDK implementation it needs into the immutable published scene bundle, so playback does not require npm or network access. The manifest records SDK version for diagnostics and the scene API version for host compatibility checks.
+- **Compatibility and validation:** The host checks the declared scene API version before activation and rejects unsupported bundles through the configured fallback path. The host remains authoritative and validates runtime messages; shared TypeScript types do not replace runtime validation. Native image/video scenes may use host-side adapters and need not import the JavaScript SDK.
+- **Testing:** Add compatibility tests for supported scene API versions and host releases, plus lifecycle tests for readiness, optional startup, completion, errors, duplicate signals, and stale callbacks.
+- **Scope:** Keep the SDK small and avoid duplicating host responsibilities such as playlist selection, scheduling, caching, and transitions. Contract definitions may initially live within the SDK package; split them into another package only when a concrete need arises.
+- **Rationale:** Gives all authored scenes one maintained contract and a reproducible build path while allowing the SDK implementation to evolve without forcing every cached scene to be rebuilt.
+- **Related decisions:** [D-033 — Scene actions and runtime API](D-033-scene-actions-and-runtime-api.md) · [D-036 — Separate scene bundles from managed assets](D-036-separate-scene-bundles-from-managed-assets.md) · [D-041 — Cache-first publication and scene readiness](D-041-scene-readiness-and-start-lifecycle.md)

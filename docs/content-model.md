@@ -35,13 +35,13 @@ A scene may suggest a default playback duration. The playlist item determines th
 
 The scene's internal timeline governs behavior inside the presentation: animation, revealing or replacing elements, and timed media. It is distinct from the playlist item's playback slot. A scene may loop, play once and hold, remain static, or signal completion; exact supported modes and completion semantics require an explicit runtime contract.
 
-### Scene availability
+### Scene-owned time guards
 
-A scene may have availability restrictions, such as weekdays between 07:00 and 11:00 in the Europe/Helsinki time zone. Availability determines whether the scene is eligible for selection; it is not the same as its internal timeline or playback duration.
+Time guards are part of the scene's own presentation logic. A scene may use them to decide when to show, hide, replace, or advance particular elements, or when the scene itself is appropriate to run. Examples include revealing a service-time panel only before a service, hiding an expired notice, or restricting the entire scene to weekday mornings. A scene's internal timeline and its time guards belong to the scene; they are not playlist timing.
 
-Availability may be defined on the scene and further narrowed by a playlist item. A playlist item must not silently override a scene's restrictions. Exact rule composition, exceptions, overnight windows, daylight-saving transitions, clock uncertainty, and no-eligible-scene fallback must be specified before implementation.
+A scene may therefore contain multiple time guards at different scopes: element-level guards affect only parts of its presentation, while scene-level availability guards determine whether the scene is eligible to be selected at all. Guards should use an explicit time zone when based on local wall-clock time. Exact rule composition, exceptions, overnight windows, daylight-saving transitions, clock uncertainty, and behavior when a guard cannot be evaluated must be specified before implementation.
 
-If a scene becomes unavailable during playback, the runtime should stop presenting it at the boundary and advance to eligible content. The runtime should avoid blanking the display while preparing a replacement.
+A playlist item may add contextual restrictions, but must not silently bypass a scene's own guards. If a scene-level availability guard becomes false while the scene is playing, the runtime should stop presenting the scene and advance to eligible content. An element-level guard should only affect the element it governs. The runtime should avoid blanking the display while preparing a replacement.
 
 ### Schedule and display assignment
 

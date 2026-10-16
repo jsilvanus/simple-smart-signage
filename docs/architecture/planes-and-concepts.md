@@ -124,7 +124,7 @@ Boundaries:
 
 Concepts:
 
-- **Display client:** A managed shell with a pluggable runtime; Android TV is the initial target, with Tizen as a possible additional target.
+- **Display client:** A managed shell with a pluggable runtime. The MVP target is a full-screen web client; Android TV and Samsung Tizen clients are planned after the MVP.
 - **Display runtime:** Runs supported display types, including hosted web apps and versioned locally cached web bundles.
 - **Desired state:** The server's currently intended assignment/composition for a screen, including revisions, schedules, and active overrides.
 - **Preparation and activation:** Download and validate the scene bundle first, then ensure its required managed assets are cached and verified before switching to a new revision; reuse cached asset versions across bundles and preserve last-known-good playback if preparation fails.

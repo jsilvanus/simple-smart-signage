@@ -1,17 +1,23 @@
 # D-049 — Permission catalogue and tenant access-policy model
 
-- **Status:** Accepted architectural direction; exact permission keys and policy evaluation remain to be specified
+- **Status:** Accepted architectural direction; exact permission keys and remaining policy details remain to be specified
 - **Date:** 2026-10-16
 
 ## Decision
 
-Use named, domain-grouped permissions as the conceptual authorization model. The implementation may optimize checks with bitmasks or other representations, but raw bit positions are not public API identifiers. Roles are reusable bundles of permissions; every operation must still be authorized against the active tenant, target resource, action, and relevant conditions.
+Use named, domain-grouped permissions as the conceptual authorization model. The implementation may optimize checks with bitmasks or other representations, but raw bit positions are not public API identifiers. Roles are reusable bundles of permissions; every operation must still be authorized against the active tenant, target resource, action, and relevant conditions. Users may hold multiple roles within a tenant. Role permissions combine additively: the effective ordinary grants are the union of applicable grants from the user's roles and other applicable grants.
 
 Keep ordinary object actions, lifecycle actions, playback operations, integration/execution capabilities, tenant administration, and exceptional security-sensitive actions distinct. In particular, editing does not imply sharing, publishing, releasing, activating, deploying, executing, deleting, or administering access.
 
 Tenant access policies have both:
 - **Defaults**, which establish normal access behavior and may be overridden where allowed.
 - **Mandatory restrictions**, which cannot be overridden by object owners or ordinary grants. Restrictions may require sharing/access or prohibit it, including public/external sharing.
+
+Initially, do not implement ordinary explicit-deny rules. Access is denied when no applicable grant permits the action, and mandatory tenant restrictions always take precedence over ordinary grants, ownership, and roles. Revisit explicit-deny rules only if a concrete use case justifies their complexity.
+
+Objects may belong to zero, one, or multiple tenant-defined groups at once. Groups can organize objects and can be used as reusable authorization scopes; membership in a group does not itself grant access unless permissions are explicitly granted for that group. Ownership, group membership, and permissions are separate concepts. A group-scoped grant applies only to the actions and target scope stated in that grant. For example, an Emergency publisher role may receive publish or playback-override permissions for objects in an Emergency content group without receiving a tenant-wide emergency bypass. Objects can simultaneously belong to groups such as Emergency content and Worship services.
+
+Built-in role templates such as Content editor, Publisher, IT/integration specialist, and Emergency publisher should be starting bundles that tenant administrators can customize, rather than immutable hard-coded roles. Keep only essential system-level account/tenant administration roles fixed. In particular, permission to use an approved API connection is distinct from permission to configure it, manage its credentials/scopes, or reveal secrets.
 
 Objects may have zero, one, or multiple tenant-defined categories within their object type. Uncategorised objects use the type-level default. For objects in multiple categories, select the applicable default policy using a deterministic selection rule still to be specified; all applicable mandatory restrictions accumulate and must be satisfied. Categories are optional unless a future tenant policy explicitly introduces a classification requirement for selected object types.
 
@@ -92,6 +98,7 @@ The following is the initial action vocabulary, not a finalized schema. Actions 
 - Final stable permission identifiers and the subset supported by each object type.
 - Default-policy selection when multiple categories apply, and exact policy-combination/evaluation order.
 - Whether and how tenants may require category classification for selected object types.
+- Exact fixed system-level roles versus customizable role templates, and group-grant inheritance semantics.
 - Role templates, resource-grant inheritance, screen-group target semantics, approval workflows, and temporary grants.
 - Exact exceptional-access approval/expiry process and audit retention.
 

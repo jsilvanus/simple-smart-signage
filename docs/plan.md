@@ -10,6 +10,7 @@ This is the top-level implementation roadmap. Detailed specifications belong in 
 - [x] SSE + HTTPS heartbeat selected
 - [x] Administrator approval required for new devices
 - [x] Full-screen web runtime selected as the first-class display type
+- [x] MVP client platform sequence: web client first; Android TV and Samsung Tizen after the MVP
 - [ ] Add complete official EUPL-1.2 licence text to `LICENSE`
 
 ## Phase 1 — Define the contract
@@ -46,18 +47,21 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Define workspace/task lifecycle, bounded logs/diagnostics, artifact handoff, cleanup, dependency/network policy, resource limits, and isolation tests; decide later whether an in-container supervisor/API is necessary.
 - [ ] Define isolated authoring-workspace process, Vite lifecycle, and reverse-proxy management.
 
-## Phase 3 — First display client
+## Phase 3 — First display client (web MVP)
 
-- [ ] Select the first supported hardware/platform.
+The MVP client is a full-screen web client. Android TV and Samsung Tizen clients are post-MVP platform work; do not make native TV support a prerequisite for the first end-to-end release.
+
+- [ ] Define and document the supported browser/device setup for the web-client MVP.
 - [ ] Implement onboarding splash screen and verification number.
 - [ ] Implement approved-device credential storage.
 - [ ] Implement handshake and configuration sync.
-- [ ] Implement full-screen hosted web-app display.
+- [ ] Implement full-screen hosted web-app display in the web client.
 - [ ] Implement packaged web-bundle download, integrity checks, atomic activation, and rollback.
-- [ ] Implement media cache, integrity checks, and atomic playlist switching.
+- [ ] Implement media cache for image, PDF, and video assets, integrity checks, and atomic playlist switching.
 - [ ] Implement SSE reconnect and HTTPS heartbeat.
 - [ ] Implement offline playback and startup recovery.
-- [ ] Validate camera permissions and browser APIs on target hardware before advertising webcam support.
+- [ ] Test web-client behaviour across reloads, browser restarts, network loss, and cache corruption.
+- [ ] Validate camera permissions and browser APIs on the supported web-client setup before advertising webcam support.
 
 ## Phase 4 — Content creation and management
 
@@ -66,7 +70,7 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Define upload limits, server-side validation, storage, checksum/versioning, derived previews, and reference-safe deletion.
 - [ ] Implement explicit asset-version pinning for editable scene references and exact version/hash pinning in published revisions.
 - [ ] On asset update, prompt with the referencing-scene list and allow selective propagation; never mutate published revisions in place.
-- [ ] **MVP first:** implement simple media scenes that display an image, PDF, or video without requiring source-code authoring.
+- [ ] **MVP content milestone:** implement simple media scenes that display an image, PDF, or video without requiring source-code authoring; connect asset upload, validation, review, immutable publication, playlist assignment, client download/cache, and playback in one end-to-end path.
 - [ ] **Immediately after the simple-scene MVP:** implement complex code-driven scenes with the authoring workspace, live Vite preview, validation/build, and publication workflow.
 - [ ] Implement preview lifecycle: isolated environment per active workspace, server-owned shutdown timers, initial 2-minute countdown after explicit editor close, initial 20-minute countdown after meaningful inactivity, cancellation on reopen/activity, restart reconciliation, and workspace persistence after stopping.
 - [ ] Implement per-scene Vite authoring workspace on the SiSSi server using `npm run dev`.
@@ -108,6 +112,8 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Build, validate, and publish immutable scene revisions at stable UUID-based SiSSi URLs.
 - [ ] Implement permissioned MCP publication/deployment operations with review gates, target preview/confirmation, immutable revision pinning, idempotent rollout, per-client status, and safe rollback.
 - [ ] Implement playlist resources and MCP tools to discover/edit playlists, manage ordered items and playback policies, assign playlists to screens/groups, push desired configuration, and inspect synchronization/health.
+- [ ] Define the OpenAPI specification as the canonical HTTP API contract and generate a typed TypeScript API client from it.
+- [ ] Build the CLI on the generated API client, adding hand-written task-oriented commands/workflows where generated endpoint commands are not sufficiently usable; preserve server-side authorization and lifecycle rules.
 - [ ] Define playlist layout schema and compositor contract for concurrent scenes: full-screen, PiP, side-by-side, up to four regions, free split, region sizing/stacking, independent advancement, completion/closure policies, runtime-error recovery, audio focus, device capability negotiation, and fallback behavior.\n- [ ] Define special-broadcast composition schema, activation/expiry/priority rules, audio focus, device capability negotiation, and fallback behavior.
 - [ ] Implement display-client multi-region composition so a secondary broadcast can play alongside the base playlist without resetting its playback position; support start/stop/status for displays and screen groups.
 - [ ] Define reusable condition/connector schemas and supported predicates for playlist-level and playlist-entry eligibility, assignments, and special broadcasts, including YouTube Live state and mapped JSON values/URLs.
@@ -135,10 +141,11 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Test public embedding restrictions and private-scene access revocation.
 - [ ] Document installation, upgrades, recovery, and operator procedures.
 
-## Phase 6 — Additional platforms and release
+## Phase 6 — Additional platforms and release (post-MVP)
 
-- [ ] Evaluate Samsung Tizen support.
-- [ ] Verify supported platform lifecycle, kiosk limitations, and camera APIs.
+- [ ] Implement an Android TV client using the established server API and playback contracts.
+- [ ] Evaluate and implement Samsung Tizen support using the established server API and playback contracts.
+- [ ] Verify platform lifecycle, kiosk limitations, browser/runtime capabilities, and camera APIs on actual target hardware before advertising platform-specific features.
 - [ ] Add automated tests and CI.
 - [ ] Review security and EUPL compliance.
 - [ ] Publish a first usable release and operator documentation.

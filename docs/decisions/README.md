@@ -4,6 +4,14 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 
 ## Accepted
 
+### D-048 — Deterministic playback resolution
+
+- **Status:** Accepted architectural direction; resolver semantics remain to be formalized
+- **Date:** 2026-10-16
+- **Decision:** Define one deterministic playback-resolution contract to compute desired screen state from authoritative configuration and explicit evaluation context. Reuse it for server-side previews, operator diagnostics, and deployment/desired-state generation. Keep desired state distinct from the device's reported actual state. Formalize inputs, precedence, condition/time semantics, composition and overrides, output schema, explanations, failure behavior, and conformance tests. This builds on the accepted content/playback model rather than reopening it.
+- **Open specification work:** Versioned schemas; assignment/programme/playlist precedence; finite-run state; timezone/DST and condition freshness/error rules; override conflicts and capability fallback; explainability; validation and deterministic conformance tests.
+- **Reference:** [D-048](D-048-deterministic-playback-resolution.md) · [Content and playback model](../content-model.md) · [D-028](D-028-conditional-playlist-activation.md) · [D-029](D-029-special-broadcast-composition.md) · [D-031](D-031-playlist-composition.md)
+
 ### D-047 — Durable development workspaces and S3 artifact storage
 
 - **Status:** Accepted architectural direction; checkpoint and recovery mechanics remain open

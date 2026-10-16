@@ -3,7 +3,7 @@
 - **Status:** Architecture overview
 - **Date:** 2026-10-15
 - **Scope:** Conceptual map of the system, its responsibilities, and the boundaries between them.
-- **Related decisions:** D-014, D-015, D-016, D-018–D-021, D-022–D-031, D-033–D-036.
+- **Related decisions:** D-014, D-015, D-016, D-018–D-021, D-022–D-031, D-033–D-036, D-051.
 
 This document groups SiSSi's concepts into architectural planes. A plane describes responsibility; it does not require a separate service or package. The implementation may combine several planes while preserving their conceptual boundaries.
 
@@ -43,7 +43,7 @@ Concepts:
 
 Boundaries:
 
-- Authoring state is mutable; published revisions are immutable.
+- Working drafts and live authoring workspaces may be mutable; saved managed-object versions and published content revisions are immutable. See D-051 for object identity, version history, archival, and garbage collection.
 - AI/MCP output and uploaded files are untrusted input until validated.
 - Authoring code and previews do not receive device-management credentials or server-side integration secrets.
 - Structured content editing must not silently rewrite arbitrary source or discard unsupported custom CSS.

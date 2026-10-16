@@ -4,6 +4,13 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 
 ## Accepted
 
+### D-050 — CLI-first MVP and OpenAPI-defined API
+
+- **Status:** Accepted
+- **Date:** 2026-10-16
+- **Decision:** The MVP is CLI-first and MCP-enabled, without a general-purpose administrative web UI. The application API is defined by OpenAPI; the CLI and MCP use that API rather than implementing separate domain logic. Generate clients, types, and scaffolding from the OpenAPI contract where practical, adding interface-specific UX where needed. Browser-based scene editing and previews are allowed as companion visual surfaces, accessed through appropriately authenticated and scoped URLs and governed by the same server-side authorization.
+- **Reference:** [D-050](D-050-cli-first-mvp-and-openapi-api.md)
+
 ### D-049 — Permission catalogue and tenant access-policy model
 
 - **Status:** Accepted architectural direction; exact permission keys and policy evaluation remain to be specified

@@ -3,7 +3,7 @@
 - **Status:** Architecture overview
 - **Date:** 2026-10-15
 - **Scope:** Conceptual map of the system, its responsibilities, and the boundaries between them.
-- **Related decisions:** D-014, D-015, D-016, D-018–D-021, D-022–D-031, D-033–D-036, D-051.
+- **Related decisions:** D-014, D-015, D-016, D-018–D-021, D-022–D-031, D-033–D-036, D-051–D-052.
 
 This document groups SiSSi's concepts into architectural planes. A plane describes responsibility; it does not require a separate service or package. The implementation may combine several planes while preserving their conceptual boundaries.
 

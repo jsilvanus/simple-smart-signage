@@ -2,6 +2,8 @@
 
 This is the top-level implementation roadmap. Detailed specifications belong in their own documents; this page links to them and tracks the sequence of work.
 
+**Release scope classification:** see [Prototype, MVP, 2.0, and 3.0](roadmap-by-release.md) for the intended feature boundaries. This file remains the implementation-phase checklist; use the release classification to determine which phase a feature belongs to.
+
 ## Current foundation
 
 - [x] Project name: SiSSi — Simple Smart Signage
@@ -77,8 +79,7 @@ The MVP client is a full-screen web client. Android TV and Samsung Tizen clients
 - [ ] Expose each workspace through an authenticated UUID-addressed reverse proxy.
 - [ ] Build the main authoring view with live preview and a shared side panel containing the structured Content editor and unified Action log.
 - [ ] Build a separate Manual view with HTML/CSS/JavaScript editors and preview; keep both authoring views synchronised with the same scene workspace.
-- [ ] Record meaningful human content edits and manual source edits in the same Action log as AI/MCP operations, with actor/action/target/result context and practical undo/review.
-- [ ] Add compact viewport controls (landscape, portrait, square, custom) shared by both authoring views; render the live scene at the selected logical dimensions.
+- [ ] Record meaningful human content edits and manual source edits in the same Action log as AI/MCP operations, with actor/action/target/result context and practical undo/review.- [ ] Add compact viewport controls (landscape, portrait, square, custom) shared by both authoring views; render the live scene at the selected logical dimensions.
 - [ ] Add a pre-publish target-screen review for one or more profiles, with detectable layout/runtime/resource checks and explicit creator review.
 - [ ] Define a scene content model or equivalent editable bindings that AI can expose as labelled fields grouped by logical page/content area.
 - [ ] Define template creation, discovery, access controls, versioning, and instantiation into an independent editable scene.
@@ -158,7 +159,6 @@ The MVP client is a full-screen web client. Android TV and Samsung Tizen clients
 - [ ] Keep this capability out of the MVP. Until separately approved, use scheduled signage only; no camera-based inference is authorised by this roadmap item.
 
 ## Future research — gesture interaction (not MVP)
-
 - [ ] Research optional on-device pose/gesture interaction (calibrated pointing and visual clap detection) under D-017; no audio input or analysis.
 - [ ] Define an opt-in capability and a minimal, non-identifying event contract; keep camera frames local and transient.
 - [ ] Test calibration, false-positive handling, cancellation, accessibility, latency, and target-device feasibility before implementation.

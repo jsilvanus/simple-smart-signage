@@ -4,6 +4,13 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 
 ## Accepted
 
+### D-052 — Content creation, distribution, and playback lifecycles
+
+- **Status:** Accepted architectural direction; detailed state transitions and protocol contracts remain specified by related decisions and implementation work
+- **Date:** 2026-10-16
+- **Decision:** Keep three related workflows distinct: content creation by the content creator (**Compose → Review → Publish**), distribution (**Assign → Push → Cache**), and system-driven playback (**Prepare → Ready → Activate → Start → (Play) → End/Finish → Next**). Review means taking editorial responsibility for the reviewed revision. Prepare/build are internal steps within the logical Publish workflow, not separate top-level stages. Push communicates desired state; Cache downloads and verifies required content/dependencies. Readiness, activation, start, and actual playback remain distinct. The existing runtime decisions define detailed event and failure semantics.
+- **Reference:** [D-052](D-052-content-distribution-and-playback-lifecycles.md) · [D-026](D-026-mcp-publishing-and-resource-index.md) · [D-036](D-036-separate-scene-bundles-from-managed-assets.md) · [D-039](D-039-background-preparation-and-hybrid-activation.md) · [D-041](D-041-scene-readiness-and-start-lifecycle.md)
+
 ### D-050 — CLI-first MVP and OpenAPI-defined API
 
 - **Status:** Accepted

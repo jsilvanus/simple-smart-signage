@@ -44,7 +44,7 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 - [ ] Implement pending enrollment, verification number, approval, rejection, and expiry.
 - [ ] Implement per-device credential issuance, revocation, and audit events.
 - [ ] Implement authenticated handshake, configuration, SSE, and heartbeat endpoints.
-- [ ] Implement authorised web-app assignment and versioned bundle metadata.
+- [ ] [2.0] Implement authorised hosted-web-app assignment and versioned bundle metadata.
 - [ ] Define the runtime-independent execution-provider contract and initial Podman provider; separate persistent Vite preview sessions from disposable validation/build jobs.
 - [ ] Define workspace/task lifecycle, bounded logs/diagnostics, artifact handoff, cleanup, dependency/network policy, resource limits, and isolation tests; decide later whether an in-container supervisor/API is necessary.
 - [ ] Define isolated authoring-workspace process, Vite lifecycle, and reverse-proxy management.
@@ -57,13 +57,13 @@ The MVP client is a full-screen web client. Android TV and Samsung Tizen clients
 - [ ] Implement onboarding splash screen and verification number.
 - [ ] Implement approved-device credential storage.
 - [ ] Implement handshake and configuration sync.
-- [ ] Implement full-screen hosted web-app display in the web client.
-- [ ] Implement packaged web-bundle download, integrity checks, atomic activation, and rollback.
+- [ ] [2.0] Implement full-screen hosted web-app display in the web client.
+- [ ] [2.0] Implement packaged web-bundle download, integrity checks, atomic activation, and rollback.
 - [ ] Implement media cache for image, PDF, and video assets, integrity checks, and atomic playlist switching.
 - [ ] Implement SSE reconnect and HTTPS heartbeat.
 - [ ] Implement offline playback and startup recovery.
 - [ ] Test web-client behaviour across reloads, browser restarts, network loss, and cache corruption.
-- [ ] Validate camera permissions and browser APIs on the supported web-client setup before advertising webcam support.
+- [ ] [Future research; not MVP] Validate camera permissions and browser APIs on supported target hardware before advertising camera-dependent features.
 
 ## Phase 4 — Content creation and management
 
@@ -77,8 +77,7 @@ The MVP client is a full-screen web client. Android TV and Samsung Tizen clients
 - [ ] Implement preview lifecycle: isolated environment per active workspace, server-owned shutdown timers, initial 2-minute countdown after explicit editor close, initial 20-minute countdown after meaningful inactivity, cancellation on reopen/activity, restart reconciliation, and workspace persistence after stopping.
 - [ ] Implement per-scene Vite authoring workspace on the SiSSi server using `npm run dev`.
 - [ ] Expose each workspace through an authenticated UUID-addressed reverse proxy.
-- [ ] Build the main authoring view with live preview and a shared side panel containing the structured Content editor and unified Action log.
-- [ ] Build a separate Manual view with HTML/CSS/JavaScript editors and preview; keep both authoring views synchronised with the same scene workspace.
+- [ ] Build the main authoring view with live preview and a shared side panel containing the structured Content editor and unified Action log.- [ ] Build a separate Manual view with HTML/CSS/JavaScript editors and preview; keep both authoring views synchronised with the same scene workspace.
 - [ ] Record meaningful human content edits and manual source edits in the same Action log as AI/MCP operations, with actor/action/target/result context and practical undo/review.- [ ] Add compact viewport controls (landscape, portrait, square, custom) shared by both authoring views; render the live scene at the selected logical dimensions.
 - [ ] Add a pre-publish target-screen review for one or more profiles, with detectable layout/runtime/resource checks and explicit creator review.
 - [ ] Define a scene content model or equivalent editable bindings that AI can expose as labelled fields grouped by logical page/content area.
@@ -157,7 +156,6 @@ The MVP client is a full-screen web client. Android TV and Samsung Tizen clients
 - [ ] First verify camera access and local inference feasibility on actual Android TV and Samsung Tizen hardware.
 - [ ] Consider a separate inference service only as a later, explicitly reviewed fallback. It must discard frames after inference and must not store them; any transmission of frames would require revising the current binding camera privacy decision before implementation.
 - [ ] Keep this capability out of the MVP. Until separately approved, use scheduled signage only; no camera-based inference is authorised by this roadmap item.
-
 ## Future research — gesture interaction (not MVP)
 - [ ] Research optional on-device pose/gesture interaction (calibrated pointing and visual clap detection) under D-017; no audio input or analysis.
 - [ ] Define an opt-in capability and a minimal, non-identifying event contract; keep camera frames local and transient.

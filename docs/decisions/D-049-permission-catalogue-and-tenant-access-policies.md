@@ -15,11 +15,16 @@ Tenant access policies have both:
 
 Initially, do not implement ordinary explicit-deny rules. Access is denied when no applicable grant permits the action, and mandatory tenant restrictions always take precedence over ordinary grants, ownership, and roles. Revisit explicit-deny rules only if a concrete use case justifies their complexity.
 
-Objects may belong to zero, one, or multiple tenant-defined groups at once. Groups can organize objects and can be used as reusable authorization scopes; membership in a group does not itself grant access unless permissions are explicitly granted for that group. Ownership, group membership, and permissions are separate concepts. A group-scoped grant applies only to the actions and target scope stated in that grant. For example, an Emergency publisher role may receive publish or playback-override permissions for objects in an Emergency content group without receiving a tenant-wide emergency bypass. Objects can simultaneously belong to groups such as Emergency content and Worship services.
+Keep **user groups** and **object groups** as separate concepts:
+- **User groups** contain SiSSi users. Roles or permission grants assigned to a user group apply dynamically to all of its current and future members. Removing a user from the group removes the permissions inherited through that membership. Effective authorization must reflect current group membership and revocation promptly; it must not rely solely on stale token claims or cached membership snapshots.
+- **Object groups** collect objects and can be used as reusable authorization scopes. A grant to an object group applies to the relevant current and future objects in that group, subject to the actions and conditions stated in the grant. Membership in an object group does not itself grant access; an explicit grant is required.
+- The two group types are independent: user-group membership identifies who receives a grant, while object-group membership identifies which resources that grant covers. A grant can therefore connect a user group (or a role held by its members) to one or more object-group scopes.
+
+Objects may belong to zero, one, or multiple object groups at once. Ownership, object-group membership, and permissions are separate concepts. For example, an Emergency publisher user group may receive publish or playback-override permissions scoped to objects in an Emergency content object group without receiving a tenant-wide emergency bypass. Objects can simultaneously belong to groups such as Emergency content and Worship services.
 
 Built-in role templates such as Content editor, Publisher, IT/integration specialist, and Emergency publisher should be starting bundles that tenant administrators can customize, rather than immutable hard-coded roles. Keep only essential system-level account/tenant administration roles fixed. In particular, permission to use an approved API connection is distinct from permission to configure it, manage its credentials/scopes, or reveal secrets.
 
-Objects may have zero, one, or multiple tenant-defined categories within their object type. Uncategorised objects use the type-level default. For objects in multiple categories, select the applicable default policy using a deterministic selection rule still to be specified; all applicable mandatory restrictions accumulate and must be satisfied. Categories are optional unless a future tenant policy explicitly introduces a classification requirement for selected object types.
+Objects may have zero, one, or multiple tenant-defined categories within their object type. Uncategorised objects use the type-level default. For objects in multiple categories, select the applicable default policy using a deterministic selection rule still to be specified; all applicable mandatory restrictions accumulate and must be satisfied. Categories are optional unless a future tenant policy explicitly introduces a classification requirement for selected object types. Categories are not groups: categories influence tenant policy defaults/restrictions, while groups organize users or objects and can scope grants.
 
 ## Permission catalogue
 
@@ -98,8 +103,8 @@ The following is the initial action vocabulary, not a finalized schema. Actions 
 - Final stable permission identifiers and the subset supported by each object type.
 - Default-policy selection when multiple categories apply, and exact policy-combination/evaluation order.
 - Whether and how tenants may require category classification for selected object types.
-- Exact fixed system-level roles versus customizable role templates, and group-grant inheritance semantics.
-- Role templates, resource-grant inheritance, screen-group target semantics, approval workflows, and temporary grants.
+- Exact fixed system-level roles and any remaining role-template details.
+- Role templates, screen-group target semantics, approval workflows, temporary grants, and whether nested groups are supported.
 - Exact exceptional-access approval/expiry process and audit retention.
 
 ## References

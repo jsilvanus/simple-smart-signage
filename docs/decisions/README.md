@@ -4,6 +4,14 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 
 ## Accepted
 
+### D-047 — Durable development workspaces and S3 artifact storage
+
+- **Status:** Accepted architectural direction; checkpoint and recovery mechanics remain open
+- **Date:** 2026-10-16
+- **Decision:** Use PostgreSQL for authoritative workspace/session metadata and S3-compatible storage for durable snapshots and artifacts. Managed workspaces are checkpointed at import, periodically, and during planned shutdown; a checkpoint becomes valid only after its complete object set and manifest are verified, and a failed/partial checkpoint cannot replace the last valid one. Surface whether edits are durably checkpointed. Ephemeral job containers must not use durable fffleet-host storage; encrypted disk scratch is not equivalent to ephemeral storage. Keep authoring workspaces separate from disposable builders. Use tenant/workspace-scoped transfers, validate archives and paths, and coordinate database/object recovery.
+- **Open implementation details:** Checkpoint interval and failure semantics, atomic snapshot consistency, user-visible checkpoint states, object layout/retention/encryption/quotas, checksums and manifests, resumable transfers, garbage collection, PostgreSQL PITR coordination, recovery-point objectives, host-mount behavior, and restore drills.
+- **Reference:** [D-047](D-047-durable-workspaces-and-s3-artifacts.md) · [D-034](D-034-pluggable-execution-provider.md) · [D-035](D-035-preview-lifecycle-and-staged-scene-mvp.md) · [D-046](D-046-shared-job-execution-and-saarnavideo-export.md)
+
 ### D-046 — Shared job execution and SaarnaVideo export
 
 - **Status:** Accepted architectural direction; integration contracts and implementation details remain open
@@ -44,7 +52,6 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Rationale:** Supports AI- and user-authored scenes without placing their code in the player's JavaScript environment, while preserving one versioned contract for lifecycle and permitted actions.
 - **Reference:** [D-033](D-033-scene-actions-and-runtime-api.md) · [D-042](D-042-scene-sdk-and-api-versioning.md)
 
-
 ### D-042 — Scene SDK and API versioning
 
 - **Status:** Accepted
@@ -52,7 +59,6 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Decision:** Maintain `@sissi/scene-sdk` as a dedicated workspace package in the SiSSi monorepo. Use semantic versioning for the SDK and a separate `sceneApi` version for the scene-to-host contract. Pin the SDK for builds and bundle its implementation into published scenes; record SDK version for diagnostics and API version for host compatibility checks. The host remains authoritative and validates runtime messages.
 - **Rationale:** Gives authored scenes one maintained contract and reproducible offline playback without forcing old scenes to be rebuilt for compatible SDK changes.
 - **Reference:** [D-042](D-042-scene-sdk-and-api-versioning.md) · [D-033](D-033-scene-actions-and-runtime-api.md) · [D-041](D-041-scene-readiness-and-start-lifecycle.md)
-
 
 ### D-041 — Cache-first publication and scene readiness
 
@@ -62,7 +68,6 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Rationale:** Makes playback cache-first and transitions predictable while supporting both static and time-driven scenes.
 - **Reference:** [D-041](D-041-scene-readiness-and-start-lifecycle.md) · [D-033](D-033-scene-actions-and-runtime-api.md) · [D-036](D-036-separate-scene-bundles-from-managed-assets.md) · [D-039](D-039-background-preparation-and-hybrid-activation.md) · [D-040](D-040-hybrid-playback-fallback-policy.md) · [Display runtime](../display-runtime.md)
 
-
 ### D-040 — Hybrid playback fallback policy
 
 - **Status:** Accepted
@@ -71,7 +76,6 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Rationale:** Keeps playback moving while respecting scheduling and avoiding blank or broken displays.
 - **Reference:** [D-040](D-040-hybrid-playback-fallback-policy.md) · [D-039](D-039-background-preparation-and-hybrid-activation.md) · [Content and playback model](../content-model.md) · [Display runtime](../display-runtime.md)
 
-
 ### D-039 — Background preparation and hybrid playlist activation
 
 - **Status:** Accepted
@@ -79,7 +83,6 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 - **Decision:** The runtime may prepare the next playlist item in the background without disturbing the current scene. Activation follows a hybrid policy: honour mandatory playlist/schedule timing with a configured fallback; otherwise wait for readiness up to a configurable maximum, then use the fallback. Never activate incomplete content; preserve the current/last-known-good display where possible.
 - **Rationale:** Reduces transition gaps while preserving time-critical scheduling and safe failure behavior.
 - **Reference:** [D-039](D-039-background-preparation-and-hybrid-activation.md) · [Content and playback model](../content-model.md) · [Display runtime](../display-runtime.md)
-
 
 ### D-038 — Tenant API connectors and scene variable bindings
 

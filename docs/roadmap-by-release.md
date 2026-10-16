@@ -57,7 +57,7 @@ These are scope boundaries, not promises that a feature is already implemented. 
 ### Device and delivery reliability
 - Supported web-client browser/device setup documented and tested.
 - Secure enrolment, device credentials, revocation, authenticated configuration sync, SSE notifications, HTTPS heartbeat, reconnect and reconciliation.
-- Download/cache of required media and packaged web bundles where applicable; integrity verification, atomic activation, and preservation of last-known-good content.
+- Download/cache of required image, PDF, and video media; integrity verification, safe cache replacement, and preservation of last-known-good content.
 - Offline playback of verified cached content, startup/reload recovery, and safe behaviour during server/network outages.
 - Distinct desired, downloaded, prepared, active, and observed status; useful per-device diagnostics.
 - Structured server/client logs without secrets, basic device health/last-seen view through CLI or a minimal operational surface, and backup/restore procedures.
@@ -78,6 +78,7 @@ These are scope boundaries, not promises that a feature is already implemented. 
 **Goal:** Expand beyond simple media into reusable, custom-designed scenes and practical deployment across dedicated signage platforms.
 
 ### Custom scene authoring
+- Hosted web-app display and versioned packaged web-scene/bundle delivery, with integrity verification, atomic activation, and rollback.
 - AI-assisted and manual HTML/CSS/JavaScript scene authoring using the documented three-file contract and SiSSi design system.
 - Isolated per-scene Vite authoring workspaces on the server, authenticated UUID-addressed preview routing, live preview, disposable validation/build jobs, and runtime-independent execution-provider boundary with Podman as the initial provider.
 - Durable workspace checkpoints and S3-compatible artifact storage, bounded logs, resource/network limits, workspace recovery and isolation tests.

@@ -4,6 +4,14 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 
 ## Accepted
 
+### D-049 — Permission catalogue and tenant access-policy model
+
+- **Status:** Accepted architectural direction; exact permission keys and policy evaluation remain to be specified
+- **Date:** 2026-10-16
+- **Decision:** Use named, domain-grouped permissions as the conceptual authorization model; bitmasks may be an internal optimization, but raw bit positions are not public API identifiers. Roles bundle permissions, while every operation is checked against tenant, target resource, action, and relevant conditions. Keep object actions, lifecycle actions, playback operations, integration/execution capabilities, tenant administration, and exceptional security-sensitive actions distinct. Editing does not imply sharing, publishing, releasing, activating, deploying, executing, deleting, or access administration. Tenant access policies include overridable defaults and mandatory restrictions. Objects may have zero or more tenant-defined categories; uncategorised objects use the type-level default. For multiple categories, choose the default policy using a deterministic rule still to be specified, while all applicable mandatory restrictions accumulate. Categories are optional unless a tenant policy explicitly requires classification for selected types.
+- **Open specification work:** Final permission identifiers and object-type applicability; multiple-category default selection and exact evaluation order; optional classification requirements; role templates and resource-grant inheritance; target and approval constraints; exceptional-access procedure and audit retention.
+- **Reference:** [D-049](D-049-permission-catalogue-and-tenant-access-policies.md) · [Access-control architecture](../access-control.md)
+
 ### D-048 — Deterministic playback resolution
 
 - **Status:** Accepted architectural direction; resolver semantics remain to be formalized

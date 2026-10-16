@@ -73,3 +73,4 @@ Audit security-sensitive tenant lifecycle, membership and role/grant changes, de
 - [Design systems](design-systems.md)
 - [Content creation and authoring](creation-system.md)
 - [Device handshake](handshake.md)
+- [D-049 — Permission catalogue and tenant access-policy model](decisions/D-049-permission-catalogue-and-tenant-access-policies.md)

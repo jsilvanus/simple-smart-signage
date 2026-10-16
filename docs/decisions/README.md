@@ -4,6 +4,14 @@ This directory records architectural decisions for SiSSi. Keep entries short, ex
 
 ## Accepted
 
+### D-047 — Durable development workspaces and S3 artifact storage
+
+- **Status:** Accepted architectural direction; checkpoint and recovery mechanics remain open
+- **Date:** 2026-10-16
+- **Decision:** Use PostgreSQL for authoritative workspace/session metadata and S3-compatible storage for durable snapshots and artifacts. Managed workspaces are checkpointed at import, periodically, and during planned shutdown; live files remain on a writable workspace filesystem rather than using S3 as a live filesystem. Host mounts remain a separate mode where S3 checkpoints are recovery copies. Use trusted services or short-lived, narrowly scoped transfer grants; never put permanent broadly privileged object-store credentials inside untrusted containers. Container and workspace lifetimes are independent, and validation/build jobs use controlled snapshots. Coordinate database and object recovery and test restoration.
+- **Open implementation details:** Checkpoint interval and failure semantics, snapshot consistency, object layout/retention/encryption/quotas, checksums and manifests, resumable transfers, garbage collection, PostgreSQL PITR coordination, recovery-point objectives, host-mount behavior, and restore drills.
+- **Reference:** [D-047](D-047-durable-workspaces-and-s3-artifacts.md) · [D-034](D-034-pluggable-execution-provider.md) · [D-035](D-035-preview-lifecycle-and-staged-scene-mvp.md) · [D-046](D-046-shared-job-execution-and-saarnavideo-export.md)
+
 ### D-046 — Shared job execution and SaarnaVideo export
 
 - **Status:** Accepted architectural direction; integration contracts and implementation details remain open

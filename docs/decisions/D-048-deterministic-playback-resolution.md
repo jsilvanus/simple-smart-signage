@@ -13,6 +13,8 @@ The contract must explicitly define its inputs, precedence and selection rules, 
 
 This decision builds on the accepted scene-first content and playback model, including schedules, assignment queues, programmes, playlists, eligibility conditions, layouts, concurrent playback, and WITH/REPLACE overrides. It does not reopen those accepted architectural directions.
 
+The selected specification approach is a reviewable precedence table plus a reference implementation and conformance test vectors. Hierarchical resolution is the foundation; explicit priorities resolve competition at the same level, while conditions determine candidate eligibility. The details in the contract document are a draft for review, and its listed open policy choices must be settled before implementation treats them as normative.
+
 ## Open specification work
 
 - Define a versioned resolver input and output schema.
@@ -29,6 +31,7 @@ One authoritative resolver makes playback predictable and testable, lets operato
 
 ## References
 
+- [Playback resolution contract](../playback-resolution.md)
 - [Content and playback model](../content-model.md)
 - [D-028 — Conditional playlist activation](D-028-conditional-playlist-activation.md)
 - [D-029 — Special broadcast composition](D-029-special-broadcast-composition.md)

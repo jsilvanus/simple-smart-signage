@@ -11,7 +11,7 @@ The display target assigned to a device may be one of:
 
 1. **Hosted web app** — load an assigned HTTPS URL, such as an application built with Vite.
 2. **Packaged web app** — download a versioned static web bundle, verify it, cache it locally, and display its entry page.
-3. **Native media scene** — display one managed image, video, or PDF with type-specific playback settings using the built-in runtime.
+3. **Native media scene** — display one managed image or video with type-specific playback settings using the built-in runtime.
 4. **Packaged web scene** — run a published web scene bundle for custom compositions, overlays, layouts, and interactions.
 
 The initial delivery should start with the narrow native media scene types, followed by the full-screen web runtime for custom compositions. Keep native media rendering separate from general web-scene composition; templates create ordinary AI-editable web scenes when creators need overlays or richer layouts. Both use the same scene, publication, playlist, and playback model.
@@ -77,7 +77,7 @@ A separate inference service may be studied only as a later fallback. It must di
 
 - **Android TV:** a native Android shell with a full-screen WebView is a likely implementation. Camera support depends on the device, USB host/driver support, WebView capabilities, and native permission handling.
 - **Samsung Tizen:** implement a Tizen-specific web client and validate camera APIs and connected-camera support on the actual TV and firmware. Android WebView behaviour cannot be assumed.
-- **Browser/kiosk:** useful for compatible hardware, but boot recovery, permissions, and kiosk restrictions vary.
+- **Kiosk PC (MVP client):** the web SPA runs full-screen on a PC. Boot recovery, permissions and kiosk restrictions are pinned in the test matrix (D-053). Android TV is a later native shell.
 
 ## Consequences
 

@@ -22,7 +22,7 @@ Exact schemas, tool names, rollout state machine, confirmation policy, and rollb
 
 ## Screen groups
 
-Screen groups are first-class, tenant-scoped publishing targets, not scene-authoring objects. An authorised operator can assign a playlist to a named group (for example, playlist ABC to the foyer group) and reconcile that assignment across its member screens. Group membership and assignments are audited; deployment and acknowledgement are reported per screen. Define explicit precedence and conflict handling for overlapping groups, direct screen assignments, and scheduling before implementation. See [D-028 — Screen groups as publishing targets](D-028-screen-groups-as-publishing-targets.md).
+Screen groups are first-class, tenant-scoped publishing targets, not scene-authoring objects. An authorised operator can assign a playlist to a named group (for example, playlist ABC to the foyer group) and reconcile that assignment across its member screens. Group membership and assignments are audited; deployment and acknowledgement are reported per screen. Define explicit precedence and conflict handling for overlapping groups, direct screen assignments, and scheduling before implementation. See [D-059 — Screen groups as publishing targets](D-059-screen-groups-as-publishing-targets.md).
 
 ## References
 

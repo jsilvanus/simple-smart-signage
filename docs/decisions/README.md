@@ -1,123 +1,60 @@
 # Decision register
 
-This directory records architectural decisions for SiSSi. Keep entries short, explicit, and dated. Use `Proposed`, `Accepted`, `Superseded`, or `Rejected` as the status.
+Records of architectural decisions for SiSSi. Each record is `D-NNN-slug.md` and has a `Status`, a `Date`, a `Specification` line, and a `## Decision` section.
 
-## Accepted
+- **Status:** `Accepted` (the direction is decided) or `Proposed` (not yet decided).
+- **Specification:** `Complete`, `Open items` (the record names what is still undecided), or `Partial` (the decided parts are listed, the rest is named).
 
-### D-052 — Content creation, distribution, and playback lifecycles
+A record can be Accepted and still have open specification work. Check the Specification column before building from it.
 
-- **Status:** Accepted architectural direction; detailed state transitions and protocol contracts remain specified by related decisions and implementation work
-- **Date:** 2026-10-16
-- **Decision:** Keep three related workflows distinct: content creation by the content creator (**Compose → Review → Publish**), distribution (**Assign → Push → Cache**), and system-driven playback (**Prepare → Ready → Activate → Start → (Play) → End/Finish → Next**). Review means taking editorial responsibility for the reviewed revision. Prepare/build are internal steps within the logical Publish workflow, not separate top-level stages. Push communicates desired state; Cache downloads and verifies required content/dependencies. Readiness, activation, start, and actual playback remain distinct. The existing runtime decisions define detailed event and failure semantics.
-- **Reference:** [D-052](D-052-content-distribution-and-playback-lifecycles.md) · [D-026](D-026-mcp-publishing-and-resource-index.md) · [D-036](D-036-separate-scene-bundles-from-managed-assets.md) · [D-039](D-039-background-preparation-and-hybrid-activation.md) · [D-041](D-041-scene-readiness-and-start-lifecycle.md)
+Numbering: the next free number is **D-060**. Numbers are never reused. D-014 to D-021 were cited by earlier documents but were never recorded, so they stay unused.
 
-### D-050 — CLI-first MVP and OpenAPI-defined API
+## Index
 
-- **Status:** Accepted
-- **Date:** 2026-10-16
-- **Decision:** The MVP is CLI-first and MCP-enabled, without a general-purpose administrative web UI. The application API is defined by OpenAPI; the CLI and MCP use that API rather than implementing separate domain logic. Generate clients, types, and scaffolding from the OpenAPI contract where practical, adding interface-specific UX where needed. Browser-based scene editing and previews are allowed as companion visual surfaces, accessed through appropriately authenticated and scoped URLs and governed by the same server-side authorization.
-- **Reference:** [D-050](D-050-cli-first-mvp-and-openapi-api.md)
+| ID | Title | Status | Specification | Record |
+|---|---|---|---|---|
+| D-013 | Camera privacy boundaries | Accepted | Complete for the prohibitions; no camera feature is authorised | [D-013-camera-privacy-boundaries.md](D-013-camera-privacy-boundaries.md) |
+| D-022 | Shared design systems and hybrid version pinning | Accepted | Complete | [D-022-design-systems.md](D-022-design-systems.md) |
+| D-023 | Multi-tenant authorization and OAuth-based MCP access | Accepted | Open items | [D-023-multi-tenant-authorization.md](D-023-multi-tenant-authorization.md) |
+| D-024 | Reusable content templates | Accepted | Open items | [D-024-reusable-templates.md](D-024-reusable-templates.md) |
+| D-025 | MCP v2 content creation, discovery, and edit proposals | Accepted | Open items | [D-025-mcp-content-creation.md](D-025-mcp-content-creation.md) |
+| D-026 | Scene resource index and MCP publishing/deployment tools | Accepted | Open items | [D-026-mcp-publishing-and-resource-index.md](D-026-mcp-publishing-and-resource-index.md) |
+| D-027 | Composable palette overlays and approved accessible colour sets | Accepted | Open items | [D-027-accessible-palette-overlays.md](D-027-accessible-palette-overlays.md) |
+| D-028 | Conditional playlist activation and external conditions | Accepted | Open items | [D-028-conditional-playlist-activation.md](D-028-conditional-playlist-activation.md) |
+| D-029 | Concurrent playlists and temporary playback overrides | Accepted | Open items | [D-029-special-broadcast-composition.md](D-029-special-broadcast-composition.md) |
+| D-030 | Shared scene and playlist display eligibility | Accepted | Open items | [D-030-scene-and-playlist-eligibility.md](D-030-scene-and-playlist-eligibility.md) |
+| D-031 | Screen and screen-group assignment queues | Accepted | Open items | [D-031-playlist-composition.md](D-031-playlist-composition.md) |
+| D-032 | Scene-first content model and layout composition | Accepted | Open items | [D-032-playlist-layouts-and-concurrent-scenes.md](D-032-playlist-layouts-and-concurrent-scenes.md) |
+| D-033 | Declared scene actions and host-mediated runtime API | Accepted | Open items | [D-033-scene-actions-and-runtime-api.md](D-033-scene-actions-and-runtime-api.md) |
+| D-034 | Pluggable execution provider for scene authoring and builds | Accepted | Open items | [D-034-pluggable-execution-provider.md](D-034-pluggable-execution-provider.md) |
+| D-035 | Preview lifecycle and staged scene MVP | Accepted | Open items | [D-035-preview-lifecycle-and-staged-scene-mvp.md](D-035-preview-lifecycle-and-staged-scene-mvp.md) |
+| D-036 | Separate scene bundles from managed assets | Accepted | Open items | [D-036-separate-scene-bundles-from-managed-assets.md](D-036-separate-scene-bundles-from-managed-assets.md) |
+| D-037 | Minimal native media scenes and AI-authored composition templates | Accepted | Open items | [D-037-minimal-native-media-scenes-and-ai-authored-templates.md](D-037-minimal-native-media-scenes-and-ai-authored-templates.md) |
+| D-038 | Tenant API connectors and scene variable bindings | Accepted | Open items | [D-038-tenant-connectors-and-scene-variable-bindings.md](D-038-tenant-connectors-and-scene-variable-bindings.md) |
+| D-039 | Background preparation and hybrid playlist activation | Accepted | Complete | [D-039-background-preparation-and-hybrid-activation.md](D-039-background-preparation-and-hybrid-activation.md) |
+| D-040 | Hybrid playback fallback policy | Accepted | Complete | [D-040-hybrid-playback-fallback-policy.md](D-040-hybrid-playback-fallback-policy.md) |
+| D-041 | Cache-first publication and scene readiness | Accepted | Complete | [D-041-scene-readiness-and-start-lifecycle.md](D-041-scene-readiness-and-start-lifecycle.md) |
+| D-042 | Scene SDK and API versioning | Accepted | Complete | [D-042-scene-sdk-and-api-versioning.md](D-042-scene-sdk-and-api-versioning.md) |
+| D-043 | First-class caption services and persistent caption layers | Accepted | Open items | [D-043-caption-services-and-persistent-caption-layer.md](D-043-caption-services-and-persistent-caption-layer.md) |
+| D-044 | Complex-scene security model | Accepted | Open items | [D-044-complex-scene-security-model.md](D-044-complex-scene-security-model.md) |
+| D-045 | Complex-scene security enforcement requirements | Accepted | Open items | [D-045-complex-scene-security-enforcement.md](D-045-complex-scene-security-enforcement.md) |
+| D-046 | Shared job execution and SaarnaVideo export | Accepted | Open items | [D-046-shared-job-execution-and-saarnavideo-export.md](D-046-shared-job-execution-and-saarnavideo-export.md) |
+| D-047 | Durable development workspaces and S3 artifact storage | Accepted | Open items | [D-047-durable-workspaces-and-s3-artifacts.md](D-047-durable-workspaces-and-s3-artifacts.md) |
+| D-048 | Deterministic playback resolution | Accepted | Open items | [D-048-deterministic-playback-resolution.md](D-048-deterministic-playback-resolution.md) |
+| D-049 | Permission catalogue and tenant access-policy model | Accepted | Open items | [D-049-permission-catalogue-and-tenant-access-policies.md](D-049-permission-catalogue-and-tenant-access-policies.md) |
+| D-050 | CLI-first MVP and OpenAPI-defined API | Accepted | Open items | [D-050-cli-first-mvp-and-openapi-api.md](D-050-cli-first-mvp-and-openapi-api.md) |
+| D-051 | Managed object lifecycle and version history | Accepted | Complete | [D-051-managed-object-lifecycle-and-version-history.md](D-051-managed-object-lifecycle-and-version-history.md) |
+| D-052 | Content creation, distribution, and playback lifecycles | Accepted | Complete | [D-052-content-distribution-and-playback-lifecycles.md](D-052-content-distribution-and-playback-lifecycles.md) |
+| D-053 | MVP scope and client platform | Accepted | Partial: schedule detail and kiosk configuration open | [D-053-mvp-scope-and-client-platform.md](D-053-mvp-scope-and-client-platform.md) |
+| D-054 | Server and client stack | Accepted | Partial: library choices open | [D-054-server-and-client-stack.md](D-054-server-and-client-stack.md) |
+| D-055 | MCP implementation base and MVP scope | Accepted | Partial: protocol version, scopes, template review open | [D-055-mcp-implementation-base-and-scope.md](D-055-mcp-implementation-base-and-scope.md) |
+| D-056 | Object storage | Accepted | Partial: bucket layout, retention, encryption open | [D-056-object-storage.md](D-056-object-storage.md) |
+| D-057 | Human sign-in | Accepted | Partial: identity provider open | [D-057-human-sign-in.md](D-057-human-sign-in.md) |
+| D-058 | Private asset access in sandboxed scenes | Accepted | Partial: lifetimes, signing keys, revocation open | [D-058-private-asset-access-in-sandboxed-scenes.md](D-058-private-asset-access-in-sandboxed-scenes.md) |
+| D-059 | Screen groups as publishing targets | Accepted | Open items | [D-059-screen-groups-as-publishing-targets.md](D-059-screen-groups-as-publishing-targets.md) |
 
-### D-049 — Permission catalogue and tenant access-policy model
+## Notes
 
-- **Status:** Accepted architectural direction; exact permission keys and policy evaluation remain to be specified
-- **Date:** 2026-10-16
-- **Decision:** Use named, domain-grouped permissions as the conceptual authorization model; bitmasks may be an internal optimization, but raw bit positions are not public API identifiers. Roles bundle permissions, while every operation is checked against tenant, target resource, action, and relevant conditions. Keep object actions, lifecycle actions, playback operations, integration/execution capabilities, tenant administration, and exceptional security-sensitive actions distinct. Editing does not imply sharing, publishing, releasing, activating, deploying, executing, deleting, or access administration. Tenant access policies include overridable defaults and mandatory restrictions. Objects may have zero or more tenant-defined categories; uncategorised objects use the type-level default. For multiple categories, choose the default policy using a deterministic rule still to be specified, while all applicable mandatory restrictions accumulate. Categories are optional unless a tenant policy explicitly requires classification for selected types.
-- **Open specification work:** Final permission identifiers and object-type applicability; multiple-category default selection and exact evaluation order; optional classification requirements; role templates and resource-grant inheritance; target and approval constraints; exceptional-access procedure and audit retention.
-- **Reference:** [D-049](D-049-permission-catalogue-and-tenant-access-policies.md) · [Access-control architecture](../access-control.md)
-
-### D-048 — Deterministic playback resolution
-
-- **Status:** Accepted architectural direction; resolver semantics remain to be formalized
-- **Date:** 2026-10-16
-- **Decision:** Define one deterministic playback-resolution contract to compute desired screen state from authoritative configuration and explicit evaluation context. Reuse it for server-side previews, operator diagnostics, and deployment/desired-state generation. Keep desired state distinct from the device's reported actual state. Formalize inputs, precedence, condition/time semantics, composition and overrides, output schema, explanations, failure behavior, and conformance tests. This builds on the accepted content/playback model rather than reopening it.
-- **Open specification work:** Versioned schemas; assignment/programme/playlist precedence; finite-run state; timezone/DST and condition freshness/error rules; override conflicts and capability fallback; explainability; validation and deterministic conformance tests.
-- **Reference:** [D-048](D-048-deterministic-playback-resolution.md) · [Content and playback model](../content-model.md) · [D-028](D-028-conditional-playlist-activation.md) · [D-029](D-029-special-broadcast-composition.md) · [D-031](D-031-playlist-composition.md)
-
-### D-047 — Durable development workspaces and S3 artifact storage
-
-- **Status:** Accepted architectural direction; checkpoint and recovery mechanics remain open
-- **Date:** 2026-10-16
-- **Decision:** Use PostgreSQL for authoritative workspace/session metadata and S3-compatible storage for durable snapshots and artifacts. Managed workspaces are checkpointed at import, periodically, and during planned shutdown; a checkpoint becomes valid only after its complete object set and manifest are verified, and a failed/partial checkpoint cannot replace the last valid one. Surface whether edits are durably checkpointed. Ephemeral job containers must not use durable fffleet-host storage; encrypted disk scratch is not equivalent to ephemeral storage. Keep authoring workspaces separate from disposable builders. Use tenant/workspace-scoped transfers, validate archives and paths, and coordinate database/object recovery.
-- **Open implementation details:** Checkpoint interval and failure semantics, atomic snapshot consistency, user-visible checkpoint states, object layout/retention/encryption/quotas, checksums and manifests, resumable transfers, garbage collection, PostgreSQL PITR coordination, recovery-point objectives, host-mount behavior, and restore drills.
-- **Reference:** [D-047](D-047-durable-workspaces-and-s3-artifacts.md) · [D-034](D-034-pluggable-execution-provider.md) · [D-035](D-035-preview-lifecycle-and-staged-scene-mvp.md) · [D-046](D-046-shared-job-execution-and-saarnavideo-export.md)
-
-### D-046 — Shared job execution and SaarnaVideo export
-
-- **Status:** Accepted architectural direction; integration contracts and implementation details remain open
-- **Date:** 2026-10-16
-- **Decision:** Reuse the existing Prometheus/Grafana/Loki stack, plan PostgreSQL with PITR and S3-compatible object storage, and keep SiSSi modular with bounded background jobs. Treat [fffleet](https://github.com/jsilvanus/fffleet) as the preferred existing candidate for thumbnail/media jobs and potentially other work, including build orchestration, without weakening D-034 isolation: authored scene code must run only inside the approved isolated execution provider, not directly with ordinary worker privileges. Plan a SaarnaVideo-to-SiSSi export that imports selected generated outputs (initially video, thumbnail, and where useful caption sidecars) as verified SiSSi-managed assets with provenance. Import does not automatically publish or assign content; SiSSi retains authority over review, publication, and playback.
-- **Open implementation details:** Job ownership/status mapping, trusted wrapper and isolation policy, object storage/recovery, SaarnaVideo authentication and export UX/API, supported output metadata, idempotent transfer, and operational dashboards/alerts.
-- **Reference:** [D-046](D-046-shared-job-execution-and-saarnavideo-export.md) · [D-034](D-034-pluggable-execution-provider.md) · [fffleet](https://github.com/jsilvanus/fffleet) · [SaarnaVideo](https://github.com/jsilvanus/saarnavideo)
-
-### D-045 — Complex-scene security enforcement requirements
-
-- **Status:** Accepted requirements; implementation details remain open
-- **Date:** 2026-10-16
-- **Decision:** Refine D-044 with ten enforcement requirements: per-scene network allowlists bounded by tenant policy; generated CSP from approved scene requirements; typed bridge schemas with a generic extension payload; frame identity plus per-instance nonce and sequence; content hashes bound to the approved revision; policy-based offline grace; connector host allowlists with validated dynamic paths and SSRF defenses; platform-specific budgets/watchdogs; minimal operational logs; and automated security tests plus a platform security matrix before enabling untrusted authored scenes. These requirements do not replace D-044's isolation, authorization or defense-in-depth architecture.
-- **Open implementation details:** Destination and CSP schemas, extension-payload limits, nonce/sequence lifecycle, manifest/hash format, offline grace/revocation semantics, connector URL/DNS/redirect validation, per-platform budgets/watchdogs, minimal log fields/retention, and test evidence/sign-off.
-- **Reference:** [D-045](D-045-complex-scene-security-enforcement.md) · [D-044](D-044-complex-scene-security-model.md)
-
-### D-044 — Complex-scene security model
-
-- **Status:** Accepted architectural direction
-- **Date:** 2026-10-16
-- **Decision:** Use sandboxed authored scenes with explicit per-capability allowlists, layered authorization, risk-based publication review, profile-based resource budgets, and hybrid network access. Direct requests are limited to explicitly approved public/browser-accessible resources; privileged or credentialed requests use server-side SiSSi connectors. Enforce security in depth across browser, trusted display runtime and server. The MVP prioritizes browser sandboxing/CSP, host-validated bridge messages and server authorization; violation handling initially denies and continues or terminates, with severity-based escalation planned for 2.0. Serve scenes from the SiSSi server in an iframe sandbox without `allow-same-origin`, producing an opaque origin; validate this across supported runtimes before release. If reliable isolation cannot be demonstrated, use a dedicated scene origin without application session cookies. Do not ship untrusted scene execution before this security gate passes.
-- **Rationale:** Keep AI-authored scenes useful without granting them authority over the player, tenant data or privileged services.
-- **Reference:** [D-044](D-044-complex-scene-security-model.md) · [D-033](D-033-scene-actions-and-runtime-api.md) · [D-038](D-038-tenant-connectors-and-scene-variable-bindings.md)
-
-### D-043 — First-class caption services and persistent caption layers
-
-- **Status:** Accepted architectural direction
-- **Date:** 2026-10-16
-- **Decision:** Model caption services as reusable first-class objects, initially integrating LCYT through a provider-neutral caption-source contract. Keep source configuration separate from caption presentation and display target. Captions form a persistent auxiliary layer that survives main-playlist scene transitions, supporting overlays or reserved regions and per-display language/styling. Source outages must not interrupt base playback; credentials stay out of scenes and display-visible configuration. Exact schemas and LCYT connection semantics remain open.
-- **Rationale:** Captions are essential on often-muted signage displays and have a lifecycle independent of ordinary playlist entries; separating source, presentation and target enables reuse and different languages/layouts across screens.
-- **Reference:** [D-043](D-043-caption-services-and-persistent-caption-layer.md) · [LCYT](https://github.com/jsilvanus/live-captions-yt)
-
-### D-033 — Declared scene actions and host-mediated runtime API
-
-- **Status:** Accepted architectural direction
-- **Date:** 2026-10-15
-- **Decision:** Authored scenes run in an isolated iframe and communicate with the trusted player through a typed `postMessage` bridge exposed by `@sissi/scene-sdk`. The host validates message schemas, frame/source identity, scene revision, active occurrence, allowed operations, and authorization. The player retains authority over playback and privileged actions; iframe sandbox and origin configuration must be deliberately secured. Exact schemas and sandbox details remain to be specified.
-- **Rationale:** Supports AI- and user-authored scenes without placing their code in the player's JavaScript environment, while preserving one versioned contract for lifecycle and permitted actions.
-- **Reference:** [D-033](D-033-scene-actions-and-runtime-api.md) · [D-042](D-042-scene-sdk-and-api-versioning.md)
-
-### D-042 — Scene SDK and API versioning
-
-- **Status:** Accepted
-- **Date:** 2026-10-15
-- **Decision:** Maintain `@sissi/scene-sdk` as a dedicated workspace package in the SiSSi monorepo. Use semantic versioning for the SDK and a separate `sceneApi` version for the scene-to-host contract. Pin the SDK for builds and bundle its implementation into published scenes; record SDK version for diagnostics and API version for host compatibility checks. The host remains authoritative and validates runtime messages.
-- **Rationale:** Gives authored scenes one maintained contract and reproducible offline playback without forcing old scenes to be rebuilt for compatible SDK changes.
-- **Reference:** [D-042](D-042-scene-sdk-and-api-versioning.md) · [D-033](D-033-scene-actions-and-runtime-api.md) · [D-041](D-041-scene-readiness-and-start-lifecycle.md)
-
-### D-041 — Cache-first publication and scene readiness
-
-- **Status:** Accepted
-- **Date:** 2026-10-15
-- **Decision:** Push scene bundles and required assets to screens ahead of playback and cache/verify them locally. Every scene signals readiness after initialization; the host transitions only after that signal. The `start` hook is optional and is invoked after transition only for scenes that declare it and need explicit startup, such as a timeline or animation. The host provides a general preparation/readiness timeout, while a scene may declare a predefined longer timeout profile. The host enforces the effective hard deadline; scenes cannot reset it dynamically. On timeout, apply playlist policy and D-040 fallback. This extends the existing lifecycle/invocation contract in D-033. The playlist configuration determines which policy wins when duration, readiness, and scene completion conflict.
-- **Rationale:** Makes playback cache-first and transitions predictable while supporting both static and time-driven scenes.
-- **Reference:** [D-041](D-041-scene-readiness-and-start-lifecycle.md) · [D-033](D-033-scene-actions-and-runtime-api.md) · [D-036](D-036-separate-scene-bundles-from-managed-assets.md) · [D-039](D-039-background-preparation-and-hybrid-activation.md) · [D-040](D-040-hybrid-playback-fallback-policy.md) · [Display runtime](../display-runtime.md)
-
-### D-040 — Hybrid playback fallback policy
-
-- **Status:** Accepted
-- **Date:** 2026-10-15
-- **Decision:** If the intended next item misses its readiness deadline, skip to another eligible, ready item only where playlist/schedule rules permit. Otherwise show the configured fallback scene; if that is unavailable, preserve the last good displayed frame where possible. Time-critical or explicitly scheduled content must not be displaced just because another item is ready.
-- **Rationale:** Keeps playback moving while respecting scheduling and avoiding blank or broken displays.
-- **Reference:** [D-040](D-040-hybrid-playback-fallback-policy.md) · [D-039](D-039-background-preparation-and-hybrid-activation.md) · [Content and playback model](../content-model.md) · [Display runtime](../display-runtime.md)
-
-### D-039 — Background preparation and hybrid playlist activation
-
-- **Status:** Accepted
-- **Date:** 2026-10-15
-- **Decision:** The runtime may prepare the next playlist item in the background without disturbing the current scene. Activation follows a hybrid policy: honour mandatory playlist/schedule timing with a configured fallback; otherwise wait for readiness up to a configurable maximum, then use the fallback. Never activate incomplete content; preserve the current/last-known-good display where possible.
-- **Rationale:** Reduces transition gaps while preserving time-critical scheduling and safe failure behavior.
-- **Reference:** [D-039](D-039-background-preparation-and-hybrid-activation.md) · [Content and playback model](../content-model.md) · [Display runtime](../display-runtime.md)
-
-### D-038 — Tenant API connectors and scene variable bindings
-
-- **Status:** Accepted
-- **Date:** 2026-10-15
-- **Decision:** Use tenant-level API connectors with server-held credentials, configured requests, response mappings, and named variables. Reuse the `varfetch` core and LCYT connector model, adapted to SiSSi tenant permissions. Use `{{var}}` for interpolation, `{{connector.variable}}` for namespaced connector variables, and support `[alias]` as an additional reference form. Each use selects creation-time, build-time, or runtime resolution; variable syntax itself never triggers a fetch.
-- **Rationale:** Provides consistent, secure API-backed data for AI-authored scenes, human-edited code, and structured inputs without exposing secrets to scene code.
-- **Reference:** [D-038](D-038-tenant-connectors-and-scene-variable-bindings.md) · [LCYT connector model](https://github.com/jsilvanus/live-captions-yt/blob/main/docs/plans/plan_api_connectors_variables.md) · [varfetch](https://github.com/jsilvanus/varfetch)
+- D-013 is the binding camera privacy decision. Its full text is in `docs/privacy-and-camera.md`, and the record links to it.
+- D-028 is the conditional-playlist decision. The screen-group decision was renumbered to D-059 on 2026-10-19 to resolve a duplicate.
+- D-053 to D-058 record the Gate 0 answers from the architecture review. D-053 amends D-035, and D-037 already matched it.

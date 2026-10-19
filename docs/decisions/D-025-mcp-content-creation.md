@@ -57,7 +57,7 @@ The effective editing mode is selected in the scene editor and is visible to the
 
 ### Provenance, permissions, and history
 
-Every content mutation records provenance and a recoverable change transaction. Preserve origin categories and transformation lineage defined by D-021. Missing or unverifiable provenance remains unknown. Human correction of provenance is an explicit audited operation. Every resource read, search, and tool operation is tenant-scoped and authorization-checked; results include tenant codes for cross-tenant disambiguation without using the code as a security boundary.
+Every content mutation records provenance and a recoverable change transaction. Preserve origin categories and transformation lineage as defined in the provenance section of [creation-system.md](../creation-system.md). Missing or unverifiable provenance remains unknown. Human correction of provenance is an explicit audited operation. Every resource read, search, and tool operation is tenant-scoped and authorization-checked; results include tenant codes for cross-tenant disambiguation without using the code as a security boundary.
 
 ## Consequences
 

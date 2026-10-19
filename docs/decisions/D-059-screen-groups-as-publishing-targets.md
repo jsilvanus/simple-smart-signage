@@ -1,4 +1,7 @@
-# D-028 — Screen groups as publishing targets
+# D-059 — Screen groups as publishing targets
+
+- **Renumbered:** from D-028 on 2026-10-19 (D-028 is now the conditional-playlist decision only).
+- **Scope:** 2.0, not MVP (see D-053).
 
 - **Status:** Accepted architectural direction; exact schemas and conflict rules remain to be specified
 - **Date:** 2026-10-15

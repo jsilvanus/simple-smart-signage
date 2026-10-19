@@ -24,7 +24,7 @@ Licence: EUPL-1.2. The `LICENSE` file is a placeholder that points to the offici
 | `docs/access-control.md` | Tenancy, identity, authorisation, MCP OAuth. |
 | `docs/playback-resolution.md` | Deterministic resolver contract, precedence table, test vectors. Draft. |
 | `docs/privacy-and-camera.md` | Binding privacy decision on cameras (cited as D-013). |
-| `docs/decisions/` | Decision records D-022 to D-052 (and their index in `README.md`). |
+| `docs/decisions/` | Decision records D-013 and D-022 to D-059, indexed in `README.md`. |
 
 Architecture review: a published review (private artifact, Oct 2026) assessed these documents and proposed a release-by-release roadmap. Refer to it for context. It is not a file in the repository.
 
@@ -42,34 +42,39 @@ Use these terms exactly. They are defined in `planes-and-concepts.md`.
 ## Decision register conventions
 
 - Records are `docs/decisions/D-NNN-slug.md`, with a `Status` and `Date` header and a `## Decision` section.
-- Next free number: **D-053**. Do not reuse a number. Check `docs/decisions/` before choosing one.
-- Known problems that are not yet fixed:
-  - Two files are numbered **D-028** (`conditional-playlist-activation` and `screen-groups-as-publishing-targets`). Rename one when fixing the register; do not add a third.
-  - **D-013** (privacy, binding) and **D-014** to **D-021** are cited in the documents but have no records. Do not cite a number as authority unless its record exists. Restore the record or remove the citation.
-  - `docs/decisions/README.md` indexes only 15 of the 32 files. Keep the index complete when adding a record.
-  - "Accepted" is used for decisions whose specification is still open. When adding one, state separately what is decided and what is still open.
+- Next free number: **D-060**. Do not reuse a number. Check `docs/decisions/README.md` before choosing one.
+- Resolved on 2026-10-19:
+  - The duplicate D-028 is resolved. The screen-group record is now D-059.
+  - D-013 has a register record. D-014 to D-021 were never recorded and are not reused. Do not cite them; cite the record that holds the content.
+  - The index in `docs/decisions/README.md` lists every record. Keep it complete when adding one.
+- Each record states its `Specification` status (Complete, Open items, or Partial). Keep that line accurate when a record changes, and check it before building from a record.
 - Do not put a model name or identifier in decisions or other repository artifacts.
 
 ## Release scope and tagging
 
 - Scope levels, from the roadmap: **Prototype → MVP (1.0) → 1.1 … 1.5 → 2.0 → 3.0**. The 1.x split is a proposal from the architecture review and has not been adopted in `roadmap-by-release.md`. Until it is, say which numbering you are using.
 - Every plan item must carry a release tag. Currently most items are untagged; do not schedule an untagged item.
-- MVP excludes: complex (code-driven) scenes, Android TV, Tizen, screen groups, schedules, programmes, concurrent playlists, overrides, free-form layouts, condition evaluation, design systems, templates, AI provenance and C2PA.
+- MVP excludes: complex (code-driven) scenes, PDF, Android TV, Tizen, screen groups, programmes, concurrent playlists, overrides, free-form layouts, condition evaluation, design systems, templates, AI provenance and C2PA. Per-screen 24-hour schedules are in the MVP (D-053).
 - Quality gates are part of the MVP: automated tests, CI, a security review, the full EUPL text, and the first release.
 
 ## Known inconsistencies (do not repeat them)
 
 When writing new documents, follow the resolved position where one exists, and flag any open conflict instead of guessing.
 
-1. **PDF in the MVP.** `roadmap-by-release.md`, `plan.md` and D-035 say yes; D-037 and `creation-system.md` say no. Open until decided.
-2. **CI, security review, EUPL text, first release.** MVP in the roadmap, post-MVP in `plan.md` Phase 6. Treat as MVP.
-3. **Complex scenes** are "immediately after the MVP" in D-035 and `creation-system.md`, and 2.0 in the roadmap.
-4. **Client platform.** The README says "Android TV first"; `plan.md` says web client first. Treat the web client as first.
-5. **Screen groups and schedules** are not MVP. Groups and schedules appear in `plan.md` Phase 4 but belong to 2.0 (groups) and 3.0 (the full schedule model).
-6. **Server framework.** The README and plan say Next.js. The MVP is API-first and CLI-first (D-050), so the review recommends a plain ESM Node.js API with OpenAPI, adding Next.js for browser surfaces in 1.2. This is not yet decided.
-7. **Private assets in sandboxed scenes.** D-044 forbids cookies in the opaque-origin iframe, and `creation-system.md` requires revocable or signed access. The mechanism is unspecified.
+Open:
 
-Open Gate 0 decisions (from the review): PDF in MVP; pilot client platform and hardware; server framework; MVP sign-in method; MCP authentication scope; storage backend; groups and schedules in MVP; private-asset access in scenes; decision register repair.
+1. **CI, security review, EUPL text, first release.** The roadmap puts them in the MVP, but `plan.md` Phase 6 still lists them as post-MVP. Treat them as MVP, and fix Phase 6.
+2. **Complex scene timing.** D-035 and `creation-system.md` say "immediately after the MVP". The roadmap puts complex scenes in 2.0. Open until the roadmap is split into 1.x.
+
+Resolved on 2026-10-19 (D-053 to D-059):
+
+- PDF is not in the MVP (D-053). D-035, `creation-system.md`, `display-runtime.md`, `asset-library.md`, `plan.md` and the roadmap are aligned.
+- The MVP client is a kiosk PC running the web SPA (D-053). Android TV is 1.5. The README is corrected.
+- Screen groups are 2.0 (D-059). Per-screen 24-hour schedules are in the MVP (D-053).
+- The server is ESM Node.js with Express and OpenAPI, not Next.js (D-054).
+- Private assets in sandboxed scenes use short-lived signed URLs (D-058).
+
+The Gate 0 decisions are recorded: D-053 (scope and kiosk), D-054 (stack), D-055 (MCP base), D-056 (S3-compatible storage), D-057 (sign-in), D-058 (private assets), D-059 (screen groups). Remaining open items are named in each record.
 
 ## Writing and editing rules
 
@@ -81,6 +86,7 @@ Open Gate 0 decisions (from the review): PDF in MVP; pilot client platform and h
 
 ## Code conventions (for when code arrives)
 
+- Stack (D-054): ESM Node.js LTS with TypeScript, Express, an OpenAPI 3.1 contract, PostgreSQL, and a Vite-built kiosk SPA. Object storage is S3-compatible (D-056). MCP is built from the codestash template (D-055). Next.js is not used.
 - The user works primarily in **Node.js** and prefers **ESM** wherever possible: `"type": "module"`, `import`/`export`, and no CommonJS in new packages.
 - Planned layout (D-042): an npm-workspaces monorepo, with `@sissi/scene-sdk` as a dedicated workspace package and semantic versioning for the SDK plus a separate `sceneApi` version.
 - The HTTP API is defined by OpenAPI, and the CLI and MCP use that API. They must not implement domain logic or bypass server-side authorisation (D-050).

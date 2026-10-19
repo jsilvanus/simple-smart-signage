@@ -22,7 +22,7 @@ SiSSi needs an economical, understandable authoring preview lifecycle and a usef
 
 ### Staged scene delivery
 
-- **MVP: simple media scenes** for directly displaying an image, PDF, or video. These should be usable without requiring creators to author HTML/CSS/JavaScript or run a Node/Vite development environment.
+- **MVP: simple media scenes** for directly displaying an image or video (PDF removed from the MVP by D-053). These should be usable without requiring creators to author HTML/CSS/JavaScript or run a Node/Vite development environment.
 - **Immediately after the simple-scene MVP: complex scenes**, including AI-authored or manually edited frontend scenes, richer layouts and interactions, using the authoring workspace, live Vite preview, validation/build, and publication workflow.
 - Keep the scene model extensible so simple media scenes and complex scenes remain reusable scenes within the same playback/playlist model. Do not let complex-scene infrastructure unnecessarily block the first usable media-scene release.
 
@@ -31,7 +31,7 @@ SiSSi needs an economical, understandable authoring preview lifecycle and a usef
 - The first release can deliver practical signage value before the full authoring environment is complete.
 - Preview runtime costs are controlled through lazy startup and different shutdown delays for explicit close versus inactivity.
 - Initial timeout values are defaults to tune after operational measurements; they are not immutable product limits.
-- Exact media-scene behavior (including PDF/video playback, duration, completion, and failure fallback) and the detailed complex-scene contract remain specification work.
+- Exact media-scene behavior (including video playback, duration, completion, and failure fallback) and the detailed complex-scene contract remain specification work.
 
 ## References
 

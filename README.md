@@ -2,8 +2,8 @@
 
 SiSSi is a centrally managed digital-signage system for televisions and other displays.
 
-- **Server:** Next.js / TypeScript, with PostgreSQL planned.
-- **Clients:** Android TV first; Samsung Tizen is a possible additional target.
+- **Server:** ESM Node.js / TypeScript with Express and an OpenAPI contract; PostgreSQL planned (D-054).
+- **Clients:** a full-screen web SPA on a kiosk PC for the MVP; Android TV and Samsung Tizen later (D-053).
 - **Display:** Full-screen web apps (including Vite builds), with hosted-URL and packaged/offline modes planned.
 - **Connectivity:** Outbound HTTPS, Server-Sent Events (SSE), and HTTPS heartbeats.
 - **Enrollment:** Devices self-register but require administrator approval before receiving trusted access.

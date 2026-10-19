@@ -38,7 +38,7 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 
 ## Phase 2 — Server foundation
 
-- [ ] Create Next.js / TypeScript application.
+- [ ] Create the ESM Node.js / TypeScript server (Express, OpenAPI contract) and the Vite-based kiosk SPA client (D-054).
 - [ ] Add PostgreSQL schema and migrations.
 - [ ] Implement administrator authentication and authorisation.
 - [ ] Implement pending enrollment, verification number, approval, rejection, and expiry.
@@ -53,13 +53,13 @@ Reference: [Device handshake](handshake.md) · [Display runtime](display-runtime
 
 The MVP client is a full-screen web client. Android TV and Samsung Tizen clients are post-MVP platform work; do not make native TV support a prerequisite for the first end-to-end release.
 
-- [ ] Define and document the supported browser/device setup for the web-client MVP.
+- [ ] Define and document the supported kiosk PC setup (OS, browser, full-screen and auto-start configuration) for the web-client MVP (D-053).
 - [ ] Implement onboarding splash screen and verification number.
 - [ ] Implement approved-device credential storage.
 - [ ] Implement handshake and configuration sync.
 - [ ] [2.0] Implement full-screen hosted web-app display in the web client.
 - [ ] [2.0] Implement packaged web-bundle download, integrity checks, atomic activation, and rollback.
-- [ ] Implement media cache for image, PDF, and video assets, integrity checks, and atomic playlist switching.
+- [ ] Implement media cache for image and video assets (PDF deferred, D-053), integrity checks, and atomic playlist switching.
 - [ ] Implement SSE reconnect and HTTPS heartbeat.
 - [ ] Implement offline playback and startup recovery.
 - [ ] Test web-client behaviour across reloads, browser restarts, network loss, and cache corruption.
@@ -67,18 +67,20 @@ The MVP client is a full-screen web client. Android TV and Samsung Tizen clients
 
 ## Phase 4 — Content creation and management
 
-- [ ] Implement reusable asset library for images, PDFs, and MP4 video; keep the model extensible to later MP3/audio support.
+- [ ] Implement reusable asset library for images and MP4 video (PDF deferred, D-053); keep the model extensible to later MP3/audio support.
 - [ ] Define asset provenance: uploader, credited creator where known, originating project, initial scene, upload time, source/rights notes, tags, and current scene usage.
 - [ ] Define upload limits, server-side validation, storage, checksum/versioning, derived previews, and reference-safe deletion.
 - [ ] Implement explicit asset-version pinning for editable scene references and exact version/hash pinning in published revisions.
 - [ ] On asset update, prompt with the referencing-scene list and allow selective propagation; never mutate published revisions in place.
-- [ ] **MVP content milestone:** implement simple media scenes that display an image, PDF, or video without requiring source-code authoring; connect asset upload, validation, review, immutable publication, playlist assignment, client download/cache, and playback in one end-to-end path.
+- [ ] **MVP content milestone:** implement simple media scenes that display an image or video without requiring source-code authoring; connect asset upload, validation, review, immutable publication, playlist assignment, client download/cache, and playback in one end-to-end path.
 - [ ] **Immediately after the simple-scene MVP:** implement complex code-driven scenes with the authoring workspace, live Vite preview, validation/build, and publication workflow.
 - [ ] Implement preview lifecycle: isolated environment per active workspace, server-owned shutdown timers, initial 2-minute countdown after explicit editor close, initial 20-minute countdown after meaningful inactivity, cancellation on reopen/activity, restart reconciliation, and workspace persistence after stopping.
 - [ ] Implement per-scene Vite authoring workspace on the SiSSi server using `npm run dev`.
 - [ ] Expose each workspace through an authenticated UUID-addressed reverse proxy.
-- [ ] Build the main authoring view with live preview and a shared side panel containing the structured Content editor and unified Action log.- [ ] Build a separate Manual view with HTML/CSS/JavaScript editors and preview; keep both authoring views synchronised with the same scene workspace.
-- [ ] Record meaningful human content edits and manual source edits in the same Action log as AI/MCP operations, with actor/action/target/result context and practical undo/review.- [ ] Add compact viewport controls (landscape, portrait, square, custom) shared by both authoring views; render the live scene at the selected logical dimensions.
+- [ ] Build the main authoring view with live preview and a shared side panel containing the structured Content editor and unified Action log.
+- [ ] Build a separate Manual view with HTML/CSS/JavaScript editors and preview; keep both authoring views synchronised with the same scene workspace.
+- [ ] Record meaningful human content edits and manual source edits in the same Action log as AI/MCP operations, with actor/action/target/result context and practical undo/review.
+- [ ] Add compact viewport controls (landscape, portrait, square, custom) shared by both authoring views; render the live scene at the selected logical dimensions.
 - [ ] Add a pre-publish target-screen review for one or more profiles, with detectable layout/runtime/resource checks and explicit creator review.
 - [ ] Define a scene content model or equivalent editable bindings that AI can expose as labelled fields grouped by logical page/content area.
 - [ ] Define template creation, discovery, access controls, versioning, and instantiation into an independent editable scene.
@@ -114,7 +116,8 @@ The MVP client is a full-screen web client. Android TV and Samsung Tizen clients
 - [ ] Implement playlist resources and MCP tools to discover/edit playlists, manage ordered items and playback policies, assign playlists to screens/groups, push desired configuration, and inspect synchronization/health.
 - [ ] Define the OpenAPI specification as the canonical HTTP API contract and generate a typed TypeScript API client from it.
 - [ ] Build the CLI on the generated API client, adding hand-written task-oriented commands/workflows where generated endpoint commands are not sufficiently usable; preserve server-side authorization and lifecycle rules.
-- [ ] Define playlist layout schema and compositor contract for concurrent scenes: full-screen, PiP, side-by-side, up to four regions, free split, region sizing/stacking, independent advancement, completion/closure policies, runtime-error recovery, audio focus, device capability negotiation, and fallback behavior.\n- [ ] Define special-broadcast composition schema, activation/expiry/priority rules, audio focus, device capability negotiation, and fallback behavior.
+- [ ] Define playlist layout schema and compositor contract for concurrent scenes: full-screen, PiP, side-by-side, up to four regions, free split, region sizing/stacking, independent advancement, completion/closure policies, runtime-error recovery, audio focus, device capability negotiation, and fallback behavior.
+- [ ] Define special-broadcast composition schema, activation/expiry/priority rules, audio focus, device capability negotiation, and fallback behavior.
 - [ ] Implement display-client multi-region composition so a secondary broadcast can play alongside the base playlist without resetting its playback position; support start/stop/status for displays and screen groups.
 - [ ] Define reusable condition/connector schemas and supported predicates for playlist-level and playlist-entry eligibility, assignments, and special broadcasts, including YouTube Live state and mapped JSON values/URLs.
 - [ ] Define 24-hour screen/group assignment schedules with calendar-date schedules taking precedence over weekday schedules, exclusive schedule resolution, independent copy-to-date behavior, and off-time gaps; define conditional playlist-sequence ordering, playlist time windows and loop/finite run limits, count reset semantics, assignment priority/precedence, condition evaluation, and per-screen overrides.
@@ -125,7 +128,7 @@ The MVP client is a full-screen web client. Android TV and Samsung Tizen clients
 - [ ] Publish versioned bundles for cacheable/offline display playback.
 - [ ] Create playlists and playlist items, including playback policies and transitions.
 - [ ] Configure scene and playlist display-eligibility policies; evaluate eligibility during playlist selection and playback, including safe fallback when all playlist items or assignments are ineligible.
-- [ ] Create schedules and assignments for screens and screen groups.
+- [ ] Create per-screen 24-hour schedules and assignments (MVP, D-053); screen-group schedules follow in 2.0 (D-059).
 - [ ] Track content revisions and client sync status.
 - [ ] Provide explicit origin/capability controls for web apps.
 
@@ -157,7 +160,7 @@ The MVP client is a full-screen web client. Android TV and Samsung Tizen clients
 - [ ] Consider a separate inference service only as a later, explicitly reviewed fallback. It must discard frames after inference and must not store them; any transmission of frames would require revising the current binding camera privacy decision before implementation.
 - [ ] Keep this capability out of the MVP. Until separately approved, use scheduled signage only; no camera-based inference is authorised by this roadmap item.
 ## Future research — gesture interaction (not MVP)
-- [ ] Research optional on-device pose/gesture interaction (calibrated pointing and visual clap detection) under D-017; no audio input or analysis.
+- [ ] Research optional on-device pose/gesture interaction (calibrated pointing and visual clap detection) under the privacy decision D-013 ([privacy-and-camera.md](privacy-and-camera.md)); no audio input or analysis.
 - [ ] Define an opt-in capability and a minimal, non-identifying event contract; keep camera frames local and transient.
 - [ ] Test calibration, false-positive handling, cancellation, accessibility, latency, and target-device feasibility before implementation.
 - [ ] Preserve the binding prohibition on microphone access, sound detection, recording, speech recognition, and audio analysis.

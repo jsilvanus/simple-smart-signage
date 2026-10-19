@@ -12,12 +12,12 @@ The authoring experience is not limited to a slide editor. A scene is a frontend
 
 ## Inputs
 
-- **Uploaded assets:** initially images, PDFs, and MP4 video. Keep source assets in a reusable asset library, separate from scene workspaces. The model should allow later MP3/audio support without requiring it in the first upload implementation. See [Asset library and provenance](asset-library.md).
+- **Uploaded assets:** initially images and MP4 video (PDF deferred, D-053). Keep source assets in a reusable asset library, separate from scene workspaces. The model should allow later MP3/audio support without requiring it in the first upload implementation. See [Asset library and provenance](asset-library.md).
 - **AI-authored frontend:** the creator prompts an AI to create or modify a scene's frontend. Generated code must use the SiSSi design system and the documented scene integration contract.
 - **Manual code editing:** creators can open and edit the HTML, CSS, and JavaScript directly.
 - **MCP-created artifacts or data:** tools connected through MCP may create or retrieve content that can be added to a scene. Treat tool output as an input artifact; validate its type, size, provenance, and permissions before use.
 
-A PDF or video may be an asset displayed directly, or may be incorporated into a richer scene. The asset format does not itself determine whether the result is a scene.
+A video may be an asset displayed directly, or may be incorporated into a richer scene. The asset format does not itself determine whether the result is a scene.
 
 ## Server-side Vite workspace
 
@@ -36,7 +36,7 @@ The UUID is a routing identifier, not an access credential. Authoring URLs must 
 
 The delivery order is deliberate:
 
-1. **MVP — native media scenes:** directly display a managed image or video using the built-in display runtime. PDF is not in the native-media MVP and may be considered later. These are structured scene definitions with asset references and type-specific settings; they do not require a scene-specific HTML/CSS/JavaScript application, bundle build, or Node/Vite workspace.
+1. **MVP — native media scenes:** directly display a managed image or video using the built-in display runtime. PDF is not in the MVP (D-053) and may be considered later. These are structured scene definitions with asset references and type-specific settings; they do not require a scene-specific HTML/CSS/JavaScript application, bundle build, or Node/Vite workspace.
 2. **Immediately afterward — AI-authored web scenes:** add custom compositions, layouts, overlays, and interactions through AI-authored or manually edited frontend scenes, with live preview, isolated authoring workspaces, validation/build, review, and publication.
 
 Both remain reusable scenes in the same scene/playback model. Keep native media types deliberately narrow rather than building a general-purpose native composition system. For compositions such as text over an image or a title over a video, start from a suitable template that creates a normal AI-editable web scene. In the basic use case, the creator describes the desired result and supplies/selects content; AI writes and maintains the code, while the creator reviews the preview. A template is a complex scene whose AI or human coder has deliberately exposed structured inputs (for example, heading text, date, liturgical colour, or animation colour). It is not a separate renderer or necessarily a fixed layout. The coding agent should expose useful human-editable inputs wherever practical. Humans can edit the full HTML/CSS/JavaScript scene at any time; structured editing is the convenient path for common changes, not a restriction on full editing. The native-media MVP must not be blocked by the full web-scene authoring system.

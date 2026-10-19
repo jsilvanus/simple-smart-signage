@@ -14,7 +14,7 @@ The library should let creators find, understand, reuse, and manage media while 
 
 The initial planned formats are:
 - **MP4** video.
-- **PDF** documents such as posters, flyers, and notices.
+- **PDF** documents such as posters, flyers, and notices. Deferred from the MVP (D-053); the model keeps the type.
 - **Images**, initially common web image formats, with SVG accepted only after appropriate sanitisation.
 
 Keep the data model extensible to additional media types. **MP3/audio is a possible later format**, not a requirement for the first upload implementation. If audio support is added, playback must be an explicit scene/device capability. Audio-file support does not permit microphone use, sound detection, recording, speech recognition, or audio analysis; the separate binding no-audio decision remains in force.
@@ -82,7 +82,6 @@ The implementation contract still needs exact database schemas, project membersh
 
 ## Related decisions
 
-- [AI-assisted scene authoring and asset-first content creation](decisions/README.md#d-015--ai-assisted-scene-authoring-and-asset-first-content-creation)
 - [Decision register](decisions/README.md)
 - [Content creation and authoring system](creation-system.md)
 - [Content and playback model](content-model.md)

@@ -45,19 +45,20 @@ These are scope boundaries, not promises that a feature is already implemented. 
 **Goal:** Make the prototype suitable for a small real deployment using a supported full-screen web client, simple media scenes, and CLI-first management.
 
 ### Core product workflow
-- Production-ready simple media scenes for images, PDFs, and MP4 video, with validated uploads and playback settings.
+- Production-ready simple media scenes for images and MP4 video, with validated uploads and playback settings. PDF is deferred (D-053).
 - Reusable asset library with stable IDs, versioning, checksums, provenance/attribution fields, scene usage references, and safe deletion/update handling.
 - Explicit asset-version references in editable scenes and exact dependency/version/hash pinning in immutable published revisions.
 - Editorial Review → Publish workflow, revision-scoped approval and audit; material changes require review again.
 - Playlists and ordered items, with basic progression and a single active playlist/assignment per screen.
 - Assign playlists to individual screens; basic screen inventory and client sync/playback status.
+- Per-screen 24-hour schedules using the D-031 model for a single screen: weekday pattern, calendar-date override, copy-to-date and off-time gaps (D-053). Screen-group schedules are 2.0 (D-059).
 - CLI-first operation for tenant/device/content/asset/publish/playlist/assignment workflows. OpenAPI remains the canonical HTTP contract, the typed TypeScript client and CLI are regenerated as the API evolves, and task-oriented CLI commands may wrap generated operations.
 - A bounded initial MCP integration: authenticated, permission-checked access to core resources and semantic workflows required for practical AI/agent assistance. It uses the same domain operations and authorization as the API/CLI; it is not a parallel backend.
 
 ### Device and delivery reliability
-- Supported web-client browser/device setup documented and tested.
+- Supported kiosk PC setup (OS, browser, full-screen and auto-start configuration) documented and tested. The kiosk runs the web SPA client (D-053).
 - Secure enrolment, device credentials, revocation, authenticated configuration sync, SSE notifications, HTTPS heartbeat, reconnect and reconciliation.
-- Download/cache of required image, PDF, and video media; integrity verification, safe cache replacement, and preservation of last-known-good content.
+- Download/cache of required image and video media; integrity verification, safe cache replacement, and preservation of last-known-good content.
 - Offline playback of verified cached content, startup/reload recovery, and safe behaviour during server/network outages.
 - Distinct desired, downloaded, prepared, active, and observed status; useful per-device diagnostics.
 - Structured server/client logs without secrets, basic device health/last-seen view through CLI or a minimal operational surface, and backup/restore procedures.
@@ -70,7 +71,8 @@ These are scope boundaries, not promises that a feature is already implemented. 
 - A general-purpose administrative web application; authenticated visual editor/preview surfaces are allowed only where needed for content creation.
 - AI-authored or manually coded custom scenes and isolated Vite workspaces.
 - Android TV or Samsung Tizen native clients.
-- Complex scheduling, programmes, concurrent playlists, special-broadcast overrides, free-form multi-region composition, and external condition evaluation.
+- Screen groups (2.0, D-059), programmes, concurrent playlists, special-broadcast overrides, free-form multi-region composition, and external condition evaluation.
+- PDF scenes (D-053).
 - Full design-system management, template catalogue, rich MCP resource index/proposal workflows, and advanced AI provenance/C2PA workflows.
 
 ## 2.0 — richer authoring and broader device support
@@ -105,7 +107,7 @@ These are scope boundaries, not promises that a feature is already implemented. 
 
 ### Programming and composition
 - Programmes, multiple playlists and conditional sequences.
-- Screen/group assignment schedules, date overrides, weekday schedules, time windows, timezone/DST handling, off-time gaps, loop/finite-run policies and per-screen overrides.
+- Screen-group assignment schedules, timezone/DST handling, loop/finite-run policies and per-screen overrides. Per-screen 24-hour schedules with date overrides and off-time gaps are already in the MVP (D-053).
 - Eligibility policies and shared conditions for scenes, playlist entries, assignments and overrides.
 - Deterministic playback resolver shared by preview, diagnostics and desired-state generation, with explicit precedence, explanations, unknown/error/stale-result handling and conformance tests.
 - Concurrent playlist composition, user-defined free-split layouts, full-screen/PiP/side-by-side/up-to-four-region arrangements, independent region progression, transitions, audio focus and capability-based fallback.

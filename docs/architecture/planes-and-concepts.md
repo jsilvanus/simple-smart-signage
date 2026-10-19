@@ -3,7 +3,7 @@
 - **Status:** Architecture overview
 - **Date:** 2026-10-15
 - **Scope:** Conceptual map of the system, its responsibilities, and the boundaries between them.
-- **Related decisions:** D-014, D-015, D-016, D-018–D-021, D-022–D-031, D-033–D-036, D-051–D-052.
+- **Related decisions:** D-013, D-022–D-059 (see the [decision register](../decisions/README.md)).
 
 This document groups SiSSi's concepts into architectural planes. A plane describes responsibility; it does not require a separate service or package. The implementation may combine several planes while preserving their conceptual boundaries.
 
@@ -342,6 +342,6 @@ Identity/permissions -------> Enforced across every protected operation
 
 ## Implementation guidance
 
-Keep these as conceptual boundaries even if the first release implements several in one Next.js application. Prefer explicit schemas and service interfaces between authoring, immutable publishing, playback resolution, authorization, integration execution, and client synchronization. Do not prematurely split planes into separate network services.
+Keep these as conceptual boundaries even if the first release implements several in one Node.js application. Prefer explicit schemas and service interfaces between authoring, immutable publishing, playback resolution, authorization, integration execution, and client synchronization. Do not prematurely split planes into separate network services.
 
 The exact API schemas, state machines, precedence rules, fallback semantics, and implementation packaging remain subject to the linked decision documents. This overview summarizes the architecture; it does not replace the detailed decisions.

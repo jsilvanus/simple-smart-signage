@@ -26,5 +26,4 @@ A small set of native renderers is easier to implement and test across device pl
 
 - [Content creation and authoring](../creation-system.md)
 - [Display runtime](../display-runtime.md)
-- [D-015 — AI-assisted scene authoring and asset-first content creation](README.md)
 - [D-036 — Separate scene bundles from managed assets](D-036-separate-scene-bundles-from-managed-assets.md)

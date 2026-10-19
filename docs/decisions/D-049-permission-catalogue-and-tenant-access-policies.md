@@ -111,5 +111,5 @@ The following is the initial action vocabulary, not a finalized schema. Actions 
 
 - [Access-control architecture](../access-control.md)
 - [D-026 — MCP publishing and resource index](D-026-mcp-publishing-and-resource-index.md)
-- [D-028 — Screen groups as publishing targets](D-028-screen-groups-as-publishing-targets.md)
+- [D-059 — Screen groups as publishing targets](D-059-screen-groups-as-publishing-targets.md)
 - [D-044 — Complex-scene security model](D-044-complex-scene-security-model.md)

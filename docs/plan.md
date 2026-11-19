@@ -4,6 +4,10 @@ This is the top-level implementation roadmap. Detailed specifications belong in 
 
 **Release scope classification:** see [Prototype, MVP, 2.0, and 3.0](roadmap-by-release.md) for the intended feature boundaries. This file remains the implementation-phase checklist; use the release classification to determine which phase a feature belongs to.
 
+## Step 1: web signage for Yodeck
+
+A small first partial: Canva publishes to a VPS service that serves one full-screen web page per screen (Yodeck Web Page item). Plan and API contract: [step-1-web-signage.md](plans/step-1-web-signage.md).
+
 ## Current foundation
 
 - [x] Project name: SiSSi — Simple Smart Signage

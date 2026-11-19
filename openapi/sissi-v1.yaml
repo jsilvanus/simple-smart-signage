@@ -1,0 +1,319 @@
+openapi: 3.0.3
+info:
+  title: SiSSi step 1 API
+  version: 1.0.0
+  description: >
+    Source of truth for the step 1 web signage service (docs/plans/step-1-web-signage.md).
+    Served under SISSI_PUBLIC_PATH (default /signage); paths below are relative to that prefix.
+servers:
+  - url: /signage/api/v1
+security:
+  - bearer: []
+paths:
+  /screens:
+    get:
+      operationId: listScreens
+      responses:
+        '200':
+          description: Screens for the plugin picker
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [screens]
+                properties:
+                  screens:
+                    type: array
+                    items: { $ref: '#/components/schemas/Screen' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /push:
+    post:
+      operationId: createPush
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PushRequest' }
+      responses:
+        '202':
+          description: Accepted
+          headers:
+            Location: { schema: { type: string }, description: '<SISSI_PUBLIC_PATH>/api/v1/push/{pushId}' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PushAccepted' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /push/{pushId}:
+    get:
+      operationId: getPush
+      parameters:
+        - { name: pushId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Push status (kept 24 h)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PushStatus' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /admin/login:
+    post:
+      operationId: adminLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties: { password: { type: string } }
+      responses:
+        '204': { description: Session cookie set }
+        '401': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /admin/screens:
+    get:
+      operationId: adminListScreens
+      security: [{ adminCookie: [] }]
+      responses:
+        '200':
+          description: Screens with entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  screens:
+                    type: array
+                    items: { $ref: '#/components/schemas/AdminScreen' }
+    post:
+      operationId: adminCreateScreen
+      security: [{ adminCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ScreenInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminScreen' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /admin/screens/{screenId}:
+    parameters:
+      - { name: screenId, in: path, required: true, schema: { type: string } }
+    patch:
+      operationId: adminUpdateScreen
+      security: [{ adminCookie: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ScreenInput' }
+      responses:
+        '200': { description: Updated }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+    delete:
+      operationId: adminDeleteScreen
+      security: [{ adminCookie: [] }]
+      responses:
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/Error' }
+  /admin/screens/{screenId}/entries:
+    parameters:
+      - { name: screenId, in: path, required: true, schema: { type: string } }
+    put:
+      operationId: adminReorderEntries
+      description: Body is the full ordered list of entryIds; must be a permutation of the current ones.
+      security: [{ adminCookie: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entryIds]
+              properties:
+                entryIds: { type: array, items: { type: string } }
+      responses:
+        '200': { description: Reordered, playlist version incremented }
+        '422': { $ref: '#/components/responses/Error' }
+  /admin/screens/{screenId}/entries/{entryId}:
+    parameters:
+      - { name: screenId, in: path, required: true, schema: { type: string } }
+      - { name: entryId, in: path, required: true, schema: { type: string } }
+    patch:
+      operationId: adminUpdateEntry
+      security: [{ adminCookie: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                seconds: { type: integer, minimum: 1, maximum: 3600 }
+      responses:
+        '200': { description: Updated }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+    delete:
+      operationId: adminDeleteEntry
+      security: [{ adminCookie: [] }]
+      responses:
+        '204': { description: Removed }
+        '404': { $ref: '#/components/responses/Error' }
+  /admin/screens/{screenId}/pushes/{pushId}:
+    delete:
+      operationId: adminDeletePushEntries
+      description: Removes every entry that came from this push.
+      security: [{ adminCookie: [] }]
+      parameters:
+        - { name: screenId, in: path, required: true, schema: { type: string } }
+        - { name: pushId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: Removed }
+        '404': { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    bearer: { type: http, scheme: bearer, description: Canva user token or SISSI_PUSH_KEY }
+    adminCookie: { type: apiKey, in: cookie, name: sissi_admin, description: 'Also requires header X-Sissi-Admin: 1 on writes' }
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    ErrorCode:
+      type: string
+      enum:
+        - UNAUTHORIZED
+        - TEAM_NOT_ALLOWED
+        - AUTH_NOT_CONFIGURED
+        - SCREEN_NOT_FOUND
+        - SCREEN_EXISTS
+        - ENTRY_NOT_FOUND
+        - PUSH_NOT_FOUND
+        - INVALID_MODE
+        - INVALID_TITLE
+        - INVALID_PAGES
+        - INVALID_KIND
+        - INVALID_SECONDS
+        - INVALID_SCREEN
+        - PAGE_URL_NOT_ALLOWED
+        - TOO_MANY_PAGES
+        - BUSY
+        - RATE_LIMITED
+        - DOWNLOAD_FAILED
+        - TOO_LARGE
+        - UNSUPPORTED_TYPE
+        - KIND_MISMATCH
+        - VIDEO_TOO_LONG
+        - INTERRUPTED
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { $ref: '#/components/schemas/ErrorCode' }
+            message: { type: string, description: Readable; never contains a signed URL query string }
+    Screen:
+      type: object
+      required: [id, name, orientation, defaultImageSeconds, maxVideoSeconds, entryCount, playlistVersion]
+      properties:
+        id: { type: string, pattern: '^[a-z0-9-]{1,40}$' }
+        name: { type: string }
+        orientation: { type: string, enum: [landscape, portrait] }
+        width: { type: integer, nullable: true }
+        height: { type: integer, nullable: true }
+        defaultImageSeconds: { type: integer, minimum: 1, maximum: 3600 }
+        maxVideoSeconds: { type: integer, nullable: true, minimum: 1 }
+        entryCount: { type: integer }
+        playlistVersion: { type: integer }
+    ScreenInput:
+      type: object
+      properties:
+        id: { type: string, pattern: '^[a-z0-9-]{1,40}$', description: Create only }
+        name: { type: string, minLength: 1, maxLength: 100 }
+        orientation: { type: string, enum: [landscape, portrait] }
+        width: { type: integer, nullable: true }
+        height: { type: integer, nullable: true }
+        defaultImageSeconds: { type: integer, minimum: 1, maximum: 3600 }
+        maxVideoSeconds: { type: integer, nullable: true, minimum: 1 }
+    Entry:
+      type: object
+      required: [entryId, mediaId, kind, seconds, title, pushId, addedAt]
+      properties:
+        entryId: { type: string }
+        mediaId: { type: string, description: sha256 hex }
+        kind: { type: string, enum: [image, video] }
+        seconds: { type: integer }
+        title: { type: string }
+        pushId: { type: string }
+        addedAt: { type: string, format: date-time }
+    AdminScreen:
+      allOf:
+        - $ref: '#/components/schemas/Screen'
+        - type: object
+          properties:
+            entries:
+              type: array
+              items: { $ref: '#/components/schemas/Entry' }
+    PushRequest:
+      type: object
+      required: [screenId, title, pages]
+      properties:
+        screenId: { type: string }
+        mode: { type: string, enum: [append, replace], default: append }
+        title: { type: string, minLength: 1, maxLength: 200 }
+        pages:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: object
+            required: [pageNumber, url]
+            properties:
+              pageNumber: { type: integer }
+              kind: { type: string, enum: [image, video], description: Optional; service sniffs when omitted }
+              url: { type: string, format: uri }
+              seconds: { type: integer, minimum: 1, maximum: 3600, description: Images only; ignored for video }
+    PushAccepted:
+      type: object
+      required: [pushId, taskId, state, screenId]
+      properties:
+        pushId: { type: string }
+        taskId: { type: string }
+        state: { type: string, enum: [queued] }
+        screenId: { type: string }
+    PushStatus:
+      type: object
+      required: [pushId, screenId, state, progress, pages, error, playlistVersion]
+      properties:
+        pushId: { type: string }
+        screenId: { type: string }
+        state: { type: string, enum: [queued, downloading, ready, failed] }
+        progress: { type: number, minimum: 0, maximum: 1 }
+        pages:
+          type: object
+          properties: { done: { type: integer }, total: { type: integer } }
+        error:
+          nullable: true
+          type: object
+          properties:
+            code: { $ref: '#/components/schemas/ErrorCode' }
+            message: { type: string }
+        playlistVersion: { type: integer, nullable: true }

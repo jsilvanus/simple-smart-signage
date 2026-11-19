@@ -219,19 +219,39 @@ The next step after this is enrolment (verification number, approval) for the we
 2. Whether Yodeck's web page player keeps the service worker cache across reboots (test on the real player in the first deploy).
 3. Video export from Canva may be one MP4 for the whole design (canva-pieco-app #21); the contract accepts that as one video entry.
 
-## 11. Build tasks (sized for small agents)
+## 11. Decisions and hardening (review of 2026-11-19; these override anything above)
 
-Twelve tasks. [H] = fits a Haiku-sized agent with this plan in hand; [S] = needs a stronger model (security or browser behaviour). Order: 1 first, then 2-4 in parallel, then 5-10, then 11-12.
+Terminology: the Canva token check is by **brand** (`brandId`, `SISSI_CANVA_ALLOWED_BRANDS`). The error code stays `TEAM_NOT_ALLOWED` for compatibility with the Canva app; its message says "Canva team". Both documents call it "team" in user text.
 
-1. [H] Skeleton: Node 24 ESM server, config from env, `/health`, bearer `/metrics`, `node:test` setup.
-2. [H] Storage interface: local disk + S3 driver, content-addressed media writes.
-3. [H] State store: screens and playlists as JSON documents, atomic write, version counter, per-screen lock.
-4. [S] Auth: Canva user token check (JWKS, audience, allowed teams), optional push key, CORS allow-list. Fake JWKS in tests.
-5. [H] Download and check: https host allow-list on every redirect hop, size limits, type sniffing, MP4 duration from `mvhd`, query strings scrubbed from errors.
-6. [H] Push API: body validation, push records and status, 429 limit, apply on success only, finish-order per screen.
-7. [H] Read API: `GET /screens`, `playlist.json`, `/media` with Range and immutable caching.
-8. [S] Player page and service worker: timing, video end, preload, version switch at entry boundary, offline loop.
-9. [H] Admin auth and admin API: password login, signed cookie, screen CRUD, entry reorder/seconds/remove, remove push.
-10. [H] Admin page: plain HTML/JS UI on the admin API.
-11. [H] Docker image, GHCR workflow, deploy-side compose with Traefik labels and healthcheck.
-12. [S] End-to-end check: Playwright run of push → player shows it → server stopped → player keeps looping; README and operator notes.
+Machine-readable contract: [`openapi/sissi-v1.yaml`](../../openapi/sissi-v1.yaml) is the single source of truth for the `/api/v1` push, screens and admin surfaces and the error codes. If prose and OpenAPI disagree, OpenAPI wins and the prose is fixed.
+
+1. **Path prefix.** The service is served at `https://<host>/signage` (open item 1 resolved: path on the existing host). Traefik strips the prefix. Therefore: the player, service worker and admin page use **only relative URLs**; the app reads `SISSI_PUBLIC_PATH` (default `/signage`) only to build the root-relative URLs it hands out (`Location` header, media `url` in `playlist.json`); the service worker is served from `/s/sw.js` and its scope is the directory it is served from, so it works under any prefix.
+2. **Service worker and video.** The Cache API does not serve Range requests reliably and has quota limits. Rule: images and the player shell are cached by the service worker. Videos are cached only when smaller than `SISSI_SW_MAX_VIDEO_MB` (default 100); the worker answers Range requests for cached videos itself by slicing the cached body. Larger videos are streamed from the network, and the offline loop skips an uncached video instead of stalling. `localStorage` keeps the last playlist as before. Yodeck behaviour is tested on a real player (open item 2) and documented in the operator notes whatever the result.
+3. **SSRF.** The download client resolves the host itself and refuses private, loopback, link-local, multicast and unspecified addresses (IPv4 and IPv6, including IPv4-mapped); it connects to the resolved address (no second lookup) and re-checks on every redirect hop. A test server on `127.0.0.1` is allowed only when `SISSI_ALLOW_PRIVATE_DOWNLOADS=1` (tests only; refused when `NODE_ENV=production`).
+4. **MP4 handling.** Duration comes from `mvhd`; when `mvhd` duration is 0 (fragmented MP4) the `mvex/mehd` duration is used; when neither exists the push fails with `UNSUPPORTED_TYPE` ("cannot read video length"). The brand must be `isom`/`mp42`/`avc1`-compatible; the codec is not inspected in step 1, and the operator notes say H.264/AAC is required by Yodeck players.
+5. **Garbage collection.** Media is reference-counted from the screens' state documents. A media object with no references is deleted by a sweep that runs after every successful push and every admin removal, and only if the object is older than `SISSI_GC_GRACE_MINUTES` (default 60), so an in-flight push is never hurt. The sweep is a plain function with tests.
+6. **Single instance.** The per-screen lock and the 3-push limit are in-process. Step 1 runs exactly one container; compose sets `deploy.replicas: 1` and the README says so. State writes also use a version check (compare-and-swap) so a second instance would fail loudly instead of corrupting a playlist.
+7. **Admin hardening.** Cookie `Path` is `SISSI_PUBLIC_PATH`, login is rate-limited (5 failures per IP per 10 minutes, then 429), password compared in constant time, all admin writes need a CSRF header (`X-Sissi-Admin: 1`) in addition to `SameSite=Strict`.
+8. **Push record retention.** Push records live 24 h in storage, a sweep removes expired ones. A restart mid-push marks the push `failed` with code `INTERRUPTED` and leaves the playlist untouched.
+9. **Player data.** `playlist.json` entries carry `url` as a root-relative path including the prefix (`<SISSI_PUBLIC_PATH>/media/<sha256>.<ext>`) and `sha256`, so the worker can cache by content. The player page itself fetches `playlist.json` with a relative URL.
+
+## 12. Build tasks for Sonnet-class agents
+
+Each task is one agent with: this plan, `openapi/sissi-v1.yaml`, and the files its dependencies produced. Every task ends with passing `node --test` and a short note in `docs/plans/step-1-progress.md` (what was done, what is left). Phases are gates: the next phase starts only after the previous one is green and reviewed. Tasks inside a phase run in parallel and own **disjoint files**.
+
+| Phase | Task | Owns (files) | Needs |
+|---|---|---|---|
+| 0 | OpenAPI file, repo skeleton, config, `/health`, `/metrics`, CI | `openapi/`, `package.json`, `src/server.mjs`, `src/config.mjs`, `.github/workflows/ci.yml`, `test/helpers/` | - |
+| 1 | A. Storage interface, local and S3 drivers, content-addressed writes | `src/storage/` | 0 |
+| 1 | B. State store: screens, playlists, push records, CAS versioning, per-screen lock, GC sweep | `src/state/` | 0 |
+| 1 | C. Download client: SSRF guard, limits, sniffing, MP4 duration, scrubbed errors | `src/download/` | 0 |
+| 1 | D. Auth: Canva token (JWKS), push key, CORS, fake JWKS test helper | `src/auth/` | 0 |
+| 2 | E. Push API and push runner (apply on success, finish order, 429, interrupted) | `src/api/push.mjs`, `src/push/` | 1 |
+| 2 | F. Read API: screens, `playlist.json`, `/media` with Range | `src/api/read.mjs` | 1 |
+| 2 | G. Admin auth and admin API | `src/api/admin.mjs`, `src/admin-auth/` | 1 |
+| 3 | H. Player page and service worker (+ Playwright tests) | `public/player/` | 2 (F) |
+| 3 | I. Admin page | `public/admin/` | 2 (G) |
+| 3 | J. Dockerfile, GHCR workflow, compose with Traefik labels | `Dockerfile`, `docker-compose.yml`, `.github/workflows/release.yml` | 0 |
+| 4 | K. End-to-end test, README, operator notes (including the Yodeck test procedure) | `test/e2e/`, `README.md`, `docs/operations.md` | 3 |
+
+After each phase an independent reviewer agent checks the diff against this plan and the OpenAPI file, and writes findings to `docs/plans/step-1-review-phase-N.md`.

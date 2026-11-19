@@ -1,5 +1,8 @@
 import { timingSafeEqual } from 'node:crypto';
 import { sendJson, sendText, HttpError } from './router.mjs';
+import { registerPush } from './api/push.mjs';
+import { registerReadRoutes } from './api/read.mjs';
+import { registerAdminRoutes } from './api/admin.mjs';
 
 function safeEqual(a, b) {
   const x = Buffer.from(a);
@@ -36,10 +39,15 @@ export function registerRoutes(router, ctx) {
     sendText(res, 200, metrics.render(), 'text/plain; version=0.0.4; charset=utf-8');
   });
 
-  // --- Phase 2 placeholders (do not implement here; owners add one line each) -------------------
-  // Push API (task E, src/api/push.mjs):   registerPush(router, ctx)   -> POST /api/v1/push, GET /api/v1/push/:pushId
-  // Read API  (task F, src/api/read.mjs):  registerRead(router, ctx)   -> GET /api/v1/screens, /s/:screenId/playlist.json, /media/:file
-  // Admin     (task G, src/api/admin.mjs): registerAdmin(router, ctx)  -> /api/v1/admin/*
+  if (ctx.state && ctx.storage && ctx.auth && (ctx.pushRunner || ctx.download)) {
+    registerPush(router, ctx);
+  }
+  if (ctx.state && ctx.storage && ctx.auth) {
+    registerReadRoutes(router, ctx);
+  }
+  if (ctx.state && ctx.storage && ctx.adminAuth) {
+    registerAdminRoutes(router, ctx);
+  }
   // Player static files (task H, public/player/): GET /s/:screenId, /s/sw.js, player assets
   // Admin page static files (task I, public/admin/): GET /admin and assets
 }

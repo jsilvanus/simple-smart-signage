@@ -19,9 +19,12 @@ export function createServer(config, deps = {}) {
     state: deps.state,
     auth: deps.auth,
     download: deps.download,
+    pushRunner: deps.pushRunner,
+    adminAuth: deps.adminAuth,
   };
   registerRoutes(router, ctx);
   const server = http.createServer((req, res) => {
+    if (ctx.auth?.handleCors?.(req, res)) return;
     router.handle(req, res);
   });
   server.ctx = ctx;

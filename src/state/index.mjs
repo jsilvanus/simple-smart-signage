@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { ERROR_STATUS } from '../router.mjs';
 
 const SCREEN_ID_RE = /^[a-z0-9-]{1,40}$/;
-const ORIENTATIONS = new Set(['landscape', 'portrait']);
+const ORIENTATIONS = new Set(['landscape', 'vertical']);
 const KINDS = new Set(['image', 'video']);
 const MODES = new Set(['append', 'replace']);
 
@@ -79,7 +79,7 @@ function validateScreenCreate(input) {
   }
   const orientation = input.orientation ?? 'landscape';
   if (!ORIENTATIONS.has(orientation)) {
-    throw new StateError('INVALID_SCREEN', 'Screen orientation must be landscape or portrait');
+    throw new StateError('INVALID_SCREEN', 'Screen orientation must be landscape or vertical');
   }
   const width = validateNullablePositiveInt(input.width, 'width', 'INVALID_SCREEN');
   const height = validateNullablePositiveInt(input.height, 'height', 'INVALID_SCREEN');
@@ -117,7 +117,7 @@ function applyScreenPatch(doc, patch) {
   }
   if (patch.orientation !== undefined) {
     if (!ORIENTATIONS.has(patch.orientation)) {
-      throw new StateError('INVALID_SCREEN', 'Screen orientation must be landscape or portrait');
+      throw new StateError('INVALID_SCREEN', 'Screen orientation must be landscape or vertical');
     }
     doc.orientation = patch.orientation;
   }

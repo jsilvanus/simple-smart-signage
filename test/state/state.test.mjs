@@ -60,7 +60,7 @@ test('screens CRUD and validation', async () => {
     (err) => err instanceof StateError && err.code === 'INVALID_SECONDS',
   );
 
-  await state.createScreen({ id: 'chapel', name: 'Chapel', orientation: 'portrait', defaultImageSeconds: 15 });
+  await state.createScreen({ id: 'chapel', name: 'Chapel', orientation: 'vertical', defaultImageSeconds: 15 });
   const list = await state.listScreens();
   assert.deepEqual(
     list.map((s) => s.id),

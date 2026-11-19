@@ -123,7 +123,7 @@ test('helpers: buildScreenPayload, reorderedEntryIds, extractErrorMessage, forma
     {
       id: 'lobby',
       name: 'Side Hall',
-      orientation: 'portrait',
+      orientation: 'vertical',
       width: '',
       height: '1920',
       defaultImageSeconds: '8',
@@ -134,7 +134,7 @@ test('helpers: buildScreenPayload, reorderedEntryIds, extractErrorMessage, forma
   assert.equal('id' in editPayload, false);
   assert.deepEqual(editPayload, {
     name: 'Side Hall',
-    orientation: 'portrait',
+    orientation: 'vertical',
     width: null,
     height: 1920,
     defaultImageSeconds: 8,

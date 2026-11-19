@@ -31,7 +31,7 @@ function parseOptionalInt(value) {
 export function buildScreenPayload(values, { isCreate = false } = {}) {
   const payload = {
     name: String(values.name ?? '').trim(),
-    orientation: values.orientation === 'portrait' ? 'portrait' : 'landscape',
+    orientation: values.orientation === 'vertical' ? 'vertical' : 'landscape',
     width: parseOptionalInt(values.width),
     height: parseOptionalInt(values.height),
     defaultImageSeconds: Number(values.defaultImageSeconds),

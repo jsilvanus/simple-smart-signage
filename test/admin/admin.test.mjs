@@ -231,11 +231,11 @@ test('screen CRUD endpoints, param validation, and error codes', async (t) => {
   const created = await http(srv.base, '/signage/api/v1/admin/screens', {
     method: 'POST',
     headers: writeHeaders,
-    body: { id: 'lobby-1', name: 'Main Lobby', orientation: 'portrait', defaultImageSeconds: 15 },
+    body: { id: 'lobby-1', name: 'Main Lobby', orientation: 'vertical', defaultImageSeconds: 15 },
   });
   assert.equal(created.status, 201);
   assert.equal(created.json.id, 'lobby-1');
-  assert.equal(created.json.orientation, 'portrait');
+  assert.equal(created.json.orientation, 'vertical');
   assert.equal(created.json.defaultImageSeconds, 15);
   assert.deepEqual(created.json.entries, []);
 

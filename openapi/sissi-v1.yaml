@@ -236,7 +236,7 @@ components:
       properties:
         id: { type: string, pattern: '^[a-z0-9-]{1,40}$' }
         name: { type: string }
-        orientation: { type: string, enum: [landscape, portrait] }
+        orientation: { type: string, enum: [landscape, vertical] }
         width: { type: integer, nullable: true }
         height: { type: integer, nullable: true }
         defaultImageSeconds: { type: integer, minimum: 1, maximum: 3600 }
@@ -248,7 +248,7 @@ components:
       properties:
         id: { type: string, pattern: '^[a-z0-9-]{1,40}$', description: Create only }
         name: { type: string, minLength: 1, maxLength: 100 }
-        orientation: { type: string, enum: [landscape, portrait] }
+        orientation: { type: string, enum: [landscape, vertical] }
         width: { type: integer, nullable: true }
         height: { type: integer, nullable: true }
         defaultImageSeconds: { type: integer, minimum: 1, maximum: 3600 }

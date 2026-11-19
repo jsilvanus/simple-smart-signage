@@ -24,7 +24,7 @@ Out of scope for step 1 (stays in the SiSSi roadmap): device enrolment, tenants,
 
 ## 3. Concepts
 
-- **Screen**: a player page. `id` (slug, `[a-z0-9-]{1,40}`, chosen by the operator), `name`, `orientation` (`landscape` | `portrait`), optional `width`/`height` hint for the Canva export size, `defaultImageSeconds` (default 10), `maxVideoSeconds` (optional, set on the admin page; `null` = no limit; a longer video fails the push with `VIDEO_TOO_LONG`).
+- **Screen**: a player page. `id` (slug, `[a-z0-9-]{1,40}`, chosen by the operator), `name`, `orientation` (`landscape` | `vertical`), optional `width`/`height` hint for the Canva export size, `defaultImageSeconds` (default 10), `maxVideoSeconds` (optional, set on the admin page; `null` = no limit; a longer video fails the push with `VIDEO_TOO_LONG`).
 - **Media**: a stored file, content-addressed by SHA-256. Kind `image` (PNG, JPEG, WebP) or `video` (MP4, H.264/AAC expected). Video duration is read from the MP4 header (`mvhd` box) in Node, no ffmpeg.
 - **Entry**: one line in a screen's playlist: `{ entryId, mediaId, kind, seconds, title, pushId, addedAt }`. For an image, `seconds` is the time on screen. For a video, `seconds` is the video's own duration (informational; the player moves on at the video's `ended` event).
 - **Playlist**: ordered entries of one screen plus a `version` (increments on every change). One playlist per screen.

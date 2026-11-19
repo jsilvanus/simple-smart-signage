@@ -116,7 +116,7 @@ test('GET /s/:screenId/playlist.json returns prefixed media urls, sha256, no-cac
     await srv.state.createScreen({
       id: 'hall-1',
       name: 'Hall',
-      orientation: 'portrait',
+      orientation: 'vertical',
     });
     await srv.state.applyPush('hall-1', {
       pushId: 'push_2',
@@ -133,7 +133,7 @@ test('GET /s/:screenId/playlist.json returns prefixed media urls, sha256, no-cac
     assert.equal(ok.headers.get('cache-control'), 'no-cache');
     assert.equal(ok.json.screenId, 'hall-1');
     assert.equal(ok.json.version, 2);
-    assert.equal(ok.json.orientation, 'portrait');
+    assert.equal(ok.json.orientation, 'vertical');
     assert.equal(ok.json.entries.length, 2);
     assert.deepEqual(
       ok.json.entries.map(({ kind, url, sha256, seconds }) => ({ kind, url, sha256, seconds })),

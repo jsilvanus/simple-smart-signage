@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Simple Smart Signage</string>
+    <string name="settings_title">Signage Display Settings</string>
+    <string name="settings_subtitle">Enter the server URL and screen ID to start playback.</string>
+    <string name="label_server_url">Server URL</string>
+    <string name="hint_server_url">https://example.com/signage</string>
+    <string name="label_screen_id">Screen ID</string>
+    <string name="hint_screen_id">lobby</string>
+    <string name="btn_save_start">Save &amp; Start</string>
+    <string name="error_invalid_server_url">Enter a valid http:// or https:// URL.</string>
+    <string name="error_invalid_screen_id">Use 1–40 lowercase letters, numbers, or hyphens (a-z, 0-9, -).</string>
+</resources>

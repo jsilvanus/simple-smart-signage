@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets"
+        xmlns:tizen="http://tizen.org/ns/widgets"
+        id="http://sissi.local/TizenPlayer"
+        version="0.1.0"
+        viewmodes="maximized">
+
+  <tizen:application id="SiSSiPlayr.TizenPlayer" package="SiSSiPlayr" required_version="4.0"/>
+  <content src="index.html"/>
+  <icon src="icon.png"/>
+  <name>SiSSi Signage</name>
+
+  <!-- Target Samsung TV / Smart Signage Web Runtime -->
+  <tizen:profile name="tv-samsung"/>
+
+  <!-- W3C WARP: allow fetch() from file:// to any operator-configured server -->
+  <access origin="*" subdomains="true"/>
+
+  <!-- Required privileges -->
+  <tizen:privilege name="http://tizen.org/privilege/internet"/>
+  <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+  <tizen:privilege name="http://tizen.org/privilege/power"/>
+  <tizen:privilege name="http://tizen.org/privilege/filesystem.read"/>
+  <tizen:privilege name="http://tizen.org/privilege/filesystem.write"/>
+
+  <!-- Runtime settings -->
+  <tizen:setting screen-orientation="landscape"
+                 context-menu="disable"
+                 background-support="disable"
+                 encryption="disable"
+                 install-location="auto"
+                 hwkey-event="enable"/>
+</widget>

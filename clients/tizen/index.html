@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>SiSSi Signage</title>
+    <link rel="stylesheet" href="./app.css" />
+  </head>
+  <body>
+    <main id="stage" aria-hidden="true"></main>
+
+    <div id="setup-overlay" class="overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="setup-title">
+      <div class="overlay-card">
+        <h1 id="setup-title" class="overlay-title">SiSSi Signage Setup</h1>
+        <p class="overlay-hint">Use D-pad Up/Down to navigate, Enter to edit/activate, Return to close.</p>
+
+        <div class="overlay-field">
+          <label for="cfg-server-url">Server URL</label>
+          <input id="cfg-server-url" type="url" placeholder="https://signage.example.com" data-focusable="true" />
+        </div>
+
+        <div class="overlay-field">
+          <label for="cfg-screen-id">Screen ID</label>
+          <input id="cfg-screen-id" type="text" placeholder="lobby" data-focusable="true" />
+        </div>
+
+        <div class="overlay-field">
+          <label for="cfg-rotation-mode">Orientation Mode</label>
+          <select id="cfg-rotation-mode" data-focusable="true">
+            <option value="auto">Auto (rotate vertical on landscape display)</option>
+            <option value="native">Native (use display OSD orientation)</option>
+            <option value="cw90">Rotate 90° clockwise</option>
+            <option value="ccw90">Rotate 90° counter-clockwise</option>
+          </select>
+        </div>
+
+        <div id="cfg-status" class="overlay-status" aria-live="polite"></div>
+
+        <div class="overlay-actions">
+          <button id="cfg-save" type="button" class="btn-primary" data-focusable="true">Save &amp; Connect</button>
+          <button id="cfg-clear-cache" type="button" data-focusable="true">Clear Cache</button>
+          <button id="cfg-close" type="button" data-focusable="true">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="$WEBAPIS/webapis/webapis.js"></script>
+    <script defer src="./src/config.js"></script>
+    <script defer src="./src/orientation.js"></script>
+    <script defer src="./src/storage.js"></script>
+    <script defer src="./src/remote.js"></script>
+    <script defer src="./src/player.js"></script>
+    <script defer src="./src/main.js"></script>
+  </body>
+</html>

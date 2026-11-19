@@ -1,0 +1,373 @@
+(() => {
+  const stage = document.getElementById('stage');
+  const pathParts = window.location.pathname.replace(/\/+$/, '').split('/');
+  const screenId = pathParts[pathParts.length - 1] || '';
+  const playlistUrl = `${encodeURIComponent(screenId)}/playlist.json`;
+  const storageKey = `sissi:playlist:${screenId}`;
+
+  const rawPoll = Number(new URLSearchParams(window.location.search).get('pollMs'));
+  const pollMs = Number.isFinite(rawPoll) && rawPoll >= 50 ? rawPoll : 60000;
+
+  let activePlaylist = null;
+  let pendingPlaylist = null;
+  let currentIndex = -1;
+  let currentEntry = null;
+  let currentSlideEl = null;
+  let slideTimer = null;
+  let retryTimer = null;
+  let pollTimer = null;
+  let lastErrorPollAt = 0;
+  let consecutiveFailures = 0;
+  let preloaded = null;
+  let transitionToken = 0;
+
+  function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
+  }
+
+  function syncPlaylistWithSw(entries) {
+    if (!('serviceWorker' in navigator)) return;
+    const msg = { type: 'SYNC_PLAYLIST', screenId, entries };
+    const ctrl = navigator.serviceWorker.controller;
+    if (ctrl) {
+      ctrl.postMessage(msg);
+    } else {
+      navigator.serviceWorker.ready
+        .then((reg) => {
+          reg.active?.postMessage(msg);
+        })
+        .catch(() => {});
+    }
+  }
+
+  function loadStoredPlaylist() {
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.entries)) return parsed;
+    } catch {
+      // Ignore storage errors
+    }
+    return null;
+  }
+
+  function saveStoredPlaylist(playlist) {
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(playlist));
+    } catch {
+      // Ignore storage errors
+    }
+  }
+
+  function clearSlideTimer() {
+    if (slideTimer !== null) {
+      clearTimeout(slideTimer);
+      slideTimer = null;
+    }
+  }
+
+  function clearRetryTimer() {
+    if (retryTimer !== null) {
+      clearTimeout(retryTimer);
+      retryTimer = null;
+    }
+  }
+
+  function destroySlideElement(slideEl) {
+    if (!slideEl) return;
+    const video = slideEl.querySelector('video');
+    if (video) {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    }
+    slideEl.remove();
+  }
+
+  function fadeOutToBlack() {
+    clearSlideTimer();
+    currentEntry = null;
+    if (!currentSlideEl) return;
+    const oldEl = currentSlideEl;
+    currentSlideEl = null;
+    oldEl.classList.remove('is-visible');
+    setTimeout(() => destroySlideElement(oldEl), 550);
+  }
+
+  function clearPreload() {
+    if (!preloaded) return;
+    if (preloaded.kind === 'video' && preloaded.el) {
+      preloaded.el.pause();
+      preloaded.el.removeAttribute('src');
+      preloaded.el.load();
+    }
+    preloaded = null;
+  }
+
+  function getNextEntryForPreload() {
+    if (pendingPlaylist && pendingPlaylist.version !== activePlaylist?.version) {
+      return pendingPlaylist.entries[0] || null;
+    }
+    if (!activePlaylist || activePlaylist.entries.length <= 1) return null;
+    return activePlaylist.entries[(currentIndex + 1) % activePlaylist.entries.length] || null;
+  }
+
+  function preloadNext() {
+    const next = getNextEntryForPreload();
+    if (!next) {
+      clearPreload();
+      return;
+    }
+    if (preloaded && preloaded.url === next.url && preloaded.kind === next.kind) {
+      return;
+    }
+    clearPreload();
+    if (next.kind === 'video') {
+      const video = document.createElement('video');
+      video.preload = 'auto';
+      video.muted = true;
+      video.playsInline = true;
+      video.src = next.url;
+      video.load();
+      preloaded = { url: next.url, kind: 'video', el: video };
+    } else {
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = next.url;
+      preloaded = { url: next.url, kind: 'image', el: img };
+    }
+  }
+
+  function triggerErrorPoll() {
+    const now = Date.now();
+    if (now - lastErrorPollAt < 1000) return;
+    lastErrorPollAt = now;
+    fetchPlaylist();
+  }
+
+  function onSlideComplete() {
+    clearSlideTimer();
+    consecutiveFailures = 0;
+    advance();
+  }
+
+  function onSlideError() {
+    clearSlideTimer();
+    triggerErrorPoll();
+    consecutiveFailures += 1;
+    const total = activePlaylist?.entries?.length || 0;
+    if (total === 0 || consecutiveFailures >= total) {
+      fadeOutToBlack();
+      clearRetryTimer();
+      retryTimer = setTimeout(() => {
+        consecutiveFailures = 0;
+        advance();
+      }, Math.min(pollMs, 2000));
+      return;
+    }
+    advance();
+  }
+
+  function crossFadeTo(newSlideEl) {
+    const oldEl = currentSlideEl;
+    currentSlideEl = newSlideEl;
+    stage.appendChild(newSlideEl);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (currentSlideEl === newSlideEl) {
+          newSlideEl.classList.add('is-visible');
+        }
+      });
+    });
+    if (oldEl) {
+      oldEl.classList.remove('is-visible');
+      setTimeout(() => destroySlideElement(oldEl), 550);
+    }
+  }
+
+  function showEntry(entry) {
+    clearSlideTimer();
+    clearRetryTimer();
+
+    // Single-entry steady state when version has not changed: avoid flicker/re-fade.
+    if (
+      currentSlideEl &&
+      currentEntry &&
+      currentEntry.entryId === entry.entryId &&
+      currentEntry.url === entry.url &&
+      (!pendingPlaylist || pendingPlaylist.version === activePlaylist?.version)
+    ) {
+      if (entry.kind === 'image') {
+        slideTimer = setTimeout(onSlideComplete, entry.seconds * 1000);
+        return;
+      }
+      const existingVideo = currentSlideEl.querySelector('video');
+      if (existingVideo) {
+        existingVideo.currentTime = 0;
+        slideTimer = setTimeout(onSlideComplete, (entry.seconds + 5) * 1000);
+        existingVideo.play().catch((err) => {
+          if (err?.name !== 'AbortError') onSlideError();
+        });
+        return;
+      }
+    }
+
+    const token = ++transitionToken;
+    currentEntry = entry;
+
+    const slideEl = document.createElement('div');
+    slideEl.className = 'slide';
+
+    if (entry.kind === 'video') {
+      const video = document.createElement('video');
+      video.className = 'slide-media';
+      video.muted = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.preload = 'auto';
+      video.src = entry.url;
+
+      let settled = false;
+      const done = () => {
+        if (settled || token !== transitionToken) return;
+        settled = true;
+        onSlideComplete();
+      };
+      const fail = () => {
+        if (settled || token !== transitionToken) return;
+        settled = true;
+        onSlideError();
+      };
+
+      video.addEventListener('ended', done, { once: true });
+      video.addEventListener('error', fail, { once: true });
+
+      slideEl.appendChild(video);
+      crossFadeTo(slideEl);
+
+      slideTimer = setTimeout(done, (entry.seconds + 5) * 1000);
+      video.play().catch((err) => {
+        if (err?.name !== 'AbortError') fail();
+      });
+      return;
+    }
+
+    const img = document.createElement('img');
+    img.className = 'slide-media';
+    img.alt = '';
+    img.decoding = 'async';
+
+    let settled = false;
+    const onLoad = () => {
+      if (settled || token !== transitionToken) return;
+      settled = true;
+      crossFadeTo(slideEl);
+      slideTimer = setTimeout(onSlideComplete, entry.seconds * 1000);
+    };
+    const onError = () => {
+      if (settled || token !== transitionToken) return;
+      settled = true;
+      onSlideError();
+    };
+
+    img.addEventListener('load', onLoad, { once: true });
+    img.addEventListener('error', onError, { once: true });
+    img.src = entry.url;
+    slideEl.appendChild(img);
+
+    if (img.complete) {
+      if (img.naturalWidth > 0) onLoad();
+      else onError();
+    }
+  }
+
+  function advance() {
+    if (pendingPlaylist) {
+      activePlaylist = pendingPlaylist;
+      pendingPlaylist = null;
+      currentIndex = -1;
+      consecutiveFailures = 0;
+    }
+
+    if (!activePlaylist || activePlaylist.entries.length === 0) {
+      fadeOutToBlack();
+      clearPreload();
+      return;
+    }
+
+    currentIndex = (currentIndex + 1) % activePlaylist.entries.length;
+    const entry = activePlaylist.entries[currentIndex];
+    showEntry(entry);
+    preloadNext();
+  }
+
+  function applyFetchedPlaylist(data) {
+    saveStoredPlaylist(data);
+    syncPlaylistWithSw(data.entries);
+
+    if (!activePlaylist || activePlaylist.entries.length === 0) {
+      activePlaylist = data;
+      pendingPlaylist = null;
+      currentIndex = -1;
+      consecutiveFailures = 0;
+      if (data.entries.length > 0) {
+        advance();
+      } else {
+        fadeOutToBlack();
+      }
+      return;
+    }
+
+    if (data.version !== activePlaylist.version) {
+      pendingPlaylist = data;
+      preloadNext();
+    }
+  }
+
+  async function fetchPlaylist() {
+    if (!screenId) return;
+    try {
+      const res = await fetch(playlistUrl, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.entries)) {
+          applyFetchedPlaylist(data);
+          return;
+        }
+      } else if (res.status === 404) {
+        if (!activePlaylist) fadeOutToBlack();
+        else if (activePlaylist.entries.length > 0) {
+          pendingPlaylist = { screenId, version: -1, entries: [] };
+        }
+        return;
+      }
+    } catch {
+      // Network error: keep current playlist or fall back to localStorage
+    }
+
+    if (!activePlaylist) {
+      const stored = loadStoredPlaylist();
+      if (stored && stored.entries.length > 0) {
+        activePlaylist = stored;
+        currentIndex = -1;
+        advance();
+      }
+    }
+  }
+
+  function startPolling() {
+    fetchPlaylist();
+    pollTimer = setInterval(fetchPlaylist, pollMs);
+  }
+
+  registerServiceWorker();
+  startPolling();
+
+  window.addEventListener('beforeunload', () => {
+    clearSlideTimer();
+    clearRetryTimer();
+    if (pollTimer !== null) clearInterval(pollTimer);
+  });
+})();

@@ -3,6 +3,8 @@ import { sendJson, sendText, HttpError } from './router.mjs';
 import { registerPush } from './api/push.mjs';
 import { registerReadRoutes } from './api/read.mjs';
 import { registerAdminRoutes } from './api/admin.mjs';
+import { registerPlayerRoutes } from './api/player.mjs';
+import { registerAdminUiRoutes } from './api/admin-ui.mjs';
 
 function safeEqual(a, b) {
   const x = Buffer.from(a);
@@ -48,6 +50,8 @@ export function registerRoutes(router, ctx) {
   if (ctx.state && ctx.storage && ctx.adminAuth) {
     registerAdminRoutes(router, ctx);
   }
-  // Player static files (task H, public/player/): GET /s/:screenId, /s/sw.js, player assets
-  // Admin page static files (task I, public/admin/): GET /admin and assets
+  if (ctx.state) {
+    registerPlayerRoutes(router, ctx);
+  }
+  registerAdminUiRoutes(router, ctx);
 }

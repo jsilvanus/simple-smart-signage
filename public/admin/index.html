@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base href="/admin/">
+  <title>SiSSi Admin</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <div id="login-view" class="auth-shell" hidden>
+    <main class="auth-card">
+      <h1>SiSSi Admin</h1>
+      <p class="muted">Sign in to manage signage screens and playlists.</p>
+      <form id="login-form" novalidate>
+        <div class="field">
+          <label for="login-password">Admin password</label>
+          <input
+            id="login-password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            enterkeyhint="done"
+            required
+          >
+        </div>
+        <p id="login-error" class="error-banner" role="alert" hidden></p>
+        <button id="login-submit" type="submit" class="btn btn-primary">Sign in</button>
+      </form>
+    </main>
+  </div>
+
+  <div id="app-view" class="app-shell" hidden>
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>SiSSi Admin</h1>
+      </div>
+      <div class="topbar-actions">
+        <button id="refresh-btn" type="button" class="btn">Refresh</button>
+        <button id="new-screen-btn" type="button" class="btn btn-primary">+ New screen</button>
+        <button id="logout-btn" type="button" class="btn">Log out</button>
+      </div>
+    </header>
+
+    <div id="app-error" class="error-banner container" role="alert" hidden></div>
+    <div id="app-status" class="status-banner container" role="status" aria-live="polite" hidden></div>
+
+    <main class="workspace container">
+      <aside class="screens-panel" aria-label="Screens">
+        <div class="panel-header">
+          <h2>Screens</h2>
+          <span id="screens-count" class="badge">0</span>
+        </div>
+        <ul id="screens-list" class="screens-list"></ul>
+        <p id="screens-empty" class="muted empty-note" hidden>No screens yet. Create one to get started.</p>
+      </aside>
+
+      <section class="detail-panel" aria-label="Selected screen">
+        <div id="no-selection" class="empty-state">
+          <p class="muted">Select a screen to inspect or edit its playlist.</p>
+        </div>
+
+        <div id="screen-detail" hidden>
+          <div class="detail-header">
+            <div>
+              <div class="title-row">
+                <h2 id="detail-name"></h2>
+                <code id="detail-id" class="code-pill"></code>
+              </div>
+              <p id="detail-meta" class="muted meta-line"></p>
+            </div>
+            <div class="detail-actions">
+              <a id="preview-link" class="btn" target="_blank" rel="noopener noreferrer">Preview screen ↗</a>
+              <button id="edit-screen-btn" type="button" class="btn">Edit screen</button>
+              <button id="delete-screen-btn" type="button" class="btn btn-danger">Delete</button>
+            </div>
+          </div>
+
+          <section class="playlist-section" aria-labelledby="playlist-heading">
+            <div class="panel-header">
+              <h3 id="playlist-heading">Playlist</h3>
+              <span id="playlist-version" class="badge">v0</span>
+            </div>
+            <p id="playlist-empty" class="muted empty-note" hidden>This screen has no playlist entries yet.</p>
+            <ul id="entries-list" class="entries-list"></ul>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="screen-dialog" aria-labelledby="screen-dialog-title">
+    <form id="screen-form" class="dialog-form" novalidate>
+      <div class="dialog-header">
+        <h2 id="screen-dialog-title">New screen</h2>
+        <button type="button" id="screen-dialog-close" class="btn-icon" aria-label="Close">✕</button>
+      </div>
+
+      <div class="field" id="screen-id-field">
+        <label for="screen-id">Screen ID <span aria-hidden="true">*</span></label>
+        <input
+          id="screen-id"
+          name="id"
+          type="text"
+          required
+          pattern="[a-z0-9-]{1,40}"
+          maxlength="40"
+          autocorrect="off"
+          autocapitalize="none"
+          spellcheck="false"
+          aria-describedby="screen-id-hint"
+        >
+        <span id="screen-id-hint" class="hint">Lowercase letters, numbers, and hyphens (1–40 chars).</span>
+      </div>
+
+      <div class="field">
+        <label for="screen-name">Name <span aria-hidden="true">*</span></label>
+        <input id="screen-name" name="name" type="text" required maxlength="100">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="screen-orientation">Orientation</label>
+          <select id="screen-orientation" name="orientation">
+            <option value="landscape">Landscape</option>
+            <option value="portrait">Portrait</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="screen-default-seconds">Default image seconds</label>
+          <input id="screen-default-seconds" name="defaultImageSeconds" type="number" min="1" max="3600" required value="10">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="screen-width">Width (px, optional)</label>
+          <input id="screen-width" name="width" type="number" min="1" placeholder="e.g. 1920">
+        </div>
+        <div class="field">
+          <label for="screen-height">Height (px, optional)</label>
+          <input id="screen-height" name="height" type="number" min="1" placeholder="e.g. 1080">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="screen-max-video">Max video seconds (optional)</label>
+        <input id="screen-max-video" name="maxVideoSeconds" type="number" min="1" placeholder="No limit">
+      </div>
+
+      <p id="screen-form-error" class="error-banner" role="alert" hidden></p>
+
+      <div class="dialog-actions">
+        <button type="button" id="screen-dialog-cancel" class="btn">Cancel</button>
+        <button type="submit" id="screen-dialog-submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="confirm-dialog" aria-labelledby="confirm-title">
+    <form method="dialog" class="dialog-form">
+      <h2 id="confirm-title">Confirm action</h2>
+      <p id="confirm-message" class="muted"></p>
+      <div class="dialog-actions">
+        <button value="cancel" class="btn" autofocus>Cancel</button>
+        <button value="confirm" id="confirm-ok-btn" class="btn btn-danger">Delete</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

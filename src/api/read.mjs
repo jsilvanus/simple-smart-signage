@@ -158,7 +158,7 @@ export function registerReadRoutes(router, ctx) {
         orientation: playlist.orientation,
         entries,
       },
-      { 'cache-control': 'no-cache' },
+      { 'cache-control': 'no-cache', 'access-control-allow-origin': '*' },
     );
   });
 
@@ -185,6 +185,7 @@ export function registerReadRoutes(router, ctx) {
           'content-type': media.contentType,
           'content-length': media.size,
           'cache-control': CACHE_IMMUTABLE,
+          'access-control-allow-origin': '*',
         },
         media.stream,
       );

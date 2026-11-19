@@ -24,7 +24,7 @@ Out of scope for step 1 (stays in the SiSSi roadmap): device enrolment, tenants,
 
 ## 3. Concepts
 
-- **Screen**: a player page. `id` (slug, `[a-z0-9-]{1,40}`, chosen by the operator), `name`, `orientation` (`landscape` | `portrait`), optional `width`/`height` hint for the Canva export size, `defaultImageSeconds` (default 10).
+- **Screen**: a player page. `id` (slug, `[a-z0-9-]{1,40}`, chosen by the operator), `name`, `orientation` (`landscape` | `portrait`), optional `width`/`height` hint for the Canva export size, `defaultImageSeconds` (default 10), `maxVideoSeconds` (optional, set on the admin page; `null` = no limit; a longer video fails the push with `VIDEO_TOO_LONG`).
 - **Media**: a stored file, content-addressed by SHA-256. Kind `image` (PNG, JPEG, WebP) or `video` (MP4, H.264/AAC expected). Video duration is read from the MP4 header (`mvhd` box) in Node, no ffmpeg.
 - **Entry**: one line in a screen's playlist: `{ entryId, mediaId, kind, seconds, title, pushId, addedAt }`. For an image, `seconds` is the time on screen. For a video, `seconds` is the video's own duration (informational; the player moves on at the video's `ended` event).
 - **Playlist**: ordered entries of one screen plus a `version` (increments on every change). One playlist per screen.
@@ -66,6 +66,7 @@ What the plugin shows in its screen picker.
       "width": 1920,
       "height": 1080,
       "defaultImageSeconds": 10,
+      "maxVideoSeconds": null,
       "entryCount": 7,
       "playlistVersion": 12
     }
@@ -92,12 +93,15 @@ What the plugin shows in its screen picker.
 - `mode`: `append` (default, add to the end) or `replace` (the push becomes the whole playlist).
 - `title`: 1-200 chars, shown on the admin page.
 - `pages`: 1-100, in play order (`pageNumber` only labels them).
-  - `kind`: `image` or `video`. The service checks the downloaded bytes and rejects a mismatch.
+  - `kind`: `image` or `video`, **optional**. Omitted = the service sniffs the bytes (PNG, JPEG, WebP = image; MP4 = video). Given = the bytes must match, otherwise the push fails with `KIND_MISMATCH`.
+  - A Canva design whose pages are video may arrive as **one MP4 for the whole design**; that is one `video` entry. Nothing in the contract assumes one file per page.
   - `seconds` (images only): whole number 1-3600. Missing = the screen's `defaultImageSeconds`. Ignored for video.
   - `url`: https only, host must end with one of `SISSI_DOWNLOAD_HOSTS` (default `canva.com, canva.dev, canva-apps.com`), no credentials in the URL, redirects re-checked on every hop (max 4).
 - Limits: image 40 MB, video 500 MB, whole push 1 GB (env-tunable).
 
-The playlist is changed only when every page has downloaded and checked: a failed push leaves the screen as it was.
+The playlist is changed only when every page has downloaded and checked: a failed push, in either mode, leaves the screen exactly as it was (`replace` removes nothing until it succeeds).
+
+**Concurrent pushes:** a second push to the same screen while one runs is accepted (202). Pushes are applied to a screen one at a time in the order they **finish**, each on the playlist as it is then (so a later `replace` wins over an earlier `append`). `429 BUSY` is returned only when more than 3 pushes are running in total on the service; the plugin shows it and lets the user retry.
 
 Response:
 
@@ -111,7 +115,9 @@ with `Location: /api/v1/push/push_3f9a1c2b`.
 |---|---|---|
 | 404 | `SCREEN_NOT_FOUND` | unknown `screenId` |
 | 422 | `INVALID_MODE`, `INVALID_TITLE`, `INVALID_PAGES`, `INVALID_KIND`, `INVALID_SECONDS`, `PAGE_URL_NOT_ALLOWED`, `TOO_MANY_PAGES` | body checks |
-| 429 | `BUSY` | more than 3 pushes running |
+| 429 | `BUSY` | more than 3 pushes running on the service |
+
+Failures found after the 202 end the push as `failed` with `error.code`: `DOWNLOAD_FAILED`, `TOO_LARGE`, `UNSUPPORTED_TYPE`, `KIND_MISMATCH`, `VIDEO_TOO_LONG`.
 
 ### 4.4 `GET /api/v1/push/:pushId`
 
@@ -127,7 +133,7 @@ with `Location: /api/v1/push/push_3f9a1c2b`.
 }
 ```
 
-`state`: `queued` → `downloading` → `ready` | `failed`. On `ready`, `playlistVersion` is the version that now contains the push. Kept for 24 h. Failure messages are readable and never contain the signed export URL's query string.
+`state`: `queued` → `downloading` → `ready` | `failed`. On `ready`, `playlistVersion` is the version that now contains the push. Kept for 24 h. `error` is `null` or `{ code, message }`. Failure messages are readable and never contain the signed export URL's query string.
 
 ### 4.5 Player (public, read-only)
 
@@ -211,4 +217,21 @@ The next step after this is enrolment (verification number, approval) for the we
 
 1. Path (`/signage` on the existing host) or a separate host for the service. Recommendation: path on the existing host, so Canva's allowed-domains list does not grow.
 2. Whether Yodeck's web page player keeps the service worker cache across reboots (test on the real player in the first deploy).
-3. Video export from Canva: one MP4 per video page or one for the whole design; the canva-pieco-app plan answers this.
+3. Video export from Canva may be one MP4 for the whole design (canva-pieco-app #21); the contract accepts that as one video entry.
+
+## 11. Build tasks (sized for small agents)
+
+Twelve tasks. [H] = fits a Haiku-sized agent with this plan in hand; [S] = needs a stronger model (security or browser behaviour). Order: 1 first, then 2-4 in parallel, then 5-10, then 11-12.
+
+1. [H] Skeleton: Node 24 ESM server, config from env, `/health`, bearer `/metrics`, `node:test` setup.
+2. [H] Storage interface: local disk + S3 driver, content-addressed media writes.
+3. [H] State store: screens and playlists as JSON documents, atomic write, version counter, per-screen lock.
+4. [S] Auth: Canva user token check (JWKS, audience, allowed teams), optional push key, CORS allow-list. Fake JWKS in tests.
+5. [H] Download and check: https host allow-list on every redirect hop, size limits, type sniffing, MP4 duration from `mvhd`, query strings scrubbed from errors.
+6. [H] Push API: body validation, push records and status, 429 limit, apply on success only, finish-order per screen.
+7. [H] Read API: `GET /screens`, `playlist.json`, `/media` with Range and immutable caching.
+8. [S] Player page and service worker: timing, video end, preload, version switch at entry boundary, offline loop.
+9. [H] Admin auth and admin API: password login, signed cookie, screen CRUD, entry reorder/seconds/remove, remove push.
+10. [H] Admin page: plain HTML/JS UI on the admin API.
+11. [H] Docker image, GHCR workflow, deploy-side compose with Traefik labels and healthcheck.
+12. [S] End-to-end check: Playwright run of push → player shows it → server stopped → player keeps looping; README and operator notes.

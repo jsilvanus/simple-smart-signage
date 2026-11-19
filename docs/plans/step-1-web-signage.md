@@ -32,7 +32,7 @@ Out of scope for step 1 (stays in the SiSSi roadmap): device enrolment, tenants,
 
 ## 4. API contract (v1)
 
-Base: `<SIGNAGE_BASE_URL>/api/v1`. JSON, UTF-8. Errors always look like:
+Base: `<SISSI_BASE_URL>/api/v1`. JSON, UTF-8. Errors always look like:
 
 ```json
 { "error": { "code": "SCREEN_NOT_FOUND", "message": "Unknown screen: lobby" } }
@@ -40,9 +40,9 @@ Base: `<SIGNAGE_BASE_URL>/api/v1`. JSON, UTF-8. Errors always look like:
 
 ### 4.1 Auth for the Canva app
 
-`Authorization: Bearer <token>` where the token is the Canva user token from `auth.getCanvaUserToken()`. The service verifies it the same way pigateway does today: RS256, keys from Canva's JWKS for the app, audience = the app id, and `brandId` must be on `SIGNAGE_CANVA_ALLOWED_BRANDS`. No key is shipped in the plugin bundle.
+`Authorization: Bearer <token>` where the token is the Canva user token from `auth.getCanvaUserToken()`. The service verifies it the same way pigateway does today: RS256, keys from Canva's JWKS for the app, audience = the app id, and `brandId` must be on `SISSI_CANVA_ALLOWED_BRANDS`. No key is shipped in the plugin bundle.
 
-A static `SIGNAGE_PUSH_KEY` (Bearer) is also accepted, for curl tests and scripts. Unset = only Canva tokens.
+A static `SISSI_PUSH_KEY` (Bearer) is also accepted, for curl tests and scripts. Unset = only Canva tokens.
 
 | Status | Code | When |
 |---|---|---|
@@ -50,7 +50,7 @@ A static `SIGNAGE_PUSH_KEY` (Bearer) is also accepted, for curl tests and script
 | 403 | `TEAM_NOT_ALLOWED` | genuine token, team not on the list |
 | 503 | `AUTH_NOT_CONFIGURED` | neither Canva app id + teams nor push key set |
 
-CORS: only origins in `SIGNAGE_CORS_ORIGINS` (the Canva app's origin) get CORS headers; other preflights get 403.
+CORS: only origins in `SISSI_CORS_ORIGINS` (the Canva app's origin) get CORS headers; other preflights get 403.
 
 ### 4.2 `GET /api/v1/screens`
 
@@ -94,7 +94,7 @@ What the plugin shows in its screen picker.
 - `pages`: 1-100, in play order (`pageNumber` only labels them).
   - `kind`: `image` or `video`. The service checks the downloaded bytes and rejects a mismatch.
   - `seconds` (images only): whole number 1-3600. Missing = the screen's `defaultImageSeconds`. Ignored for video.
-  - `url`: https only, host must end with one of `SIGNAGE_DOWNLOAD_HOSTS` (default `canva.com, canva.dev, canva-apps.com`), no credentials in the URL, redirects re-checked on every hop (max 4).
+  - `url`: https only, host must end with one of `SISSI_DOWNLOAD_HOSTS` (default `canva.com, canva.dev, canva-apps.com`), no credentials in the URL, redirects re-checked on every hop (max 4).
 - Limits: image 40 MB, video 500 MB, whole push 1 GB (env-tunable).
 
 The playlist is changed only when every page has downloaded and checked: a failed push leaves the screen as it was.
@@ -138,7 +138,7 @@ with `Location: /api/v1/push/push_3f9a1c2b`.
 
 ### 4.6 Admin (password)
 
-`/admin` page plus `/api/v1/admin/*` (session cookie, HMAC of `SIGNAGE_ADMIN_PASSWORD`, `HttpOnly`, `SameSite=Strict`, `Secure`): create, rename and delete screens; reorder, remove and set seconds on entries; remove a whole push; preview a screen. Not available to the Canva token.
+`/admin` page plus `/api/v1/admin/*` (session cookie, HMAC of `SISSI_ADMIN_PASSWORD`, `HttpOnly`, `SameSite=Strict`, `Secure`): create, rename and delete screens; reorder, remove and set seconds on entries; remove a whole push; preview a screen. Not available to the Canva token.
 
 ### 4.7 Ops
 
@@ -156,12 +156,17 @@ with `Location: /api/v1/push/push_3f9a1c2b`.
 
 ## 6. Storage and deployment
 
-Follows the riksunsrk deployment conventions (Docker image on GHCR, Traefik labels, no published host port, `/health`, bearer-gated `/metrics`, `traefik-public` + `shared_multi_network`).
+Deployed as a **Docker image** with **Traefik routes** (Juha, 2026-11-19), following the riksunsrk deployment conventions:
 
-- **Media**: behind one storage interface, `SIGNAGE_STORAGE=local|s3`. Production uses the shared S3 gateway (bucket from `add-app-storage.sh`); local disk for development.
+- Image `ghcr.io/jsilvanus/sissi`, built and pushed by this repository's own workflow on `main` and `vX.Y.Z` tags. Container and service name `sissi`.
+- Deploy-side `docker-compose.yml` in this repository: networks `traefik-public` + `shared_multi_network` (external) + `default`; no published host port; Traefik labels (`traefik.enable=true`, `Host(...)` + `PathPrefix(...)` rule from env, `entrypoints=websecure`, `tls.certresolver=letsencrypt`, `loadbalancer.server.port=3000`, StripPrefix middleware when served under a path); a real `healthcheck` on `/health`.
+- The app's own deploy workflow runs as the `appdeploy` user on the VPS and writes the `.env` from the repository's GitHub environment secrets. Host names and secrets live there and in the private deployment repository, never in this repository.
+- `/health`, bearer-gated `/metrics` (`METRICS_TOKEN_SISSI` in infra).
+
+- **Media**: behind one storage interface, `SISSI_STORAGE=local|s3`. Production uses the shared S3 gateway (bucket from `add-app-storage.sh`); local disk for development.
 - **State** (screens, playlists, push records): one JSON document per screen in the same storage, written atomically, versioned. Small enough that Postgres is not needed in step 1; the module boundary allows moving it to the shared Postgres later without API changes.
 - Node 24 ESM, no build step. Dependencies kept to the Canva token verifier (the same `@canva/app-middleware` pin as pigateway) and the S3 client.
-- Env: `SIGNAGE_BASE_URL`, `SIGNAGE_CANVA_APP_ID`, `SIGNAGE_CANVA_ALLOWED_BRANDS`, `SIGNAGE_PUSH_KEY`, `SIGNAGE_CORS_ORIGINS`, `SIGNAGE_DOWNLOAD_HOSTS`, `SIGNAGE_ADMIN_PASSWORD`, `SIGNAGE_STORAGE`, S3 settings, `METRICS_BEARER_TOKEN`, size limits.
+- Env: `SISSI_BASE_URL`, `SISSI_CANVA_APP_ID`, `SISSI_CANVA_ALLOWED_BRANDS`, `SISSI_PUSH_KEY`, `SISSI_CORS_ORIGINS`, `SISSI_DOWNLOAD_HOSTS`, `SISSI_ADMIN_PASSWORD`, `SISSI_STORAGE`, S3 settings, `METRICS_BEARER_TOKEN`, size limits.
 - Tests: `node:test`, a fake Canva JWKS, a fake download host, a fake S3; the player is checked with Playwright (image timing, video end, offline after server stop).
 
 ## 7. The VPS gateway question
@@ -178,7 +183,7 @@ Follows the riksunsrk deployment conventions (Docker image on GHCR, Traefik labe
 
 Recommendation: **A** now. B can come later without breaking A: if a single base URL is wanted, a Traefik path rule on the same host (`/canva/signage` → signage service, priority above `/canva`) does it with labels only, no new code.
 
-The Canva app's CORS origin has to be allowed by both services (`SIGNAGE_CORS_ORIGINS` and pigateway's tunnel CORS list).
+The Canva app's CORS origin has to be allowed by both services (`SISSI_CORS_ORIGINS` and pigateway's tunnel CORS list).
 
 ## 8. What the Canva app needs (contract for the canva-pieco-app plan)
 

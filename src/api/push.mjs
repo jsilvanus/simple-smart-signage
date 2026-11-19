@@ -96,7 +96,8 @@ function validatePushBody(body, config) {
 
 /** Register POST /api/v1/push and GET /api/v1/push/:pushId routes. */
 export function registerPushRoutes(router, ctx) {
-  const runner = ctx.push ?? createPushRunner(ctx);
+  const runner = ctx.pushRunner ?? ctx.push ?? createPushRunner(ctx);
+  if (!ctx.pushRunner) ctx.pushRunner = runner;
   if (!ctx.push) ctx.push = runner;
 
   router.post('/api/v1/push', async (req, res) => {

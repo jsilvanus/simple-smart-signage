@@ -109,6 +109,50 @@ export function loadConfig(env = process.env) {
     h.toLowerCase().replace(/^\./, ''),
   );
 
+  const agentTokens = {};
+  for (const entry of list(env.SISSI_AGENT_TOKENS)) {
+    const idx = entry.indexOf(':');
+    if (idx <= 0 || idx === entry.length - 1) {
+      problems.push(`SISSI_AGENT_TOKENS entry "${entry}" must be in lanId:token format`);
+      continue;
+    }
+    const lanId = entry.slice(0, idx).trim();
+    const token = entry.slice(idx + 1).trim();
+    if (!lanId || !token) {
+      problems.push(`SISSI_AGENT_TOKENS entry "${entry}" must have non-empty lanId and token`);
+      continue;
+    }
+    agentTokens[lanId] = token;
+  }
+
+  let powerRouters = {};
+  const rawRouters = str('SISSI_POWER_ROUTERS');
+  if (rawRouters) {
+    try {
+      const parsed = JSON.parse(rawRouters);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        problems.push('SISSI_POWER_ROUTERS must be a JSON object');
+      } else {
+        for (const [routerId, cfg] of Object.entries(parsed)) {
+          if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) {
+            problems.push(`SISSI_POWER_ROUTERS.${routerId} must be an object`);
+            continue;
+          }
+          if (!['webhook', 'ssh'].includes(cfg.type)) {
+            problems.push(`SISSI_POWER_ROUTERS.${routerId}.type must be "webhook" or "ssh"`);
+          } else if (cfg.type === 'webhook' && !cfg.url) {
+            problems.push(`SISSI_POWER_ROUTERS.${routerId}.url is required for webhook`);
+          } else if (cfg.type === 'ssh' && (!cfg.host || !cfg.commandTemplate)) {
+            problems.push(`SISSI_POWER_ROUTERS.${routerId} requires host and commandTemplate for ssh`);
+          }
+        }
+        powerRouters = parsed;
+      }
+    } catch {
+      problems.push('SISSI_POWER_ROUTERS must be valid JSON');
+    }
+  }
+
   const config = {
     nodeEnv,
     production,
@@ -136,6 +180,10 @@ export function loadConfig(env = process.env) {
     gcGraceMinutes: int('SISSI_GC_GRACE_MINUTES', 60, { min: 0 }),
     pushRetentionHours: int('SISSI_PUSH_RETENTION_HOURS', 24, { min: 1 }),
     allowPrivateDownloads,
+    agentTokens,
+    powerRouters,
+    powerPollSeconds: int('SISSI_POWER_POLL_SECONDS', 60, { min: 1 }),
+    powerDataDir: str('SISSI_POWER_DATA_DIR'),
   };
 
   if (problems.length) throw new ConfigError(problems);

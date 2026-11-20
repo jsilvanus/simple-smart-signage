@@ -494,3 +494,49 @@ dialog::backdrop {
   gap: 0.5rem;
   margin-block-start: 0.75rem;
 }
+
+/* Power controls */
+.power-override-group {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.btn-sm {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.power-badge-online {
+  background: #dafbe1;
+  color: #116329;
+  border-color: #82e09a;
+}
+
+.power-badge-offline {
+  background: #ffebe9;
+  color: #82071e;
+  border-color: #ff8182;
+}
+
+.power-fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  margin: 0 0 1rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.power-fieldset legend {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0 0.35rem;
+}
+
+.field textarea {
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  resize: vertical;
+}

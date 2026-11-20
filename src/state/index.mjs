@@ -5,6 +5,11 @@ const SCREEN_ID_RE = /^[a-z0-9-]{1,40}$/;
 const ORIENTATIONS = new Set(['landscape', 'vertical']);
 const KINDS = new Set(['image', 'video']);
 const MODES = new Set(['append', 'replace']);
+const POWER_DRIVERS = new Set(['none', 'pull', 'samsung-lan', 'android-adb', 'wol-only', 'router-wol']);
+const POWER_OVERRIDES = new Set(['auto', 'on', 'off']);
+const POWER_DAYS = new Set(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']);
+const MAC_RE = /^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$/;
+const HM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 const SCREEN_PREFIX = 'state/screens/';
 const PUSH_PREFIX = 'state/pushes/';
@@ -49,7 +54,83 @@ function toScreenView(doc) {
     entryCount: doc.entries.length,
     playlistVersion: doc.version,
     entries: doc.entries,
+    power: doc.power ?? null,
   };
+}
+
+function validateOptionalShortString(value, field, maxLen = 64) {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'string' || value.trim().length < 1 || value.length > maxLen) {
+    throw new StateError('INVALID_SCREEN', `${field} must be a non-empty string up to ${maxLen} chars or null`);
+  }
+  return value.trim();
+}
+
+function validateSchedule(schedule) {
+  if (schedule === undefined || schedule === null) return null;
+  if (typeof schedule !== 'object' || Array.isArray(schedule)) {
+    throw new StateError('INVALID_SCREEN', 'power.schedule must be an object or null');
+  }
+  const timezone = schedule.timezone ? String(schedule.timezone).trim() : 'UTC';
+  try {
+    Intl.DateTimeFormat('en-US', { timeZone: timezone });
+  } catch {
+    throw new StateError('INVALID_SCREEN', `Invalid power.schedule.timezone: ${timezone}`);
+  }
+  const rawWindows = schedule.windows ?? [];
+  if (!Array.isArray(rawWindows)) {
+    throw new StateError('INVALID_SCREEN', 'power.schedule.windows must be an array');
+  }
+  const windows = rawWindows.map((win) => {
+    if (!win || typeof win !== 'object' || Array.isArray(win)) {
+      throw new StateError('INVALID_SCREEN', 'power.schedule.windows entry must be an object');
+    }
+    if (!Array.isArray(win.days) || win.days.length === 0) {
+      throw new StateError('INVALID_SCREEN', 'power.schedule.windows[].days must be a non-empty array');
+    }
+    const days = win.days.map((d) => {
+      const norm = String(d).trim().toLowerCase();
+      if (!POWER_DAYS.has(norm)) {
+        throw new StateError('INVALID_SCREEN', `Invalid schedule day: ${d}`);
+      }
+      return norm;
+    });
+    if (typeof win.start !== 'string' || !HM_RE.test(win.start)) {
+      throw new StateError('INVALID_SCREEN', 'power.schedule.windows[].start must be HH:MM');
+    }
+    if (typeof win.end !== 'string' || !HM_RE.test(win.end)) {
+      throw new StateError('INVALID_SCREEN', 'power.schedule.windows[].end must be HH:MM');
+    }
+    return { days, start: win.start, end: win.end };
+  });
+  return { timezone, windows };
+}
+
+function validatePower(power) {
+  if (power === undefined || power === null) return null;
+  if (typeof power !== 'object' || Array.isArray(power)) {
+    throw new StateError('INVALID_SCREEN', 'power must be an object or null');
+  }
+  const driver = power.driver ?? 'none';
+  if (!POWER_DRIVERS.has(driver)) {
+    throw new StateError('INVALID_SCREEN', `Invalid power.driver: ${driver}`);
+  }
+  const override = power.override ?? 'auto';
+  if (!POWER_OVERRIDES.has(override)) {
+    throw new StateError('INVALID_SCREEN', `Invalid power.override: ${override}`);
+  }
+  const lanId = validateOptionalShortString(power.lanId, 'power.lanId');
+  const routerId = validateOptionalShortString(power.routerId, 'power.routerId');
+  const mac = validateOptionalShortString(power.mac, 'power.mac', 32);
+  if (mac !== null && !MAC_RE.test(mac)) {
+    throw new StateError('INVALID_SCREEN', 'power.mac must be a valid MAC address');
+  }
+  const ip = validateOptionalShortString(power.ip, 'power.ip', 128);
+  if (ip !== null && /\s/.test(ip)) {
+    throw new StateError('INVALID_SCREEN', 'power.ip must not contain whitespace');
+  }
+  const schedule = validateSchedule(power.schedule);
+  return { lanId, routerId, driver, mac, ip, override, schedule };
 }
 
 function validateNullablePositiveInt(value, field, errorCode) {
@@ -88,6 +169,7 @@ function validateScreenCreate(input) {
       ? 10
       : validateImageSeconds(input.defaultImageSeconds, 'defaultImageSeconds');
   const maxVideoSeconds = validateNullablePositiveInt(input.maxVideoSeconds, 'maxVideoSeconds', 'INVALID_SECONDS');
+  const power = input.power === undefined ? null : validatePower(input.power);
 
   return {
     id: input.id,
@@ -97,6 +179,7 @@ function validateScreenCreate(input) {
     height,
     defaultImageSeconds,
     maxVideoSeconds,
+    power,
     version: 1,
     entries: [],
   };
@@ -133,6 +216,9 @@ function applyScreenPatch(doc, patch) {
   if (patch.maxVideoSeconds !== undefined) {
     doc.maxVideoSeconds = validateNullablePositiveInt(patch.maxVideoSeconds, 'maxVideoSeconds', 'INVALID_SECONDS');
   }
+  if (patch.power !== undefined) {
+    doc.power = validatePower(patch.power);
+  }
 }
 
 /**
@@ -141,6 +227,7 @@ function applyScreenPatch(doc, patch) {
  */
 export function createState(storage, { now = () => new Date(), idGen } = {}) {
   const screenLocks = new Map();
+  const powerStatus = new Map();
 
   function nowDate() {
     const val = now();
@@ -503,6 +590,50 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     return { deleted };
   }
 
+  async function setPowerOverride(screenId, override) {
+    if (!POWER_OVERRIDES.has(override)) {
+      throw new StateError('INVALID_SCREEN', `Invalid power override: ${override}`);
+    }
+    return mutateScreen(screenId, (doc) => {
+      doc.power = {
+        lanId: null,
+        routerId: null,
+        driver: 'none',
+        mac: null,
+        ip: null,
+        schedule: null,
+        ...(doc.power && typeof doc.power === 'object' ? doc.power : {}),
+        override,
+      };
+    });
+  }
+
+  function recordPowerReport(lanId, devices = []) {
+    const updatedAt = nowDate().toISOString();
+    const recorded = [];
+    for (const dev of devices) {
+      if (!dev || typeof dev.screenId !== 'string' || !dev.screenId) continue;
+      const entry = {
+        screenId: dev.screenId,
+        lanId: lanId ?? null,
+        reachable: Boolean(dev.reachable),
+        lastAction: dev.lastAction ?? null,
+        error: dev.error ?? null,
+        updatedAt,
+      };
+      powerStatus.set(dev.screenId, entry);
+      recorded.push(entry);
+    }
+    return recorded;
+  }
+
+  function getPowerStatus(screenId) {
+    if (screenId !== undefined) {
+      return powerStatus.get(screenId) ?? null;
+    }
+    return Object.fromEntries(powerStatus);
+  }
+
   return {
     mutateScreen,
     createScreen,
@@ -523,5 +654,8 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     markInterruptedOnStart,
     referencedMedia,
     gcSweep,
+    setPowerOverride,
+    recordPowerReport,
+    getPowerStatus,
   };
 }

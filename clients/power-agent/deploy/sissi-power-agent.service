@@ -1,0 +1,17 @@
+[Unit]
+Description=SiSSi LAN Power Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sissi
+Group=sissi
+EnvironmentFile=/etc/sissi-power-agent/power-agent.env
+ExecStart=/usr/bin/node /opt/sissi-power-agent/start.mjs
+Restart=always
+RestartSec=10
+StateDirectory=sissi-power-agent
+
+[Install]
+WantedBy=multi-user.target

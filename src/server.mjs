@@ -21,6 +21,7 @@ export function createServer(config, deps = {}) {
     download: deps.download,
     pushRunner: deps.pushRunner,
     adminAuth: deps.adminAuth,
+    now: deps.now,
   };
   registerRoutes(router, ctx);
   const server = http.createServer((req, res) => {

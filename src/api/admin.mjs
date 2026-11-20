@@ -49,6 +49,11 @@ export function registerAdminRoutes(router, ctx) {
     }
   }
 
+  function withPowerStatus(screen) {
+    const powerStatus = typeof state?.getPowerStatus === 'function' ? state.getPowerStatus(screen.id) : null;
+    return powerStatus ? { ...screen, powerStatus } : screen;
+  }
+
   router.post('/api/v1/admin/login', async (req, res) => {
     const body = await router.readJson(req);
     await adminAuth.login(req, res, body);
@@ -62,14 +67,14 @@ export function registerAdminRoutes(router, ctx) {
   router.get('/api/v1/admin/screens', async (req, res) => {
     adminAuth.requireAdmin(req);
     const screens = await runState(() => state.listScreens());
-    sendJson(res, 200, { screens });
+    sendJson(res, 200, { screens: screens.map(withPowerStatus) });
   });
 
   router.post('/api/v1/admin/screens', async (req, res) => {
     adminAuth.requireAdmin(req);
     const body = await router.readJson(req);
     const screen = await runState(() => state.createScreen(body));
-    sendJson(res, 201, screen);
+    sendJson(res, 201, withPowerStatus(screen));
   });
 
   router.patch('/api/v1/admin/screens/:screenId', async (req, res, { params }) => {
@@ -77,7 +82,15 @@ export function registerAdminRoutes(router, ctx) {
     assertScreenId(params.screenId);
     const body = await router.readJson(req);
     const screen = await runState(() => state.updateScreen(params.screenId, body));
-    sendJson(res, 200, screen);
+    sendJson(res, 200, withPowerStatus(screen));
+  });
+
+  router.post('/api/v1/admin/screens/:screenId/power/override', async (req, res, { params }) => {
+    adminAuth.requireAdmin(req);
+    assertScreenId(params.screenId);
+    const body = await router.readJson(req);
+    const screen = await runState(() => state.setPowerOverride(params.screenId, body?.override));
+    sendJson(res, 200, withPowerStatus(screen));
   });
 
   router.delete('/api/v1/admin/screens/:screenId', async (req, res, { params }) => {

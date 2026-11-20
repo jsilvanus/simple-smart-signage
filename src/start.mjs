@@ -8,6 +8,7 @@ import { createAuth } from './auth/index.mjs';
 import { createDownloader } from './download/index.mjs';
 import { createPushRunner } from './push/index.mjs';
 import { createAdminAuth } from './admin-auth/index.mjs';
+import { createPowerManager } from './power/manager.mjs';
 
 const config = loadConfig(process.env);
 const metrics = createMetrics();
@@ -17,8 +18,14 @@ const auth = createAuth(config);
 const download = createDownloader(config);
 const pushRunner = createPushRunner({ config, storage, state, download, metrics });
 const adminAuth = createAdminAuth(config);
+const powerManager = createPowerManager({ config, state });
 
 await state.markInterruptedOnStart();
+
+const hasPushScreens = (await state.listScreens()).some((s) => s.power?.routerId);
+if (Object.keys(config.powerRouters ?? {}).length > 0 || hasPushScreens) {
+  powerManager.start();
+}
 
 const server = createServer(config, {
   metrics,
@@ -37,6 +44,7 @@ server.listen(config.port, () => {
 for (const sig of ['SIGTERM', 'SIGINT']) {
   process.on(sig, () => {
     server.close(async () => {
+      await powerManager.stop();
       await pushRunner.waitForIdle();
       process.exit(0);
     });

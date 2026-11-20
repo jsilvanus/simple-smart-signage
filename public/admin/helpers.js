@@ -24,6 +24,36 @@ function parseOptionalInt(value) {
   return Number.isInteger(n) ? n : NaN;
 }
 
+function optionalTrim(value) {
+  const s = String(value ?? '').trim();
+  return s === '' ? null : s;
+}
+
+/** Parse schedule lines (`mon,tue 08:00-20:00`) into `[{ days, start, end }]`. */
+export function parseScheduleWindows(text) {
+  const lines = String(text ?? '')
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  return lines.map((line) => {
+    const m = /^([a-z,]+)\s+(\d{2}:\d{2})-(\d{2}:\d{2})$/i.exec(line);
+    if (!m) {
+      throw new Error(`Invalid schedule window "${line}" (expected e.g. mon,tue,wed 08:00-20:00)`);
+    }
+    const days = m[1]
+      .split(',')
+      .map((d) => d.trim().toLowerCase())
+      .filter(Boolean);
+    return { days, start: m[2], end: m[3] };
+  });
+}
+
+/** Format `[{ days, start, end }]` into editable lines. */
+export function formatScheduleWindows(windows) {
+  if (!Array.isArray(windows) || windows.length === 0) return '';
+  return windows.map((w) => `${(w.days ?? []).join(',')} ${w.start}-${w.end}`).join('\n');
+}
+
 /**
  * Build a ScreenInput object from form values.
  * Empty optional numeric fields (width, height, maxVideoSeconds) become null.
@@ -39,6 +69,28 @@ export function buildScreenPayload(values, { isCreate = false } = {}) {
   };
   if (isCreate) {
     payload.id = String(values.id ?? '').trim();
+  }
+  if (values.powerDriver !== undefined) {
+    const driver = values.powerDriver || 'none';
+    const lanId = optionalTrim(values.powerLanId);
+    const routerId = optionalTrim(values.powerRouterId);
+    const mac = optionalTrim(values.powerMac);
+    const ip = optionalTrim(values.powerIp);
+    const timezone = optionalTrim(values.powerTimezone);
+    const windows = parseScheduleWindows(values.powerWindows);
+    if (driver === 'none' && !lanId && !routerId && !mac && !ip && !timezone && windows.length === 0) {
+      payload.power = null;
+    } else {
+      payload.power = {
+        driver,
+        lanId,
+        routerId,
+        mac,
+        ip,
+        override: values.powerOverride || 'auto',
+        schedule: timezone || windows.length > 0 ? { timezone: timezone || 'UTC', windows } : null,
+      };
+    }
   }
   return payload;
 }

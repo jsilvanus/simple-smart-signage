@@ -183,6 +183,86 @@ paths:
       responses:
         '204': { description: Removed }
         '404': { $ref: '#/components/responses/Error' }
+  /admin/screens/{screenId}/power/override:
+    post:
+      operationId: adminSetPowerOverride
+      security: [{ adminCookie: [] }]
+      parameters:
+        - { name: screenId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [override]
+              properties:
+                override: { type: string, enum: [auto, on, off] }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminScreen' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /power/desired:
+    get:
+      operationId: getPowerDesired
+      description: Returns desired power states for screens assigned to the authenticated LAN agent.
+      security: [{ bearer: [] }]
+      responses:
+        '200':
+          description: Desired power state per device
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [lanId, serverTime, devices]
+                properties:
+                  lanId: { type: string }
+                  serverTime: { type: string, format: date-time }
+                  devices:
+                    type: array
+                    items:
+                      type: object
+                      required: [screenId, driver, desiredState]
+                      properties:
+                        screenId: { type: string }
+                        driver: { type: string }
+                        mac: { type: string, nullable: true }
+                        ip: { type: string, nullable: true }
+                        desiredState: { type: string, nullable: true, enum: [on, off] }
+        '401': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /power/report:
+    post:
+      operationId: postPowerReport
+      description: Reports device reachability and last power action from a LAN agent.
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [devices]
+              properties:
+                devices:
+                  type: array
+                  items:
+                    type: object
+                    required: [screenId, reachable]
+                    properties:
+                      screenId: { type: string }
+                      reachable: { type: boolean }
+                      lastAction: { type: string, nullable: true }
+                      error: { type: string, nullable: true }
+      responses:
+        '200': { description: Recorded }
+        '401': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
 components:
   securitySchemes:
     bearer: { type: http, scheme: bearer, description: Canva user token or SISSI_PUSH_KEY }
@@ -243,6 +323,7 @@ components:
         maxVideoSeconds: { type: integer, nullable: true, minimum: 1 }
         entryCount: { type: integer }
         playlistVersion: { type: integer }
+        power: { $ref: '#/components/schemas/PowerConfig' }
     ScreenInput:
       type: object
       properties:
@@ -253,6 +334,41 @@ components:
         height: { type: integer, nullable: true }
         defaultImageSeconds: { type: integer, minimum: 1, maximum: 3600 }
         maxVideoSeconds: { type: integer, nullable: true, minimum: 1 }
+        power: { $ref: '#/components/schemas/PowerConfig' }
+    PowerConfig:
+      type: object
+      nullable: true
+      properties:
+        lanId: { type: string, nullable: true }
+        routerId: { type: string, nullable: true }
+        driver: { type: string, enum: [none, pull, samsung-lan, android-adb, wol-only, router-wol] }
+        mac: { type: string, nullable: true }
+        ip: { type: string, nullable: true }
+        override: { type: string, enum: [auto, on, off] }
+        schedule:
+          type: object
+          nullable: true
+          properties:
+            timezone: { type: string }
+            windows:
+              type: array
+              items:
+                type: object
+                required: [days, start, end]
+                properties:
+                  days: { type: array, items: { type: string, enum: [mon, tue, wed, thu, fri, sat, sun] } }
+                  start: { type: string, example: '08:00' }
+                  end: { type: string, example: '20:00' }
+    PowerStatus:
+      type: object
+      nullable: true
+      properties:
+        screenId: { type: string }
+        lanId: { type: string, nullable: true }
+        reachable: { type: boolean }
+        lastAction: { type: string, nullable: true }
+        error: { type: string, nullable: true }
+        updatedAt: { type: string, format: date-time }
     Entry:
       type: object
       required: [entryId, mediaId, kind, seconds, title, pushId, addedAt]
@@ -272,6 +388,7 @@ components:
             entries:
               type: array
               items: { $ref: '#/components/schemas/Entry' }
+            powerStatus: { $ref: '#/components/schemas/PowerStatus' }
     PushRequest:
       type: object
       required: [screenId, title, pages]

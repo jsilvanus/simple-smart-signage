@@ -3,6 +3,7 @@ import {
   buildScreenPayload,
   extractErrorMessage,
   formatAddedAt,
+  formatScheduleWindows,
   previewUrl,
   reorderedEntryIds,
   resolveBasePath,
@@ -40,6 +41,8 @@ const els = {
   detailName: document.getElementById('detail-name'),
   detailId: document.getElementById('detail-id'),
   detailMeta: document.getElementById('detail-meta'),
+  powerBadge: document.getElementById('power-badge'),
+  powerOverrideGroup: document.getElementById('power-override-group'),
   previewLink: document.getElementById('preview-link'),
   editScreenBtn: document.getElementById('edit-screen-btn'),
   deleteScreenBtn: document.getElementById('delete-screen-btn'),
@@ -63,6 +66,13 @@ const els = {
   screenHeight: document.getElementById('screen-height'),
   screenDefaultSeconds: document.getElementById('screen-default-seconds'),
   screenMaxVideo: document.getElementById('screen-max-video'),
+  screenPowerDriver: document.getElementById('screen-power-driver'),
+  screenPowerLanId: document.getElementById('screen-power-lan-id'),
+  screenPowerRouterId: document.getElementById('screen-power-router-id'),
+  screenPowerTimezone: document.getElementById('screen-power-timezone'),
+  screenPowerMac: document.getElementById('screen-power-mac'),
+  screenPowerIp: document.getElementById('screen-power-ip'),
+  screenPowerWindows: document.getElementById('screen-power-windows'),
 
   confirmDialog: document.getElementById('confirm-dialog'),
   confirmTitle: document.getElementById('confirm-title'),
@@ -243,6 +253,35 @@ function renderDetail() {
   els.previewLink.href = previewUrl(base, screen.id);
   els.playlistVersion.textContent = `v${screen.playlistVersion ?? 0}`;
 
+  const hasPower = Boolean(screen.power && screen.power.driver && screen.power.driver !== 'none');
+  els.powerOverrideGroup.hidden = !hasPower;
+  if (hasPower) {
+    const activeOverride = screen.power.override || 'auto';
+    for (const btn of els.powerOverrideGroup.querySelectorAll('[data-power-override]')) {
+      const val = btn.dataset.powerOverride;
+      btn.classList.toggle('btn-primary', val === activeOverride);
+      btn.setAttribute('aria-pressed', val === activeOverride ? 'true' : 'false');
+      btn.disabled = state.busy;
+    }
+    const ps = screen.powerStatus;
+    els.powerBadge.hidden = false;
+    els.powerBadge.classList.remove('power-badge-online', 'power-badge-offline');
+    if (!ps) {
+      els.powerBadge.textContent = 'power: unknown';
+    } else if (ps.error) {
+      els.powerBadge.textContent = `power: error (${ps.error})`;
+      els.powerBadge.classList.add('power-badge-offline');
+    } else if (ps.reachable) {
+      els.powerBadge.textContent = 'TV online';
+      els.powerBadge.classList.add('power-badge-online');
+    } else {
+      els.powerBadge.textContent = 'TV standby';
+      els.powerBadge.classList.add('power-badge-offline');
+    }
+  } else {
+    els.powerBadge.hidden = true;
+  }
+
   const entries = screen.entries ?? [];
   els.playlistEmpty.hidden = entries.length > 0;
   els.entriesList.replaceChildren();
@@ -400,6 +439,14 @@ function openScreenDialog(screen = null) {
     els.screenHeight.value = screen.height ?? '';
     els.screenDefaultSeconds.value = screen.defaultImageSeconds ?? 10;
     els.screenMaxVideo.value = screen.maxVideoSeconds ?? '';
+    const p = screen.power ?? {};
+    els.screenPowerDriver.value = p.driver ?? 'none';
+    els.screenPowerLanId.value = p.lanId ?? '';
+    els.screenPowerRouterId.value = p.routerId ?? '';
+    els.screenPowerTimezone.value = p.schedule?.timezone ?? '';
+    els.screenPowerMac.value = p.mac ?? '';
+    els.screenPowerIp.value = p.ip ?? '';
+    els.screenPowerWindows.value = formatScheduleWindows(p.schedule?.windows);
   } else {
     els.screenIdField.hidden = false;
     els.screenId.disabled = false;
@@ -407,6 +454,7 @@ function openScreenDialog(screen = null) {
     els.screenForm.reset();
     els.screenOrientation.value = 'landscape';
     els.screenDefaultSeconds.value = '10';
+    els.screenPowerDriver.value = 'none';
   }
 
   els.screenDialog.showModal();
@@ -549,6 +597,31 @@ els.editScreenBtn.addEventListener('click', () => {
   if (screen) openScreenDialog(screen);
 });
 
+els.powerOverrideGroup.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-power-override]');
+  if (!btn) return;
+  const screen = getSelectedScreen();
+  if (!screen) return;
+  const override = btn.dataset.powerOverride;
+  setError('');
+  setStatus('');
+  state.busy = true;
+  render();
+  try {
+    await apiFetch(`/admin/screens/${encodeURIComponent(screen.id)}/power/override`, {
+      method: 'POST',
+      body: { override },
+    });
+    await loadScreens();
+    setStatus(`Power override set to ${override}.`);
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    state.busy = false;
+    render();
+  }
+});
+
 els.deleteScreenBtn.addEventListener('click', async () => {
   const screen = getSelectedScreen();
   if (!screen) return;
@@ -577,18 +650,33 @@ els.screenForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   showBanner(els.screenFormError, '');
   const isCreate = !state.editingId;
-  const payload = buildScreenPayload(
-    {
-      id: els.screenId.value,
-      name: els.screenName.value,
-      orientation: els.screenOrientation.value,
-      width: els.screenWidth.value,
-      height: els.screenHeight.value,
-      defaultImageSeconds: els.screenDefaultSeconds.value,
-      maxVideoSeconds: els.screenMaxVideo.value,
-    },
-    { isCreate },
-  );
+  const existingScreen = isCreate ? null : state.screens.find((s) => s.id === state.editingId);
+  let payload;
+  try {
+    payload = buildScreenPayload(
+      {
+        id: els.screenId.value,
+        name: els.screenName.value,
+        orientation: els.screenOrientation.value,
+        width: els.screenWidth.value,
+        height: els.screenHeight.value,
+        defaultImageSeconds: els.screenDefaultSeconds.value,
+        maxVideoSeconds: els.screenMaxVideo.value,
+        powerDriver: els.screenPowerDriver.value,
+        powerLanId: els.screenPowerLanId.value,
+        powerRouterId: els.screenPowerRouterId.value,
+        powerTimezone: els.screenPowerTimezone.value,
+        powerMac: els.screenPowerMac.value,
+        powerIp: els.screenPowerIp.value,
+        powerWindows: els.screenPowerWindows.value,
+        powerOverride: existingScreen?.power?.override ?? 'auto',
+      },
+      { isCreate },
+    );
+  } catch (err) {
+    showBanner(els.screenFormError, err.message);
+    return;
+  }
 
   els.screenDialogSubmit.disabled = true;
   try {

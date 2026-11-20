@@ -67,10 +67,16 @@
               <div class="title-row">
                 <h2 id="detail-name"></h2>
                 <code id="detail-id" class="code-pill"></code>
+                <span id="power-badge" class="badge" hidden></span>
               </div>
               <p id="detail-meta" class="muted meta-line"></p>
             </div>
             <div class="detail-actions">
+              <div id="power-override-group" class="power-override-group" role="group" aria-label="Power override" hidden>
+                <button type="button" class="btn btn-sm" data-power-override="auto">Auto</button>
+                <button type="button" class="btn btn-sm" data-power-override="on">On</button>
+                <button type="button" class="btn btn-sm" data-power-override="off">Off</button>
+              </div>
               <a id="preview-link" class="btn" target="_blank" rel="noopener noreferrer">Preview screen ↗</a>
               <button id="edit-screen-btn" type="button" class="btn">Edit screen</button>
               <button id="delete-screen-btn" type="button" class="btn btn-danger">Delete</button>
@@ -148,6 +154,51 @@
         <label for="screen-max-video">Max video seconds (optional)</label>
         <input id="screen-max-video" name="maxVideoSeconds" type="number" min="1" placeholder="No limit">
       </div>
+
+      <fieldset class="power-fieldset">
+        <legend>Power management (optional)</legend>
+        <div class="field-row">
+          <div class="field">
+            <label for="screen-power-driver">Driver</label>
+            <select id="screen-power-driver" name="powerDriver">
+              <option value="none">None</option>
+              <option value="pull">Pull (LAN agent)</option>
+              <option value="samsung-lan">Samsung LAN (WS + WoL)</option>
+              <option value="android-adb">Android ADB + WoL</option>
+              <option value="wol-only">WoL only</option>
+              <option value="router-wol">Router WoL</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="screen-power-lan-id">LAN ID</label>
+            <input id="screen-power-lan-id" name="powerLanId" type="text" placeholder="e.g. church-main">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="screen-power-router-id">Router ID (push-style)</label>
+            <input id="screen-power-router-id" name="powerRouterId" type="text" placeholder="Optional">
+          </div>
+          <div class="field">
+            <label for="screen-power-timezone">Timezone</label>
+            <input id="screen-power-timezone" name="powerTimezone" type="text" placeholder="Europe/Helsinki">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="screen-power-mac">MAC address</label>
+            <input id="screen-power-mac" name="powerMac" type="text" placeholder="AA:BB:CC:DD:EE:FF">
+          </div>
+          <div class="field">
+            <label for="screen-power-ip">TV IP</label>
+            <input id="screen-power-ip" name="powerIp" type="text" placeholder="192.168.10.42">
+          </div>
+        </div>
+        <div class="field">
+          <label for="screen-power-windows">Schedule windows (one per line: <code>days start-end</code>)</label>
+          <textarea id="screen-power-windows" name="powerWindows" rows="2" placeholder="mon,tue,wed,thu,fri,sat,sun 08:00-20:00"></textarea>
+        </div>
+      </fieldset>
 
       <p id="screen-form-error" class="error-banner" role="alert" hidden></p>
 

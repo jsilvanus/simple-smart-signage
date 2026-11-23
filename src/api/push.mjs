@@ -56,6 +56,16 @@ function validatePushBody(body, config) {
     throw new HttpError('INVALID_MODE', 'mode must be append or replace', 422);
   }
 
+  // Publishing content (enabled: false, the default) and making it live (enabled: true)
+  // are different rights; the Tunnus work will check sissi:operate for enabled: true.
+  const enabled = body.enabled ?? false;
+  if (typeof enabled !== 'boolean') {
+    throw new HttpError('INVALID_ENABLED', 'enabled must be a boolean', 422);
+  }
+  if (mode === 'replace' && !enabled) {
+    throw new HttpError('INVALID_MODE', 'replace needs enabled: true (it changes what is live)', 422);
+  }
+
   if (typeof body.title !== 'string' || body.title.trim().length < 1 || body.title.length > 200) {
     throw new HttpError('INVALID_TITLE', 'title must be 1-200 characters', 422);
   }
@@ -89,6 +99,7 @@ function validatePushBody(body, config) {
   return {
     screenId: body.screenId,
     mode,
+    enabled,
     title: body.title,
     pages: body.pages,
   };

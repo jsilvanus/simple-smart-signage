@@ -1,6 +1,6 @@
 # Step 1: web signage for Yodeck (plan)
 
-Status: **plan, not built** (2026-11-19). This is the first step of the signage project. It is a deliberately small partial of the SiSSi prototype ([release scope](../roadmap-by-release.md)). Site data (host names, Canva team id, secrets) is not in this repository: it belongs in the operator's private deployment repository.
+Status: built; amended 2026-11-23 with enabled/disabled entries (section 13, which overrides the text above). This is the first step of the signage project. It is a deliberately small partial of the SiSSi prototype ([release scope](../roadmap-by-release.md)). Site data (host names, Canva team id, secrets) is not in this repository: it belongs in the operator's private deployment repository.
 
 ## 1. Problem
 
@@ -26,7 +26,7 @@ Out of scope for step 1 (stays in the SiSSi roadmap): device enrolment, tenants,
 
 - **Screen**: a player page. `id` (slug, `[a-z0-9-]{1,40}`, chosen by the operator), `name`, `orientation` (`landscape` | `vertical`), optional `width`/`height` hint for the Canva export size, `defaultImageSeconds` (default 10), `maxVideoSeconds` (optional, set on the admin page; `null` = no limit; a longer video fails the push with `VIDEO_TOO_LONG`).
 - **Media**: a stored file, content-addressed by SHA-256. Kind `image` (PNG, JPEG, WebP) or `video` (MP4, H.264/AAC expected). Video duration is read from the MP4 header (`mvhd` box) in Node, no ffmpeg.
-- **Entry**: one line in a screen's playlist: `{ entryId, mediaId, kind, seconds, title, pushId, addedAt }`. For an image, `seconds` is the time on screen. For a video, `seconds` is the video's own duration (informational; the player moves on at the video's `ended` event).
+- **Entry**: one line in a screen's playlist: `{ entryId, mediaId, kind, seconds, title, pushId, addedAt, enabled }`. Only enabled entries are played (section 13). For an image, `seconds` is the time on screen. For a video, `seconds` is the video's own duration (informational; the player moves on at the video's `ended` event).
 - **Playlist**: ordered entries of one screen plus a `version` (increments on every change). One playlist per screen.
 - **Push**: one publish from Canva. Its pages become entries; `pushId` groups them so the admin page can show and remove a publish as a unit.
 
@@ -90,7 +90,8 @@ What the plugin shows in its screen picker.
 ```
 
 - `screenId` required, must exist (the plugin cannot create screens).
-- `mode`: `append` (default, add to the end) or `replace` (the push becomes the whole playlist).
+- `mode`: `append` (default, add to the end) or `replace` (the push becomes the whole playlist; see section 13: needs `enabled: true`).
+- `enabled`: optional boolean, default **`false`** (section 13).
 - `title`: 1-200 chars, shown on the admin page.
 - `pages`: 1-100, in play order (`pageNumber` only labels them).
   - `kind`: `image` or `video`, **optional**. Omitted = the service sniffs the bytes (PNG, JPEG, WebP = image; MP4 = video). Given = the bytes must match, otherwise the push fails with `KIND_MISMATCH`.
@@ -255,3 +256,24 @@ Each task is one agent with: this plan, `openapi/sissi-v1.yaml`, and the files i
 | 4 | K. End-to-end test, README, operator notes (including the Yodeck test procedure) | `test/e2e/`, `README.md`, `docs/operations.md` | 3 |
 
 After each phase an independent reviewer agent checks the diff against this plan and the OpenAPI file, and writes findings to `docs/plans/step-1-review-phase-N.md`.
+
+## 13. Enabled and disabled entries (Juha, 2026-11-23; overrides sections 3, 4.3, 4.6 and 8 where they differ)
+
+Publishing content and putting it on the screens are two different acts.
+
+- **Add disabled = publish content** (Tunnus right `sissi:write`). The entry is stored and visible in the admin page, but not in `playlist.json`.
+- **Enable or disable = live change** (Tunnus right `sissi:operate`). Enabling puts the entry on the screens; disabling takes it off.
+
+Contract:
+
+- Every entry has `enabled` (boolean). Entries stored before this field existed count as enabled, so nothing already on a screen disappears.
+- `POST /api/v1/push` takes `enabled` (default `false`). `false` adds the entries disabled. `true` ("enable now") adds them live and is an operate action. A bad type is 422 `INVALID_ENABLED`.
+- `mode: "replace"` removes what is on the screen, so it is a live change: it needs `enabled: true`, otherwise 422 `INVALID_MODE`. Plain adding is `append`.
+- `playlist.json` lists only enabled entries. Every enable or disable bumps the playlist `version`, so players pick it up at the next poll as for any change.
+- `GET /api/v1/screens` keeps `entryCount` (all entries) and adds `enabledEntryCount` (live ones).
+- Admin API: `PATCH /admin/screens/{id}/entries/{entryId}` takes `enabled` (and/or `seconds`); `PATCH /admin/screens/{id}/pushes/{pushId}` with `{ enabled }` switches a whole push. Reorder works on all entries, disabled included. The admin page shows Live/Disabled per entry and Enable/Disable buttons per entry and per push.
+- Unused media of a disabled entry is kept (the entry still references it); only removing the entry frees it.
+
+Rights are **not enforced yet**. The Tunnus rights are planned in piecosystem (#28 to #30) and not built. Until then the Canva token and the push key may do both; the places where the check goes are marked in `src/api/push.mjs` (`enabled: true`) and `src/api/admin.mjs` (the `enabled` toggles). When Tunnus lands: `sissi:write` for pushes with `enabled: false`, `sissi:operate` for `enabled: true`, `replace` and the admin toggles.
+
+Canva side (canva-pieco-app plan): the signage target adds items disabled by default and has an optional "Enable now" switch, shown only to users who may operate; the mode choice "Replace playlist" becomes part of "Enable now".

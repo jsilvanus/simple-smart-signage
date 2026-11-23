@@ -42,6 +42,15 @@ function toMs(val) {
   return Date.parse(val);
 }
 
+/** Entries stored before the enabled flag existed are live (true). */
+function isEnabled(entry) {
+  return entry.enabled !== false;
+}
+
+function withEnabled(entry) {
+  return { ...entry, enabled: isEnabled(entry) };
+}
+
 function toScreenView(doc) {
   return {
     id: doc.id,
@@ -52,8 +61,9 @@ function toScreenView(doc) {
     defaultImageSeconds: doc.defaultImageSeconds,
     maxVideoSeconds: doc.maxVideoSeconds ?? null,
     entryCount: doc.entries.length,
+    enabledEntryCount: doc.entries.filter(isEnabled).length,
     playlistVersion: doc.version,
-    entries: doc.entries,
+    entries: doc.entries.map(withEnabled),
     power: doc.power ?? null,
   };
 }
@@ -338,9 +348,16 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
       .sort((a, b) => a.id.localeCompare(b.id));
   }
 
-  async function applyPush(screenId, { pushId, mode = 'append', title, items } = {}) {
+  async function applyPush(screenId, { pushId, mode = 'append', title, items, enabled = false } = {}) {
     if (!MODES.has(mode)) {
       throw new StateError('INVALID_MODE', `Invalid push mode: ${mode}`);
+    }
+    if (typeof enabled !== 'boolean') {
+      throw new StateError('INVALID_ENABLED', 'enabled must be a boolean');
+    }
+    if (mode === 'replace' && !enabled) {
+      // Replace takes the old items off the screen, which is a live change.
+      throw new StateError('INVALID_MODE', 'replace needs enabled: true (it changes what is live)');
     }
     if (typeof title !== 'string' || title.trim().length < 1 || title.length > 200) {
       throw new StateError('INVALID_TITLE', 'Push title must be 1-200 characters');
@@ -386,6 +403,7 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
         title,
         pushId,
         addedAt,
+        enabled,
       }));
       doc.entries = mode === 'replace' ? newEntries : [...doc.entries, ...newEntries];
     });
@@ -436,6 +454,36 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     });
   }
 
+  function assertEnabledFlag(enabled) {
+    if (typeof enabled !== 'boolean') {
+      throw new StateError('INVALID_ENABLED', 'enabled must be a boolean');
+    }
+  }
+
+  /** Make one entry live (true) or take it off the screen (false). */
+  async function setEntryEnabled(screenId, entryId, enabled) {
+    assertEnabledFlag(enabled);
+    return mutateScreen(screenId, (doc) => {
+      const entry = doc.entries.find((e) => e.entryId === entryId);
+      if (!entry) {
+        throw new StateError('ENTRY_NOT_FOUND', `Unknown entry: ${entryId}`);
+      }
+      entry.enabled = enabled;
+    });
+  }
+
+  /** Enable or disable every entry of one push. */
+  async function setPushEnabled(screenId, pushId, enabled) {
+    assertEnabledFlag(enabled);
+    return mutateScreen(screenId, (doc) => {
+      const mine = doc.entries.filter((e) => e.pushId === pushId);
+      if (mine.length === 0) {
+        throw new StateError('PUSH_NOT_FOUND', `No entries for push ${pushId} on screen ${screenId}`);
+      }
+      for (const e of mine) e.enabled = enabled;
+    });
+  }
+
   async function removePush(screenId, pushId) {
     return mutateScreen(screenId, (doc) => {
       const next = doc.entries.filter((e) => e.pushId !== pushId);
@@ -456,7 +504,7 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
       screenId: doc.id,
       version: doc.version,
       orientation: doc.orientation,
-      entries: doc.entries,
+      entries: doc.entries.filter(isEnabled),
     };
   }
 
@@ -645,6 +693,8 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     removeEntry,
     reorderEntries,
     setEntrySeconds,
+    setEntryEnabled,
+    setPushEnabled,
     removePush,
     getPlaylist,
     createPush,

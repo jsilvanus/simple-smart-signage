@@ -204,6 +204,7 @@ test('e2e: admin creates screen -> Canva push -> player loops online & offline a
       body: {
         screenId: 'lobby',
         mode: 'replace',
+        enabled: true,
         title: 'E2E Sunday Slides',
         pages: [
           { pageNumber: 1, kind: 'image', url: `${dlBase}/img1.png`, seconds: 1 },

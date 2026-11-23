@@ -162,6 +162,7 @@ paths:
               type: object
               properties:
                 seconds: { type: integer, minimum: 1, maximum: 3600 }
+                enabled: { type: boolean, description: true makes the entry live, false takes it off the screen (live change). }
       responses:
         '200': { description: Updated }
         '404': { $ref: '#/components/responses/Error' }
@@ -173,6 +174,25 @@ paths:
         '204': { description: Removed }
         '404': { $ref: '#/components/responses/Error' }
   /admin/screens/{screenId}/pushes/{pushId}:
+    patch:
+      operationId: adminSetPushEnabled
+      description: Enable or disable every entry of this push (live change).
+      security: [{ adminCookie: [] }]
+      parameters:
+        - { name: screenId, in: path, required: true, schema: { type: string } }
+        - { name: pushId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled: { type: boolean }
+      responses:
+        '200': { description: Updated }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
     delete:
       operationId: adminDeletePushEntries
       description: Removes every entry that came from this push.
@@ -285,6 +305,7 @@ components:
         - ENTRY_NOT_FOUND
         - PUSH_NOT_FOUND
         - INVALID_MODE
+        - INVALID_ENABLED
         - INVALID_TITLE
         - INVALID_PAGES
         - INVALID_KIND
@@ -321,7 +342,8 @@ components:
         height: { type: integer, nullable: true }
         defaultImageSeconds: { type: integer, minimum: 1, maximum: 3600 }
         maxVideoSeconds: { type: integer, nullable: true, minimum: 1 }
-        entryCount: { type: integer }
+        entryCount: { type: integer, description: All entries, enabled or not }
+        enabledEntryCount: { type: integer, description: Entries that are live }
         playlistVersion: { type: integer }
         power: { $ref: '#/components/schemas/PowerConfig' }
     ScreenInput:
@@ -380,6 +402,9 @@ components:
         title: { type: string }
         pushId: { type: string }
         addedAt: { type: string, format: date-time }
+        enabled:
+          type: boolean
+          description: Only enabled entries are in playlist.json. New pushes add entries disabled unless the push says enabled true. Entries stored before this field existed count as enabled.
     AdminScreen:
       allOf:
         - $ref: '#/components/schemas/Screen'
@@ -394,7 +419,15 @@ components:
       required: [screenId, title, pages]
       properties:
         screenId: { type: string }
-        mode: { type: string, enum: [append, replace], default: append }
+        mode:
+          type: string
+          enum: [append, replace]
+          default: append
+          description: replace removes the screen's existing entries, so it is a live change and needs enabled true.
+        enabled:
+          type: boolean
+          default: false
+          description: false adds the entries disabled (content publishing, sissi:write). true makes them live at once (sissi:operate). Rights are enforced by the Tunnus work, not yet by this service.
         title: { type: string, minLength: 1, maxLength: 200 }
         pages:
           type: array

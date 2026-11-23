@@ -288,7 +288,7 @@ function renderDetail() {
 
   entries.forEach((entry, index) => {
     const li = document.createElement('li');
-    li.className = 'entry-row';
+    li.className = entry.enabled === false ? 'entry-row entry-disabled' : 'entry-row';
 
     const reorder = document.createElement('div');
     reorder.className = 'reorder-col';
@@ -333,7 +333,14 @@ function renderDetail() {
     removePushBtn.textContent = 'Remove push';
     removePushBtn.disabled = state.busy;
     removePushBtn.addEventListener('click', () => handleRemovePush(screen.id, entry.pushId));
-    pushGroup.append(pushBadge, removePushBtn);
+    const pushEnabledBtn = document.createElement('button');
+    pushEnabledBtn.type = 'button';
+    pushEnabledBtn.className = 'btn btn-sm';
+    const pushAllOn = entries.filter((e) => e.pushId === entry.pushId).every((e) => e.enabled !== false);
+    pushEnabledBtn.textContent = pushAllOn ? 'Disable push' : 'Enable push';
+    pushEnabledBtn.disabled = state.busy;
+    pushEnabledBtn.addEventListener('click', () => handleSetPushEnabled(screen.id, entry.pushId, !pushAllOn));
+    pushGroup.append(pushBadge, pushEnabledBtn, removePushBtn);
 
     const addedEl = document.createElement('span');
     addedEl.textContent = formatAddedAt(entry.addedAt);
@@ -374,6 +381,19 @@ function renderDetail() {
       dur.textContent = `${entry.seconds}s (video)`;
       controls.append(dur);
     }
+
+    const isOn = entry.enabled !== false;
+    const liveBadge = document.createElement('span');
+    liveBadge.className = 'badge';
+    liveBadge.textContent = isOn ? 'Live' : 'Disabled';
+    const toggleBtn = document.createElement('button');
+    toggleBtn.type = 'button';
+    toggleBtn.className = 'btn btn-sm';
+    toggleBtn.textContent = isOn ? 'Disable' : 'Enable';
+    toggleBtn.setAttribute('aria-label', `${isOn ? 'Disable' : 'Enable'} ${entry.title}`);
+    toggleBtn.disabled = state.busy;
+    toggleBtn.addEventListener('click', () => handleSetEntryEnabled(screen.id, entry.entryId, !isOn));
+    controls.append(liveBadge, toggleBtn);
 
     const delBtn = document.createElement('button');
     delBtn.type = 'button';
@@ -496,6 +516,46 @@ async function handleUpdateSeconds(screenId, entryId, rawSeconds) {
     });
     await loadScreens();
     setStatus('Slide duration updated.');
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    state.busy = false;
+    render();
+  }
+}
+
+async function handleSetEntryEnabled(screenId, entryId, enabled) {
+  setError('');
+  setStatus('');
+  state.busy = true;
+  render();
+  try {
+    await apiFetch(`/admin/screens/${encodeURIComponent(screenId)}/entries/${encodeURIComponent(entryId)}`, {
+      method: 'PATCH',
+      body: { enabled },
+    });
+    await loadScreens();
+    setStatus(enabled ? 'Entry is live.' : 'Entry taken off the screen.');
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    state.busy = false;
+    render();
+  }
+}
+
+async function handleSetPushEnabled(screenId, pushId, enabled) {
+  setError('');
+  setStatus('');
+  state.busy = true;
+  render();
+  try {
+    await apiFetch(`/admin/screens/${encodeURIComponent(screenId)}/pushes/${encodeURIComponent(pushId)}`, {
+      method: 'PATCH',
+      body: { enabled },
+    });
+    await loadScreens();
+    setStatus(enabled ? `Push ${pushId} is live.` : `Push ${pushId} taken off the screen.`);
   } catch (err) {
     setError(err.message);
   } finally {

@@ -540,3 +540,5 @@ dialog::backdrop {
   border-radius: var(--radius);
   resize: vertical;
 }
+
+.entry-disabled { opacity: 0.55; }

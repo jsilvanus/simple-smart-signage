@@ -12,6 +12,8 @@ import {
 const base = resolveBasePath(location.pathname);
 
 const state = {
+  // Server clock minus local clock (ms), from the last screens fetch; used for the now-playing marker.
+  clockOffsetMs: 0,
   screens: [],
   selectedId: null,
   editingId: null,
@@ -315,6 +317,11 @@ function renderDetail() {
 
     const info = document.createElement('div');
     info.className = 'entry-info';
+    const nowBadge = document.createElement('span');
+    nowBadge.className = 'now-badge';
+    nowBadge.textContent = '▶ Now playing';
+    nowBadge.hidden = true;
+    info.append(nowBadge);
     const titleEl = document.createElement('div');
     titleEl.className = 'entry-title';
     titleEl.textContent = entry.title || entry.entryId;
@@ -404,9 +411,79 @@ function renderDetail() {
     controls.append(delBtn);
 
     li.append(reorder, icon, info, controls);
+    li.dataset.entryId = entry.entryId;
     els.entriesList.append(li);
   });
+  updateNowPlaying();
 }
+
+/** Marks the entry every screen is playing at this moment. Same arithmetic as the player (src/playback/schedule.mjs). */
+function updateNowPlaying() {
+  const screen = getSelectedScreen();
+  const entries = (screen?.entries ?? []).filter((e) => e.enabled !== false);
+  let total = 0;
+  for (const e of entries) total += Math.max(0, Number(e.seconds) || 0) * 1000;
+  let playingId = null;
+  if (total > 0) {
+    const pos = (((Date.now() + state.clockOffsetMs) % total) + total) % total;
+    let start = 0;
+    for (const e of entries) {
+      const len = Math.max(0, Number(e.seconds) || 0) * 1000;
+      if (len <= 0) continue;
+      if (pos < start + len) {
+        playingId = e.entryId;
+        break;
+      }
+      start += len;
+    }
+  }
+  for (const li of els.entriesList.children) {
+    const isNow = li.dataset.entryId === playingId;
+    li.classList.toggle('entry-now', isNow);
+    const badge = li.querySelector('.now-badge');
+    if (badge) badge.hidden = !isNow;
+  }
+}
+
+setInterval(updateNowPlaying, 1000);
+
+async function handleUpload(file) {
+  if (!file) return;
+  const screen = getSelectedScreen();
+  if (!screen) return;
+  setStatus('Uploading…');
+  try {
+    const title = file.name.replace(/\.png$/i, '').slice(0, 200) || 'Uploaded PNG';
+    const res = await fetch(apiUrl(base, `/admin/screens/${encodeURIComponent(screen.id)}/uploads`), {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'image/png',
+        'X-Sissi-Admin': '1',
+        'X-Upload-Title': encodeURIComponent(title),
+      },
+      body: file,
+    });
+    let data = null;
+    if (res.status !== 204 && (res.headers.get('content-type') || '').includes('application/json')) {
+      data = await res.json().catch(() => null);
+    }
+    if (!res.ok) {
+      if (res.status === 401) showLogin(extractErrorMessage(data, 'Sign in again'));
+      throw new Error(extractErrorMessage(data, `Upload failed (${res.status})`));
+    }
+    setStatus('Uploaded. The entry is added disabled; enable it to put it on screen.');
+    await loadScreens();
+  } catch (err) {
+    setError(err.message);
+  }
+}
+
+document.getElementById('upload-input')?.addEventListener('change', (event) => {
+  const input = event.currentTarget;
+  handleUpload(input.files?.[0]);
+  input.value = '';
+});
 
 function render() {
   renderScreensList();
@@ -415,6 +492,7 @@ function render() {
 
 async function loadScreens() {
   const data = await apiFetch('/admin/screens');
+  if (Number.isFinite(data?.serverTime)) state.clockOffsetMs = data.serverTime - Date.now();
   state.screens = data?.screens ?? [];
   if (state.selectedId && !state.screens.some((s) => s.id === state.selectedId)) {
     state.selectedId = null;

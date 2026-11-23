@@ -20,6 +20,12 @@
   let consecutiveFailures = 0;
   let preloaded = null;
   let transitionToken = 0;
+  // Server clock minus local clock (ms), from the last live playlist fetch. Shared playback
+  // position = (Date.now() + clockOffsetMs) mod cycle, so all screens show the same item.
+  let clockOffsetMs = 0;
+  // True while the current slot is set by the shared schedule. A video that ends early then
+  // holds its last frame until the slot ends, so every screen still switches together.
+  let slotIsScheduled = false;
 
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
@@ -233,6 +239,7 @@
       const done = () => {
         if (settled || token !== transitionToken) return;
         settled = true;
+        if (slotIsScheduled) return; // the schedule timer ends the slot
         onSlideComplete();
       };
       const fail = () => {
@@ -283,6 +290,22 @@
     }
   }
 
+  /** Entry and time left in its slot at the shared position, or null when nothing plays. */
+  function scheduledPosition(entries) {
+    let total = 0;
+    for (const e of entries) total += Math.max(0, Number(e.seconds) || 0) * 1000;
+    if (total <= 0) return null;
+    const pos = (((Date.now() + clockOffsetMs) % total) + total) % total;
+    let start = 0;
+    for (let i = 0; i < entries.length; i += 1) {
+      const len = Math.max(0, Number(entries[i].seconds) || 0) * 1000;
+      if (len <= 0) continue;
+      if (pos < start + len) return { index: i, remainingMs: start + len - pos };
+      start += len;
+    }
+    return null;
+  }
+
   function advance() {
     if (pendingPlaylist) {
       activePlaylist = pendingPlaylist;
@@ -297,6 +320,21 @@
       return;
     }
 
+    // After a failed slide, step to the next entry instead of retrying the scheduled one.
+    // The next successful slide re-enters the shared schedule (consecutiveFailures resets there).
+    const sched = consecutiveFailures === 0 ? scheduledPosition(activePlaylist.entries) : null;
+    if (sched) {
+      currentIndex = sched.index;
+      slotIsScheduled = true;
+      showEntry(activePlaylist.entries[currentIndex]);
+      // Switch exactly when the shared slot ends, not after a fixed per-device timer.
+      clearSlideTimer();
+      slideTimer = setTimeout(onSlideComplete, Math.max(50, sched.remainingMs));
+      preloadNext();
+      return;
+    }
+
+    slotIsScheduled = false;
     currentIndex = (currentIndex + 1) % activePlaylist.entries.length;
     const entry = activePlaylist.entries[currentIndex];
     showEntry(entry);
@@ -333,6 +371,7 @@
       if (res.ok) {
         const data = await res.json();
         if (data && Array.isArray(data.entries)) {
+          if (Number.isFinite(data.serverTime)) clockOffsetMs = data.serverTime - Date.now();
           applyFetchedPlaylist(data);
           return;
         }

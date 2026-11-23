@@ -242,10 +242,10 @@ test('e2e: admin creates screen -> Canva push -> player loops online & offline a
       await navigator.serviceWorker.ready;
     });
 
-    await page.waitForSelector(`.slide.is-visible img[src*="${shaImg1}"]`, { timeout: 5000 });
-    await page.waitForSelector(`.slide.is-visible img[src*="${shaImg2}"]`, { timeout: 5000 });
-    await page.waitForSelector(`.slide.is-visible video[src*="${shaVid}"]`, { timeout: 5000 });
-    await page.waitForSelector(`.slide.is-visible img[src*="${shaImg1}"]`, { timeout: 5000 });
+    await page.waitForSelector(`.slide.is-visible img[src*="${shaImg1}"]`, { timeout: 15000 });
+    await page.waitForSelector(`.slide.is-visible img[src*="${shaImg2}"]`, { timeout: 15000 });
+    await page.waitForSelector(`.slide.is-visible video[src*="${shaVid}"]`, { timeout: 15000 });
+    await page.waitForSelector(`.slide.is-visible img[src*="${shaImg1}"]`, { timeout: 15000 });
 
     // Allow SW background caching to settle before stopping the server
     await page.waitForTimeout(400);
@@ -262,9 +262,9 @@ test('e2e: admin creates screen -> Canva push -> player loops online & offline a
     await closeAppServer();
     await page.waitForTimeout(300);
 
-    await page.waitForSelector(`.slide.is-visible img[src*="${shaImg2}"]`, { timeout: 5000 });
-    await page.waitForSelector(`.slide.is-visible video[src*="${shaVid}"]`, { timeout: 5000 });
-    await page.waitForSelector(`.slide.is-visible img[src*="${shaImg1}"]`, { timeout: 5000 });
+    await page.waitForSelector(`.slide.is-visible img[src*="${shaImg2}"]`, { timeout: 15000 });
+    await page.waitForSelector(`.slide.is-visible video[src*="${shaVid}"]`, { timeout: 15000 });
+    await page.waitForSelector(`.slide.is-visible img[src*="${shaImg1}"]`, { timeout: 15000 });
 
     const bodyText = await page.evaluate(() => document.body.innerText.trim());
     assert.equal(bodyText, '', 'no error text shown on player');

@@ -186,7 +186,7 @@ test('admin routes require valid non-expired cookie, CSRF header on writes, and 
     headers: { cookie },
   });
   assert.equal(authedGet.status, 200);
-  assert.deepEqual(authedGet.json, { screens: [] });
+  assert.deepEqual(authedGet.json.screens, []);
 
   // Write without X-Sissi-Admin: 1 fails
   const missingCsrf = await http(srv.base, '/signage/api/v1/admin/screens', {
@@ -515,4 +515,33 @@ test('entries and pushes can be enabled and disabled; playlist.json follows', as
     body: { enabled: true },
   });
   assert.equal(missing.status, 404);
+});
+
+test('PNG upload adds a disabled entry to the playlist and rejects non-PNG bodies', async (t) => {
+  const srv = await setupAdminServer();
+  t.after(srv.close);
+  await srv.state.createScreen({ id: 'lobby', name: 'Lobby', orientation: 'landscape' });
+  const { cookie } = await loginCookie(srv.base);
+  const png = Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    Buffer.alloc(64, 7),
+  ]);
+
+  const ok = await fetch(`${srv.base}/signage/api/v1/admin/screens/lobby/uploads`, {
+    method: 'POST',
+    headers: { cookie, 'x-sissi-admin': '1', 'content-type': 'image/png', 'x-upload-title': 'Notice' },
+    body: png,
+  });
+  assert.equal(ok.status, 201);
+  const body = await ok.json();
+  assert.equal(body.entry.kind, 'image');
+  assert.equal(body.entry.enabled, false);
+  assert.equal(body.entry.title, 'Notice');
+
+  const bad = await fetch(`${srv.base}/signage/api/v1/admin/screens/lobby/uploads`, {
+    method: 'POST',
+    headers: { cookie, 'x-sissi-admin': '1', 'content-type': 'image/jpeg' },
+    body: Buffer.from([0xff, 0xd8, 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+  });
+  assert.equal(bad.status, 415);
 });

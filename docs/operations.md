@@ -42,6 +42,7 @@ All supported variables are listed in [`.env.example`](../.env.example). Key pro
 | `SISSI_PUBLIC_PATH` | Path prefix served by Traefik (default `/signage`; empty or `/` for root). |
 | `SISSI_CANVA_APP_ID` | Canva app ID used as JWT `aud` when verifying Canva user tokens via Canva JWKS. |
 | `SISSI_CANVA_ALLOWED_BRANDS` | Comma-separated allow-list of Canva `brandId` values. Tokens from other brands fail with `403 TEAM_NOT_ALLOWED`. |
+| `SISSI_REQUIRE_TEAM_IDS` | `true` (default) keeps Canva team-ID entry on. Set `false` to switch it off: Canva tokens are then refused, and entry is through Tunnus only. Being moved toward Tunnus-based entry. |
 | `SISSI_CORS_ORIGINS` | Comma-separated bare origins (e.g. `https://app-xxxx.canva-apps.com`) allowed to call `/api/v1/*` from the Canva app. Disallowed preflights return `403`. |
 | `SISSI_DOWNLOAD_HOSTS` | Comma-separated allowed export download host suffixes (default `canva.com,canva.dev,canva-apps.com`). |
 | `SISSI_PUSH_KEY` | Optional static Bearer token for curl/scripted pushes. Leave unset if only Canva tokens should be accepted. |

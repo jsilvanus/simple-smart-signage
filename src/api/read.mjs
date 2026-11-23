@@ -120,7 +120,7 @@ export function registerReadRoutes(router, ctx) {
 
   router.get('/api/v1/screens', async (req, res) => {
     auth.applyCors(req, res);
-    auth.assertRights?.(await auth.authenticate(req), 'any');
+    auth.assertRights?.(await auth.authenticate(req), 'read');
     const list = await state.listScreens();
     sendJson(res, 200, { screens: list.map(formatScreen) });
   });

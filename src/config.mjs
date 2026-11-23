@@ -25,11 +25,11 @@ export function normalizePublicPath(p) {
   return s.replace(/\/+$/, '');
 }
 
-export const SISSI_RIGHTS = Object.freeze(['sissi:write', 'sissi:operate']);
+export const SISSI_RIGHTS = Object.freeze(['sissi:read', 'sissi:write', 'sissi:operate']);
 
 /**
  * "<group>=sissi:write,sissi:operate;<group2>=sissi:write" -> Map(group -> Set(right)).
- * Only sissi:write and sissi:operate are ever granted. Anything else (a wildcard, Pi modules,
+ * Only sissi:read, sissi:write and sissi:operate are ever granted. Anything else (a wildcard, Pi modules,
  * presets such as @operator) is ignored on purpose, so a mapping written for the Pi gateway
  * can never give a Sissi right. A mapping that grants nothing is a configuration error.
  */
@@ -55,7 +55,7 @@ export function parseGroupRights(raw, problems = []) {
     map.set(group, set);
   }
   if (map.size === 0) {
-    problems.push('SISSI_TUNNUS_GROUP_RIGHTS must grant at least one of sissi:write, sissi:operate to a group');
+    problems.push('SISSI_TUNNUS_GROUP_RIGHTS must grant at least one of sissi:read, sissi:write, sissi:operate to a group');
   }
   return map;
 }

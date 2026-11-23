@@ -65,7 +65,7 @@ export function registerAdminRoutes(router, ctx) {
   });
 
   router.get('/api/v1/admin/screens', async (req, res) => {
-    await adminAuth.authorize(req, 'any');
+    await adminAuth.authorize(req, 'read');
     const screens = await runState(() => state.listScreens());
     sendJson(res, 200, { screens: screens.map(withPowerStatus) });
   });

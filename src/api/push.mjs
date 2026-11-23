@@ -141,7 +141,7 @@ export function registerPushRoutes(router, ctx) {
 
   router.get('/api/v1/push/:pushId', async (req, res, { params }) => {
     ctx.auth.applyCors(req, res);
-    ctx.auth.assertRights?.(await ctx.auth.authenticate(req), 'any');
+    ctx.auth.assertRights?.(await ctx.auth.authenticate(req), 'read');
 
     if (typeof params.pushId !== 'string' || !PUSH_ID_RE.test(params.pushId)) {
       throw new HttpError('PUSH_NOT_FOUND', 'Unknown push', 404);

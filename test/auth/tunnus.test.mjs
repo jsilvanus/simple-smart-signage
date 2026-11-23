@@ -79,6 +79,21 @@ test('group mapping grants only sissi:write and sissi:operate, never wildcards o
   assert.equal(m.has('pi-admins'), false);
 });
 
+test('read group maps to sissi:read and read checks accept read, write or operate', async () => {
+  const m = parseGroupRights('viewers=sissi:read');
+  assert.deepEqual([...m.get('viewers')], ['sissi:read']);
+  const { assertRights } = await import('../../src/auth/tunnus.mjs');
+  const reader = { kind: 'tunnus', rights: new Set(['sissi:read']) };
+  const writer = { kind: 'tunnus', rights: new Set(['sissi:write']) };
+  const operator = { kind: 'tunnus', rights: new Set(['sissi:operate']) };
+  assert.doesNotThrow(() => assertRights(reader, 'read'));
+  assert.doesNotThrow(() => assertRights(writer, 'read'));
+  assert.doesNotThrow(() => assertRights(operator, 'read'));
+  // A read-only sign-in still cannot publish or go live.
+  assert.throws(() => assertRights(reader, 'write'), /sissi:write/);
+  assert.throws(() => assertRights(reader, 'any'), /write or sissi:operate/);
+});
+
 test('verifier accepts a good token (aud array) and discovers the JWKS once', async () => {
   const f = fakeTunnus();
   const v = createTunnusVerifier(testConfig(baseEnv), { fetch: f.fetchFn });

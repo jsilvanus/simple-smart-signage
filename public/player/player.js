@@ -23,6 +23,9 @@
   // Server clock minus local clock (ms), from the last live playlist fetch. Shared playback
   // position = (Date.now() + clockOffsetMs) mod cycle, so all screens show the same item.
   let clockOffsetMs = 0;
+  // Newest server time accepted. A playlist served from the service-worker cache while offline
+  // carries an old serverTime; it must not move the offset, or the schedule freezes.
+  let lastServerTime = -Infinity;
   // True while the current slot is set by the shared schedule. A video that ends early then
   // holds its last frame until the slot ends, so every screen still switches together.
   let slotIsScheduled = false;
@@ -371,7 +374,10 @@
       if (res.ok) {
         const data = await res.json();
         if (data && Array.isArray(data.entries)) {
-          if (Number.isFinite(data.serverTime)) clockOffsetMs = data.serverTime - Date.now();
+          if (Number.isFinite(data.serverTime) && data.serverTime > lastServerTime) {
+            lastServerTime = data.serverTime;
+            clockOffsetMs = data.serverTime - Date.now();
+          }
           applyFetchedPlaylist(data);
           return;
         }

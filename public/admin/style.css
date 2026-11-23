@@ -458,9 +458,10 @@ input:disabled {
 
 /* Native Dialogs */
 dialog {
+  box-sizing: border-box;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1.25rem;
+  padding: 1.25rem 1.5rem;
   width: min(460px, calc(100vw - 2rem));
   background: var(--surface);
   color: var(--text);
@@ -479,6 +480,15 @@ dialog::backdrop {
 .dialog-form {
   display: grid;
   gap: 0.5rem;
+  padding-inline: 0.25rem;
+}
+
+.dialog-form input,
+.dialog-form select,
+.dialog-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
 }
 
 .dialog-header {

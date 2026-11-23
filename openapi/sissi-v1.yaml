@@ -285,7 +285,7 @@ paths:
         '503': { $ref: '#/components/responses/Error' }
 components:
   securitySchemes:
-    bearer: { type: http, scheme: bearer, description: Canva user token or SISSI_PUSH_KEY }
+    bearer: { type: http, scheme: bearer, description: Canva user token, SISSI_PUSH_KEY or (SISSI_AUTH_MODE both/tunnus) a Tunnus access token with sissi:write / sissi:operate from its groups }
     adminCookie: { type: apiKey, in: cookie, name: sissi_admin, description: 'Also requires header X-Sissi-Admin: 1 on writes' }
   responses:
     Error:
@@ -299,6 +299,7 @@ components:
       enum:
         - UNAUTHORIZED
         - TEAM_NOT_ALLOWED
+        - FORBIDDEN
         - AUTH_NOT_CONFIGURED
         - SCREEN_NOT_FOUND
         - SCREEN_EXISTS

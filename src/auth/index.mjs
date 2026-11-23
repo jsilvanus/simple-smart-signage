@@ -1,13 +1,12 @@
-import { createPublicKey, timingSafeEqual, verify as cryptoVerify } from 'node:crypto';
+import { timingSafeEqual, verify as cryptoVerify } from 'node:crypto';
+import { createJwksResolver } from './jwks.mjs';
+import { assertRights, createTunnusVerifier, peekIssuer } from './tunnus.mjs';
 import { HttpError, sendError } from '../router.mjs';
 import * as testing from './testing.mjs';
 
 export { testing };
 
 const CANVA_JWKS_BASE = 'https://api.canva.com';
-const JWKS_CACHE_MAX_AGE_MS = 60 * 60 * 1000;
-const JWKS_REFRESH_COOLDOWN_MS = 30 * 1000;
-const JWKS_TIMEOUT_MS = 10_000;
 const CORS_ALLOW_HEADERS = 'Authorization, Content-Type, X-Sissi-Admin';
 const CORS_ALLOW_METHODS = 'GET, POST, DELETE, PATCH, PUT';
 const CORS_MAX_AGE = '86400';
@@ -30,84 +29,21 @@ function decodeJwtPart(part) {
   }
 }
 
-function createJwksResolver(appId, { fetchFn, now }) {
-  const jwksUrl = `${CANVA_JWKS_BASE}/rest/v1/apps/${encodeURIComponent(appId)}/jwks`;
-  let keysByKid = new Map();
-  let fetchedAt = -Infinity;
-  let lastAttemptAt = -Infinity;
-  let inFlight = null;
-
-  async function refresh() {
-    if (inFlight) return inFlight;
-    const t = now();
-    if (t - lastAttemptAt < JWKS_REFRESH_COOLDOWN_MS) {
-      return;
-    }
-    lastAttemptAt = t;
-
-    inFlight = (async () => {
-      const res = await fetchFn(jwksUrl, {
-        headers: { accept: 'application/json' },
-        signal: AbortSignal.timeout(JWKS_TIMEOUT_MS),
-      });
-      if (!res || !res.ok) {
-        throw new Error(`JWKS fetch failed (${res?.status ?? 'no response'})`);
-      }
-      const body = await res.json();
-      if (!body || !Array.isArray(body.keys)) {
-        throw new Error('Invalid JWKS payload');
-      }
-      const next = new Map();
-      for (const jwk of body.keys) {
-        if (!jwk || typeof jwk.kid !== 'string' || !jwk.kid) continue;
-        if (jwk.kty !== 'RSA') continue;
-        if (jwk.use && jwk.use !== 'sig') continue;
-        if (jwk.alg && jwk.alg !== 'RS256') continue;
-        try {
-          next.set(jwk.kid, createPublicKey({ key: jwk, format: 'jwk' }));
-        } catch {
-          // Ignore malformed individual JWK entries.
-        }
-      }
-      keysByKid = next;
-      fetchedAt = now();
-    })();
-
-    try {
-      await inFlight;
-    } finally {
-      inFlight = null;
-    }
-  }
-
-  return async function getKey(kid) {
-    const expired = now() - fetchedAt >= JWKS_CACHE_MAX_AGE_MS;
-    if (expired) {
-      await refresh();
-      return keysByKid.get(kid) ?? null;
-    }
-
-    const cached = keysByKid.get(kid);
-    if (cached) return cached;
-
-    // Unknown kid: refresh once (subject to rate-limit cooldown) in case Canva rotated keys.
-    await refresh();
-    return keysByKid.get(kid) ?? null;
-  };
-}
-
 /**
  * createAuth(config, { fetch?, now? }) -> { authenticate(req), handleCors(req, res), applyCors(req, res) }
  */
-export function createAuth(config, { fetch: fetchFn = globalThis.fetch, now = () => Date.now() } = {}) {
+export function createAuth(config, { fetch: fetchFn = globalThis.fetch, now = () => Date.now(), tunnus } = {}) {
+  const mode = config?.authMode ?? 'legacy';
+  const tunnusVerifier = mode === 'legacy' ? null : (tunnus ?? createTunnusVerifier(config, { fetch: fetchFn, now }));
+  const legacyOn = mode !== 'tunnus';
   const appId = config?.canva?.appId || '';
   const allowedBrands = new Set(config?.canva?.allowedBrands ?? []);
-  const hasCanva = Boolean(appId && allowedBrands.size > 0);
+  const hasCanva = legacyOn && Boolean(appId && allowedBrands.size > 0);
   const pushKey = config?.pushKey || '';
-  const hasPushKey = Boolean(pushKey);
+  const hasPushKey = legacyOn && Boolean(pushKey);
   const corsOrigins = new Set(config?.corsOrigins ?? []);
 
-  const getKey = hasCanva ? createJwksResolver(appId, { fetchFn, now }) : null;
+  const getKey = hasCanva ? createJwksResolver(`${CANVA_JWKS_BASE}/rest/v1/apps/${encodeURIComponent(appId)}/jwks`, { fetchFn, now }) : null;
 
   async function verifyCanvaToken(token) {
     const parts = token.split('.');
@@ -184,7 +120,7 @@ export function createAuth(config, { fetch: fetchFn = globalThis.fetch, now = ()
   }
 
   async function authenticate(req) {
-    if (!hasCanva && !hasPushKey) {
+    if (!hasCanva && !hasPushKey && !tunnusVerifier) {
       throw new HttpError('AUTH_NOT_CONFIGURED', 'Authentication is not configured');
     }
 
@@ -194,6 +130,11 @@ export function createAuth(config, { fetch: fetchFn = globalThis.fetch, now = ()
       throw new HttpError('UNAUTHORIZED', 'Unauthorized');
     }
     const token = m[1];
+
+    // A token issued by Tunnus goes to the Tunnus verifier; everything else keeps the old path.
+    if (tunnusVerifier && peekIssuer(token) === tunnusVerifier.issuer) {
+      return tunnusVerifier.verify(token);
+    }
 
     if (hasPushKey && safeEqual(token, pushKey)) {
       return { kind: 'pushkey' };
@@ -241,5 +182,5 @@ export function createAuth(config, { fetch: fetchFn = globalThis.fetch, now = ()
     return true;
   }
 
-  return { authenticate, handleCors, applyCors };
+  return { authenticate, handleCors, applyCors, assertRights, tunnus: tunnusVerifier };
 }

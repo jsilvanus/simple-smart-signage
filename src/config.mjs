@@ -231,6 +231,9 @@ export function loadConfig(env = process.env) {
     canva: {
       appId: str('SISSI_CANVA_APP_ID'),
       allowedBrands: list(env.SISSI_CANVA_ALLOWED_BRANDS),
+      // Team-ID (Canva brand) entry. true (default) keeps today's behaviour; false refuses Canva tokens
+      // entirely, leaving Tunnus as the way in. See docs/operations.md.
+      requireTeamIds: bool('SISSI_REQUIRE_TEAM_IDS', true),
     },
     pushKey: str('SISSI_PUSH_KEY'),
     corsOrigins,

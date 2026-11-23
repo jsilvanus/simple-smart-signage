@@ -26,6 +26,7 @@ test('parses lists and values', () => {
     SISSI_PUSH_KEY: 'k',
   });
   assert.deepEqual(c.canva.allowedBrands, ['a', 'b']);
+  assert.equal(c.canva.requireTeamIds, true, 'team IDs are required by default');
   assert.deepEqual(c.corsOrigins, ['https://app.canva.com']);
   assert.equal(c.publicPath, '/x');
   assert.equal(c.limits.imageBytes, 5 * 1024 * 1024);

@@ -56,6 +56,7 @@ test('GET /api/v1/screens requires auth and returns OpenAPI Screen shape with CO
     await srv.state.applyPush('lobby', {
       pushId: 'push_1',
       mode: 'replace',
+      enabled: true,
       title: 'Welcome',
       items: [{ mediaId: media.sha256, ext: 'png', kind: 'image', seconds: 8 }],
     });
@@ -97,6 +98,7 @@ test('GET /api/v1/screens requires auth and returns OpenAPI Screen shape with CO
           defaultImageSeconds: 10,
           maxVideoSeconds: null,
           entryCount: 1,
+          enabledEntryCount: 1,
           playlistVersion: 2,
         },
       ],
@@ -121,6 +123,7 @@ test('GET /s/:screenId/playlist.json returns prefixed media urls, sha256, no-cac
     await srv.state.applyPush('hall-1', {
       pushId: 'push_2',
       mode: 'append',
+      enabled: true,
       title: 'Slides',
       items: [
         { mediaId: img.sha256, ext: 'png', kind: 'image', seconds: 12 },

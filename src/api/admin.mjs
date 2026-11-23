@@ -118,7 +118,17 @@ export function registerAdminRoutes(router, ctx) {
     assertScreenId(params.screenId);
     assertOpaqueId(params.entryId, 'ENTRY_NOT_FOUND', 'entry');
     const body = await router.readJson(req);
-    const screen = await runState(() => state.setEntrySeconds(params.screenId, params.entryId, body?.seconds));
+    if (body?.seconds === undefined && body?.enabled === undefined) {
+      throw new HttpError('INVALID_SECONDS', 'Provide seconds and/or enabled');
+    }
+    // Enabling or disabling is the live change (sissi:operate once Tunnus is wired); seconds is content.
+    let screen;
+    if (body.seconds !== undefined) {
+      screen = await runState(() => state.setEntrySeconds(params.screenId, params.entryId, body.seconds));
+    }
+    if (body.enabled !== undefined) {
+      screen = await runState(() => state.setEntryEnabled(params.screenId, params.entryId, body.enabled));
+    }
     const entry = screen.entries.find((e) => e.entryId === params.entryId);
     sendJson(res, 200, entry);
   });
@@ -130,6 +140,19 @@ export function registerAdminRoutes(router, ctx) {
     await runState(() => state.removeEntry(params.screenId, params.entryId));
     await triggerGc();
     sendNoContent(res);
+  });
+
+  router.patch('/api/v1/admin/screens/:screenId/pushes/:pushId', async (req, res, { params }) => {
+    adminAuth.requireAdmin(req);
+    assertScreenId(params.screenId);
+    assertOpaqueId(params.pushId, 'PUSH_NOT_FOUND', 'push');
+    const body = await router.readJson(req);
+    const screen = await runState(() => state.setPushEnabled(params.screenId, params.pushId, body?.enabled));
+    sendJson(res, 200, {
+      screenId: screen.id,
+      version: screen.playlistVersion,
+      entries: screen.entries.filter((e) => e.pushId === params.pushId),
+    });
   });
 
   router.delete('/api/v1/admin/screens/:screenId/pushes/:pushId', async (req, res, { params }) => {

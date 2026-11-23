@@ -150,6 +150,7 @@ test('happy path: image + video (including kind omitted) and replace mode', asyn
     body: {
       screenId: 'lobby',
       mode: 'append',
+      enabled: true,
       title: 'Morning Deck',
       pages: [
         { pageNumber: 1, url: `${dlServer.base}/img.png?sig=secret123` },
@@ -201,6 +202,7 @@ test('happy path: image + video (including kind omitted) and replace mode', asyn
     body: {
       screenId: 'lobby',
       mode: 'replace',
+      enabled: true,
       title: 'Replacement',
       pages: [{ pageNumber: 1, kind: 'image', url: `${dlServer.base}/img.png`, seconds: 25 }],
     },
@@ -240,6 +242,7 @@ test('KIND_MISMATCH and VIDEO_TOO_LONG fail push and leave screen untouched', as
     body: {
       screenId: 'lobby',
       title: 'Initial',
+      enabled: true,
       pages: [{ pageNumber: 1, url: `${dlServer.base}/img.png` }],
     },
   });
@@ -253,6 +256,7 @@ test('KIND_MISMATCH and VIDEO_TOO_LONG fail push and leave screen untouched', as
     body: {
       screenId: 'lobby',
       mode: 'replace',
+      enabled: true,
       title: 'Mismatch',
       pages: [{ pageNumber: 1, kind: 'video', url: `${dlServer.base}/img.png?token=secret_sig` }],
     },
@@ -271,6 +275,7 @@ test('KIND_MISMATCH and VIDEO_TOO_LONG fail push and leave screen untouched', as
     body: {
       screenId: 'lobby',
       mode: 'replace',
+      enabled: true,
       title: 'Too Long',
       pages: [{ pageNumber: 1, kind: 'video', url: `${dlServer.base}/long.mp4` }],
     },
@@ -289,6 +294,7 @@ test('KIND_MISMATCH and VIDEO_TOO_LONG fail push and leave screen untouched', as
     body: {
       screenId: 'lobby',
       mode: 'replace',
+      enabled: true,
       title: 'Partial',
       pages: [
         { pageNumber: 1, url: `${dlServer.base}/img.png` },
@@ -453,6 +459,7 @@ test('concurrent pushes: finish-order per screen and 429 BUSY when >3 active', a
       body: {
         screenId: 'lobby',
         mode: i === 0 ? 'replace' : 'append',
+        enabled: true,
         title: `Slow ${i}`,
         pages: [{ pageNumber: 1, url: `${dlServer.base}/slow.png` }],
       },
@@ -504,6 +511,7 @@ test('concurrent pushes: finish-order per screen and 429 BUSY when >3 active', a
     body: {
       screenId: 'lobby',
       mode: 'replace',
+      enabled: true,
       title: 'Slow Replace',
       pages: [{ pageNumber: 1, url: `${env2.dlServer.base}/slow2.png` }],
     },
@@ -516,6 +524,7 @@ test('concurrent pushes: finish-order per screen and 429 BUSY when >3 active', a
     body: {
       screenId: 'lobby',
       mode: 'append',
+      enabled: true,
       title: 'Fast Append',
       pages: [{ pageNumber: 1, url: `${env2.dlServer.base}/fast2.png` }],
     },
@@ -611,4 +620,43 @@ test('validation errors (404, 422) and auth (401, 403)', async (t) => {
     assert.equal(r.status, 422, `Expected 422 for ${expectedCode}, got ${r.status}`);
     assert.equal(r.json.error.code, expectedCode);
   }
+});
+
+test('push adds entries disabled by default; enabled true makes them live; replace needs enabled', async (t) => {
+  const { srv, dlServer, token } = await setupEnv(t, {
+    routes: {
+      '/img.png': (req, res) => {
+        res.writeHead(200, { 'content-type': 'image/png', 'content-length': PNG_BYTES.length });
+        res.end(PNG_BYTES);
+      },
+    },
+  });
+  const post = (body) =>
+    http(srv.base, '/signage/api/v1/push', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}` },
+      body: { screenId: 'lobby', title: 'T', pages: [{ url: `${dlServer.base}/img.png` }], ...body },
+    });
+
+  assert.equal((await post({ mode: 'replace' })).json.error.code, 'INVALID_MODE');
+  assert.equal((await post({ enabled: 'yes' })).json.error.code, 'INVALID_ENABLED');
+
+  assert.equal((await post({})).status, 202);
+  await srv.ctx.push.waitForIdle();
+  let list = await http(srv.base, '/signage/s/lobby/playlist.json');
+  assert.equal(list.json.entries.length, 0);
+  let screen = await srv.ctx.state.getScreen('lobby');
+  assert.equal(screen.entryCount, 1);
+  assert.equal(screen.entries[0].enabled, false);
+
+  assert.equal((await post({ enabled: true })).status, 202);
+  await srv.ctx.push.waitForIdle();
+  list = await http(srv.base, '/signage/s/lobby/playlist.json');
+  assert.equal(list.json.entries.length, 1);
+
+  assert.equal((await post({ mode: 'replace', enabled: true })).status, 202);
+  await srv.ctx.push.waitForIdle();
+  screen = await srv.ctx.state.getScreen('lobby');
+  assert.equal(screen.entryCount, 1);
+  assert.equal(screen.enabledEntryCount, 1);
 });

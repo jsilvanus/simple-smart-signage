@@ -84,6 +84,7 @@ function formatScreen(s) {
     defaultImageSeconds: s.defaultImageSeconds,
     maxVideoSeconds: s.maxVideoSeconds ?? null,
     entryCount: s.entryCount,
+    enabledEntryCount: s.enabledEntryCount,
     playlistVersion: s.playlistVersion,
   };
 }

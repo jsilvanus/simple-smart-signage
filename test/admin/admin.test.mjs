@@ -448,3 +448,71 @@ test('entries reorder, seconds update, delete entry, delete push, and GC sweep',
   assert.equal(delScreen.status, 204);
   assert.equal(await srv.storage.statMedia(PNG_SHA, 'png'), null);
 });
+
+test('entries and pushes can be enabled and disabled; playlist.json follows', async (t) => {
+  const srv = await setupAdminServer();
+  t.after(srv.close);
+  const { cookie } = await loginCookie(srv.base);
+  const writeHeaders = { cookie, 'x-sissi-admin': '1' };
+
+  await srv.state.createScreen({ id: 'hall', name: 'Hall' });
+  await srv.state.applyPush('hall', {
+    pushId: 'push-1',
+    title: 'First',
+    items: [
+      { mediaId: PNG_SHA, ext: 'png', kind: 'image', seconds: 10 },
+      { mediaId: PNG_SHA, ext: 'png', kind: 'image', seconds: 12 },
+    ],
+  });
+  const [e1] = (await srv.state.getScreen('hall')).entries;
+  const playlist = async () => (await srv.state.getPlaylist('hall')).entries.length;
+  assert.equal(await playlist(), 0);
+
+  const empty = await http(srv.base, `/signage/api/v1/admin/screens/hall/entries/${e1.entryId}`, {
+    method: 'PATCH',
+    headers: writeHeaders,
+    body: {},
+  });
+  assert.equal(empty.status, 422);
+
+  const bad = await http(srv.base, `/signage/api/v1/admin/screens/hall/entries/${e1.entryId}`, {
+    method: 'PATCH',
+    headers: writeHeaders,
+    body: { enabled: 'yes' },
+  });
+  assert.equal(bad.json.error.code, 'INVALID_ENABLED');
+
+  const on = await http(srv.base, `/signage/api/v1/admin/screens/hall/entries/${e1.entryId}`, {
+    method: 'PATCH',
+    headers: writeHeaders,
+    body: { enabled: true, seconds: 15 },
+  });
+  assert.equal(on.status, 200);
+  assert.equal(on.json.enabled, true);
+  assert.equal(on.json.seconds, 15);
+  assert.equal(await playlist(), 1);
+
+  const all = await http(srv.base, '/signage/api/v1/admin/screens/hall/pushes/push-1', {
+    method: 'PATCH',
+    headers: writeHeaders,
+    body: { enabled: true },
+  });
+  assert.equal(all.status, 200);
+  assert.equal(all.json.entries.length, 2);
+  assert.equal(await playlist(), 2);
+
+  const off = await http(srv.base, '/signage/api/v1/admin/screens/hall/pushes/push-1', {
+    method: 'PATCH',
+    headers: writeHeaders,
+    body: { enabled: false },
+  });
+  assert.equal(off.status, 200);
+  assert.equal(await playlist(), 0);
+
+  const missing = await http(srv.base, '/signage/api/v1/admin/screens/hall/pushes/nope', {
+    method: 'PATCH',
+    headers: writeHeaders,
+    body: { enabled: true },
+  });
+  assert.equal(missing.status, 404);
+});

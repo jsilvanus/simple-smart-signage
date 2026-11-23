@@ -167,6 +167,7 @@ test('applyPush append and replace, entry ids unique, replace keeps nothing of o
   const r1 = await state.applyPush('lobby', {
     pushId: 'push_1',
     mode: 'append',
+    enabled: true,
     title: 'First',
     items: [
       { mediaId: '1'.repeat(64), ext: 'png', kind: 'image' },
@@ -185,6 +186,7 @@ test('applyPush append and replace, entry ids unique, replace keeps nothing of o
   const r2 = await state.applyPush('lobby', {
     pushId: 'push_2',
     mode: 'append',
+    enabled: true,
     title: 'Second',
     items: [{ mediaId: '3'.repeat(64), ext: 'jpg', kind: 'image', seconds: 5 }],
   });
@@ -194,6 +196,7 @@ test('applyPush append and replace, entry ids unique, replace keeps nothing of o
   const r3 = await state.applyPush('lobby', {
     pushId: 'push_3',
     mode: 'replace',
+    enabled: true,
     title: 'Replacement',
     items: [{ mediaId: '4'.repeat(64), ext: 'webp', kind: 'image', seconds: 8 }],
   });
@@ -225,6 +228,7 @@ test('removeEntry, reorderEntries, setEntrySeconds, removePush', async () => {
   await state.applyPush('lobby', {
     pushId: 'push_a',
     mode: 'append',
+    enabled: true,
     title: 'A',
     items: [
       { mediaId: '1'.repeat(64), ext: 'png', kind: 'image', seconds: 5 },
@@ -234,6 +238,7 @@ test('removeEntry, reorderEntries, setEntrySeconds, removePush', async () => {
   await state.applyPush('lobby', {
     pushId: 'push_b',
     mode: 'append',
+    enabled: true,
     title: 'B',
     items: [{ mediaId: '3'.repeat(64), ext: 'png', kind: 'image', seconds: 7 }],
   });
@@ -364,6 +369,7 @@ test('referencedMedia and gcSweep respect references and grace period', async ()
   await state.applyPush('lobby', {
     pushId: 'p1',
     mode: 'append',
+    enabled: true,
     title: 'Active',
     items: [{ mediaId: refSha, ext: 'png', kind: 'image' }],
   });
@@ -386,4 +392,65 @@ test('referencedMedia and gcSweep respect references and grace period', async ()
   assert.ok(await storage.statMedia(refSha, 'png'));
   assert.equal(await storage.statMedia(oldUnrefSha, 'png'), null);
   assert.ok(await storage.statMedia(youngUnrefSha, 'mp4'));
+});
+
+test('enabled flag: pushes add disabled by default, playlist lists only enabled, toggles bump the version', async () => {
+  const storage = createMemoryStorage();
+  const state = createState(storage, { now: makeClock(), idGen: makeSeqId() });
+  await state.createScreen({ id: 'lobby', name: 'Lobby' });
+
+  await state.applyPush('lobby', {
+    pushId: 'push_a',
+    title: 'A',
+    items: [
+      { mediaId: '1'.repeat(64), ext: 'png', kind: 'image', seconds: 5 },
+      { mediaId: '2'.repeat(64), ext: 'png', kind: 'image', seconds: 6 },
+    ],
+  });
+  let screen = await state.getScreen('lobby');
+  assert.equal(screen.entryCount, 2);
+  assert.equal(screen.enabledEntryCount, 0);
+  assert.deepEqual(screen.entries.map((e) => e.enabled), [false, false]);
+  assert.equal((await state.getPlaylist('lobby')).entries.length, 0);
+
+  const [e1] = screen.entries;
+  const on = await state.setEntryEnabled('lobby', e1.entryId, true);
+  assert.equal(on.enabledEntryCount, 1);
+  assert.equal(on.playlistVersion, screen.playlistVersion + 1);
+  assert.deepEqual((await state.getPlaylist('lobby')).entries.map((e) => e.entryId), [e1.entryId]);
+
+  const all = await state.setPushEnabled('lobby', 'push_a', true);
+  assert.equal(all.enabledEntryCount, 2);
+  await state.setPushEnabled('lobby', 'push_a', false);
+  assert.equal((await state.getPlaylist('lobby')).entries.length, 0);
+
+  await assert.rejects(() => state.setEntryEnabled('lobby', e1.entryId, 'yes'), (e) => e.code === 'INVALID_ENABLED');
+  await assert.rejects(() => state.setEntryEnabled('lobby', 'nope', true), (e) => e.code === 'ENTRY_NOT_FOUND');
+  await assert.rejects(() => state.setPushEnabled('lobby', 'nope', true), (e) => e.code === 'PUSH_NOT_FOUND');
+});
+
+test('enabled flag: replace needs enabled true, and entries stored without the flag count as live', async () => {
+  const storage = createMemoryStorage();
+  const state = createState(storage, { now: makeClock(), idGen: makeSeqId() });
+  await state.createScreen({ id: 'lobby', name: 'Lobby' });
+  const item = { mediaId: '3'.repeat(64), ext: 'png', kind: 'image', seconds: 5 };
+
+  await assert.rejects(
+    () => state.applyPush('lobby', { pushId: 'p', mode: 'replace', title: 'R', items: [item] }),
+    (e) => e.code === 'INVALID_MODE',
+  );
+  await assert.rejects(
+    () => state.applyPush('lobby', { pushId: 'p', title: 'R', enabled: 'true', items: [item] }),
+    (e) => e.code === 'INVALID_ENABLED',
+  );
+  await state.applyPush('lobby', { pushId: 'p', mode: 'replace', enabled: true, title: 'R', items: [item] });
+  assert.equal((await state.getPlaylist('lobby')).entries.length, 1);
+
+  // A document written before the flag existed.
+  const res = await storage.getJson('state/screens/lobby.json');
+  const legacy = structuredClone(res.value);
+  delete legacy.entries[0].enabled;
+  await storage.putJson('state/screens/lobby.json', legacy, { ifMatch: res.etag });
+  assert.equal((await state.getPlaylist('lobby')).entries.length, 1);
+  assert.equal((await state.getScreen('lobby')).entries[0].enabled, true);
 });

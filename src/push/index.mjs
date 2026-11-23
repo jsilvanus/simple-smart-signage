@@ -36,7 +36,7 @@ export function createPushRunner({ config, storage, state, download, metrics } =
     backgroundSweeps.add(sweep);
   }
 
-  async function runPush(pushId, { screenId, mode, title, pages }) {
+  async function runPush(pushId, { screenId, mode, title, pages, enabled = false }) {
     try {
       await state.updatePush(pushId, {
         state: 'downloading',
@@ -117,6 +117,7 @@ export function createPushRunner({ config, storage, state, download, metrics } =
         mode,
         title,
         items,
+        enabled,
       });
 
       await state.updatePush(pushId, {
@@ -145,7 +146,7 @@ export function createPushRunner({ config, storage, state, download, metrics } =
   }
 
   /** Enqueue a validated push for background execution; throws 429 BUSY if > maxConcurrentPushes. */
-  async function enqueue({ screenId, mode = 'append', title, pages }) {
+  async function enqueue({ screenId, mode = 'append', title, pages, enabled = false }) {
     if (activeCount >= maxConcurrentPushes) {
       throw new HttpError('BUSY', 'Too many concurrent pushes', 429);
     }
@@ -159,7 +160,7 @@ export function createPushRunner({ config, storage, state, download, metrics } =
       throw err;
     }
 
-    const task = runPush(push.pushId, { screenId, mode, title, pages }).finally(() => {
+    const task = runPush(push.pushId, { screenId, mode, title, pages, enabled }).finally(() => {
       activeCount--;
       activeTasks.delete(task);
     });

@@ -284,6 +284,51 @@ function renderDetail() {
     els.powerBadge.hidden = true;
   }
 
+  renderEntries(screen);
+}
+
+let dragFromIndex = null;
+
+function clearDropMarks() {
+  for (const li of els.entriesList.children) li.classList.remove('drop-target');
+}
+
+function mediaUrlFor(entry) {
+  return `${base}/media/${entry.mediaId}.${entry.ext || 'png'}`;
+}
+
+function thumbFor(entry) {
+  const img = document.createElement('img');
+  img.className = 'entry-thumb';
+  img.alt = '';
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  img.src = mediaUrlFor(entry);
+  return img;
+}
+
+async function handleMove(screenId, entries, from, to) {
+  if (from === to || from == null || to == null) return;
+  const ids = entries.map((e) => e.entryId);
+  const [moved] = ids.splice(from, 1);
+  ids.splice(to, 0, moved);
+  setError('');
+  state.busy = true;
+  try {
+    await apiFetch(`/admin/screens/${encodeURIComponent(screenId)}/entries`, {
+      method: 'PUT',
+      body: { entryIds: ids },
+    });
+    setStatus('Playlist order updated.');
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    state.busy = false;
+    await loadScreens();
+  }
+}
+
+function renderEntries(screen) {
   const entries = screen.entries ?? [];
   els.playlistEmpty.hidden = entries.length > 0;
   els.entriesList.replaceChildren();
@@ -312,8 +357,39 @@ function renderDetail() {
     downBtn.disabled = index === entries.length - 1 || state.busy;
     downBtn.addEventListener('click', () => handleReorder(screen.id, entries, index, 1));
     reorder.append(upBtn, downBtn);
+    const grip = document.createElement('span');
+    grip.className = 'drag-grip';
+    grip.textContent = '⠿';
+    grip.title = 'Drag to reorder';
+    grip.setAttribute('aria-hidden', 'true');
+    reorder.append(grip);
+    // Only the grip starts a drag, so inputs and buttons keep working.
+    grip.addEventListener('pointerdown', () => { li.draggable = true; });
+    li.addEventListener('dragend', () => { li.draggable = false; li.classList.remove('dragging'); clearDropMarks(); dragFromIndex = null; });
+    li.addEventListener('dragstart', (ev) => {
+      dragFromIndex = index;
+      li.classList.add('dragging');
+      ev.dataTransfer.effectAllowed = 'move';
+      ev.dataTransfer.setData('text/plain', entry.entryId);
+    });
+    li.addEventListener('dragover', (ev) => {
+      if (dragFromIndex === null) return;
+      ev.preventDefault();
+      clearDropMarks();
+      li.classList.add('drop-target');
+    });
+    li.addEventListener('drop', (ev) => {
+      if (dragFromIndex === null) return;
+      ev.preventDefault();
+      const from = dragFromIndex;
+      dragFromIndex = null;
+      clearDropMarks();
+      handleMove(screen.id, entries, from, index);
+    });
 
-    const icon = createKindIcon(entry.kind);
+    const icon = entry.kind === 'image'
+      ? thumbFor(entry)
+      : createKindIcon(entry.kind);
 
     const info = document.createElement('div');
     info.className = 'entry-info';
@@ -412,10 +488,12 @@ function renderDetail() {
 
     li.append(reorder, icon, info, controls);
     li.dataset.entryId = entry.entryId;
+    li.dataset.index = String(index);
     els.entriesList.append(li);
   });
   updateNowPlaying();
 }
+
 
 /** Marks the entry every screen is playing at this moment. Same arithmetic as the player (src/playback/schedule.mjs). */
 function updateNowPlaying() {
@@ -446,6 +524,42 @@ function updateNowPlaying() {
 }
 
 setInterval(updateNowPlaying, 1000);
+
+// Thumbnail/list view. The choice is per browser and is optional, so storage errors are ignored.
+const viewToggle = document.getElementById('view-toggle');
+function applyView(grid) {
+  els.entriesList.classList.toggle('entries-list--grid', grid);
+  if (viewToggle) viewToggle.textContent = grid ? 'List view' : 'Thumbnail view';
+}
+applyView((() => { try { return window.localStorage.getItem('sissi:admin:view') === 'grid'; } catch { return false; } })());
+viewToggle?.addEventListener('click', () => {
+  const grid = !els.entriesList.classList.contains('entries-list--grid');
+  try { window.localStorage.setItem('sissi:admin:view', grid ? 'grid' : 'list'); } catch { /* ignore */ }
+  applyView(grid);
+});
+
+// Poll every 5 s for playlist changes made elsewhere. Only the playlist list is re-rendered,
+// and only when something actually changed. Paused while a drag or another action is running.
+let lastPlaylistSig = null;
+async function pollPlaylist() {
+  if (!state.selectedId || dragFromIndex !== null || state.busy) return;
+  try {
+    const data = await apiFetch('/admin/screens', { redirectOn401: false });
+    if (Number.isFinite(data?.serverTime)) state.clockOffsetMs = data.serverTime - Date.now();
+    const next = data?.screens ?? [];
+    const cur = next.find((sc) => sc.id === state.selectedId);
+    if (!cur) return;
+    const sig = `${cur.playlistVersion}|${JSON.stringify(cur.entries ?? [])}`;
+    if (sig === lastPlaylistSig) return;
+    lastPlaylistSig = sig;
+    state.screens = next;
+    els.playlistVersion.textContent = `v${cur.playlistVersion ?? 0}`;
+    renderEntries(cur);
+  } catch {
+    // Keep the current list; the next poll tries again.
+  }
+}
+setInterval(pollPlaylist, 5000);
 
 async function handleUpload(file) {
   if (!file) return;

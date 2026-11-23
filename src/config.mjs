@@ -25,6 +25,41 @@ export function normalizePublicPath(p) {
   return s.replace(/\/+$/, '');
 }
 
+export const SISSI_RIGHTS = Object.freeze(['sissi:write', 'sissi:operate']);
+
+/**
+ * "<group>=sissi:write,sissi:operate;<group2>=sissi:write" -> Map(group -> Set(right)).
+ * Only sissi:write and sissi:operate are ever granted. Anything else (a wildcard, Pi modules,
+ * presets such as @operator) is ignored on purpose, so a mapping written for the Pi gateway
+ * can never give a Sissi right. A mapping that grants nothing is a configuration error.
+ */
+export function parseGroupRights(raw, problems = []) {
+  const map = new Map();
+  for (const part of String(raw ?? '').split(';')) {
+    const entry = part.trim();
+    if (!entry) continue;
+    const idx = entry.indexOf('=');
+    if (idx <= 0) {
+      problems.push(`SISSI_TUNNUS_GROUP_RIGHTS entry "${entry}" must be group=right[,right]`);
+      continue;
+    }
+    const group = entry.slice(0, idx).trim();
+    const rights = entry
+      .slice(idx + 1)
+      .split(',')
+      .map((r) => r.trim())
+      .filter((r) => SISSI_RIGHTS.includes(r));
+    if (!group || rights.length === 0) continue;
+    const set = map.get(group) ?? new Set();
+    for (const r of rights) set.add(r);
+    map.set(group, set);
+  }
+  if (map.size === 0) {
+    problems.push('SISSI_TUNNUS_GROUP_RIGHTS must grant at least one of sissi:write, sissi:operate to a group');
+  }
+  return map;
+}
+
 export function loadConfig(env = process.env) {
   const problems = [];
   const str = (name, def = '') => {
@@ -153,7 +188,41 @@ export function loadConfig(env = process.env) {
     }
   }
 
+  // Tunnus sign-in (docs/tunnus-sign-in.md). Everything is off unless SISSI_AUTH_MODE is both or tunnus.
+  const authMode = str('SISSI_AUTH_MODE', 'legacy');
+  if (!['legacy', 'both', 'tunnus'].includes(authMode)) {
+    problems.push(`SISSI_AUTH_MODE must be "legacy", "both" or "tunnus" (got "${authMode}")`);
+  }
+  let tunnus = null;
+  if (authMode === 'both' || authMode === 'tunnus') {
+    const issuer = str('SISSI_TUNNUS_ISSUER').replace(/\/+$/, '');
+    const audience = str('SISSI_TUNNUS_AUDIENCE');
+    const jwksUrl = str('SISSI_TUNNUS_JWKS_URL');
+    const urlOk = (v, name) => {
+      try {
+        const u = new URL(v);
+        if (u.protocol !== 'https:' && !(u.protocol === 'http:' && !production)) throw new Error('protocol');
+      } catch {
+        problems.push(`${name} must be an https URL (got "${v}")`);
+      }
+    };
+    if (!issuer) problems.push('SISSI_TUNNUS_ISSUER is required when SISSI_AUTH_MODE is both or tunnus');
+    else urlOk(issuer, 'SISSI_TUNNUS_ISSUER');
+    if (!audience) problems.push('SISSI_TUNNUS_AUDIENCE is required when SISSI_AUTH_MODE is both or tunnus');
+    if (jwksUrl) urlOk(jwksUrl, 'SISSI_TUNNUS_JWKS_URL');
+    const groupRights = parseGroupRights(str('SISSI_TUNNUS_GROUP_RIGHTS'), problems);
+    tunnus = {
+      issuer,
+      audience,
+      jwksUrl,
+      groupRights,
+      leewaySeconds: int('SISSI_TUNNUS_LEEWAY_SECONDS', 30, { max: 300 }),
+    };
+  }
+
   const config = {
+    authMode,
+    tunnus,
     nodeEnv,
     production,
     port: int('PORT', 3000, { max: 65535 }),

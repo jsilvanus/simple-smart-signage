@@ -1,5 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { HttpError } from '../router.mjs';
+import { assertRights, createTunnusVerifier } from '../auth/tunnus.mjs';
 
 const COOKIE_NAME = 'sissi_admin';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -36,7 +37,10 @@ function clientIp(req) {
 /**
  * Create admin session authentication and rate-limited login/logout helpers.
  */
-export function createAdminAuth(config, { now = () => Date.now() } = {}) {
+export function createAdminAuth(config, { now = () => Date.now(), fetch: fetchFn = globalThis.fetch, tunnus } = {}) {
+  const mode = config?.authMode ?? 'legacy';
+  const tunnusVerifier = mode === 'legacy' ? null : (tunnus ?? createTunnusVerifier(config, { fetch: fetchFn, now }));
+  const passwordOn = mode !== 'tunnus';
   const failuresByIp = new Map();
   const cookiePath = config?.publicPath || '/';
   const secureAttr = config?.production ? '; Secure' : '';
@@ -115,6 +119,7 @@ export function createAdminAuth(config, { now = () => Date.now() } = {}) {
   }
 
   async function login(req, res, body) {
+    if (!passwordOn) throw new HttpError('UNAUTHORIZED', 'Password sign-in is disabled');
     ensureConfigured();
     const nowMs = getNowMs();
     const ip = clientIp(req);
@@ -141,6 +146,7 @@ export function createAdminAuth(config, { now = () => Date.now() } = {}) {
   }
 
   function requireAdmin(req) {
+    if (!passwordOn) throw new HttpError('UNAUTHORIZED', 'Password sign-in is disabled');
     ensureConfigured();
     const token = parseCookie(req?.headers?.cookie, COOKIE_NAME);
     if (!verifyToken(token, getNowMs())) {
@@ -152,6 +158,24 @@ export function createAdminAuth(config, { now = () => Date.now() } = {}) {
     }
   }
 
+  /**
+   * Tunnus-aware gate for the routes a person with sissi rights may use.
+   * A Bearer token is verified as a Tunnus token and checked against `need`
+   * ('any' | 'write' | 'operate' | array = all). Without a Bearer header the admin
+   * cookie is required, exactly as before (unless SISSI_AUTH_MODE=tunnus). Setup routes
+   * (screens, power) keep calling requireAdmin and never accept a Tunnus token.
+   */
+  async function authorize(req, need) {
+    const m = /^Bearer\s+(\S+)$/i.exec((req?.headers?.authorization ?? '').trim());
+    if (m && tunnusVerifier) {
+      const principal = await tunnusVerifier.verify(m[1]);
+      assertRights(principal, need);
+      return principal;
+    }
+    requireAdmin(req);
+    return { kind: 'admin' };
+  }
+
   function logout(req, res) {
     const cookie = `${COOKIE_NAME}=; Path=${cookiePath}; HttpOnly; SameSite=Strict; Max-Age=0${secureAttr}`;
     res.writeHead(204, { 'set-cookie': cookie });
@@ -161,6 +185,7 @@ export function createAdminAuth(config, { now = () => Date.now() } = {}) {
   return {
     login,
     requireAdmin,
+    authorize,
     logout,
   };
 }

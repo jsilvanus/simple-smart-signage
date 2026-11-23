@@ -57,7 +57,7 @@ function validatePushBody(body, config) {
   }
 
   // Publishing content (enabled: false, the default) and making it live (enabled: true)
-  // are different rights; the Tunnus work will check sissi:operate for enabled: true.
+  // are different rights: sissi:write and sissi:operate (checked in the route for Tunnus sign-ins).
   const enabled = body.enabled ?? false;
   if (typeof enabled !== 'boolean') {
     throw new HttpError('INVALID_ENABLED', 'enabled must be a boolean', 422);
@@ -113,10 +113,12 @@ export function registerPushRoutes(router, ctx) {
 
   router.post('/api/v1/push', async (req, res) => {
     ctx.auth.applyCors(req, res);
-    await ctx.auth.authenticate(req);
+    const principal = await ctx.auth.authenticate(req);
 
     const raw = await router.readJson(req);
     const input = validatePushBody(raw, ctx.config);
+    // Content needs sissi:write. Going live (enabled) or replacing needs sissi:operate as well.
+    ctx.auth.assertRights?.(principal, input.enabled || input.mode === 'replace' ? ['write', 'operate'] : 'write');
 
     try {
       await ctx.state.getScreen(input.screenId);
@@ -139,7 +141,7 @@ export function registerPushRoutes(router, ctx) {
 
   router.get('/api/v1/push/:pushId', async (req, res, { params }) => {
     ctx.auth.applyCors(req, res);
-    await ctx.auth.authenticate(req);
+    ctx.auth.assertRights?.(await ctx.auth.authenticate(req), 'any');
 
     if (typeof params.pushId !== 'string' || !PUSH_ID_RE.test(params.pushId)) {
       throw new HttpError('PUSH_NOT_FOUND', 'Unknown push', 404);

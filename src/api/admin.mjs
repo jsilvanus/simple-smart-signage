@@ -65,7 +65,7 @@ export function registerAdminRoutes(router, ctx) {
   });
 
   router.get('/api/v1/admin/screens', async (req, res) => {
-    adminAuth.requireAdmin(req);
+    await adminAuth.authorize(req, 'any');
     const screens = await runState(() => state.listScreens());
     sendJson(res, 200, { screens: screens.map(withPowerStatus) });
   });
@@ -102,7 +102,7 @@ export function registerAdminRoutes(router, ctx) {
   });
 
   router.put('/api/v1/admin/screens/:screenId/entries', async (req, res, { params }) => {
-    adminAuth.requireAdmin(req);
+    await adminAuth.authorize(req, 'write');
     assertScreenId(params.screenId);
     const body = await router.readJson(req);
     const screen = await runState(() => state.reorderEntries(params.screenId, body?.entryIds));
@@ -114,14 +114,18 @@ export function registerAdminRoutes(router, ctx) {
   });
 
   router.patch('/api/v1/admin/screens/:screenId/entries/:entryId', async (req, res, { params }) => {
-    adminAuth.requireAdmin(req);
+    await adminAuth.authorize(req, 'any');
     assertScreenId(params.screenId);
     assertOpaqueId(params.entryId, 'ENTRY_NOT_FOUND', 'entry');
     const body = await router.readJson(req);
+    // seconds is content (sissi:write); enabled is the live change (sissi:operate).
+    await adminAuth.authorize(req, [
+      ...(body?.seconds !== undefined ? ['write'] : []),
+      ...(body?.enabled !== undefined ? ['operate'] : []),
+    ]);
     if (body?.seconds === undefined && body?.enabled === undefined) {
       throw new HttpError('INVALID_SECONDS', 'Provide seconds and/or enabled');
     }
-    // Enabling or disabling is the live change (sissi:operate once Tunnus is wired); seconds is content.
     let screen;
     if (body.seconds !== undefined) {
       screen = await runState(() => state.setEntrySeconds(params.screenId, params.entryId, body.seconds));
@@ -134,16 +138,20 @@ export function registerAdminRoutes(router, ctx) {
   });
 
   router.delete('/api/v1/admin/screens/:screenId/entries/:entryId', async (req, res, { params }) => {
-    adminAuth.requireAdmin(req);
+    await adminAuth.authorize(req, 'any');
     assertScreenId(params.screenId);
     assertOpaqueId(params.entryId, 'ENTRY_NOT_FOUND', 'entry');
+    // Removing a live entry changes what is on screen (operate); removing a disabled one is content (write).
+    const screen = await runState(() => state.getScreen(params.screenId));
+    const entry = screen.entries.find((e) => e.entryId === params.entryId);
+    await adminAuth.authorize(req, entry?.enabled === false ? 'write' : 'operate');
     await runState(() => state.removeEntry(params.screenId, params.entryId));
     await triggerGc();
     sendNoContent(res);
   });
 
   router.patch('/api/v1/admin/screens/:screenId/pushes/:pushId', async (req, res, { params }) => {
-    adminAuth.requireAdmin(req);
+    await adminAuth.authorize(req, 'operate');
     assertScreenId(params.screenId);
     assertOpaqueId(params.pushId, 'PUSH_NOT_FOUND', 'push');
     const body = await router.readJson(req);
@@ -156,9 +164,12 @@ export function registerAdminRoutes(router, ctx) {
   });
 
   router.delete('/api/v1/admin/screens/:screenId/pushes/:pushId', async (req, res, { params }) => {
-    adminAuth.requireAdmin(req);
+    await adminAuth.authorize(req, 'any');
     assertScreenId(params.screenId);
     assertOpaqueId(params.pushId, 'PUSH_NOT_FOUND', 'push');
+    const screen = await runState(() => state.getScreen(params.screenId));
+    const live = screen.entries.some((e) => e.pushId === params.pushId && e.enabled !== false);
+    await adminAuth.authorize(req, live ? 'operate' : 'write');
     await runState(() => state.removePush(params.screenId, params.pushId));
     await triggerGc();
     sendNoContent(res);

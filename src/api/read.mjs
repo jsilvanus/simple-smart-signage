@@ -157,6 +157,8 @@ export function registerReadRoutes(router, ctx) {
         screenId: playlist.screenId,
         version: playlist.version,
         orientation: playlist.orientation,
+        // Server clock (ms). Players use it to find the shared position in the cycle (see docs/playback-sync.md).
+        serverTime: Date.now(),
         entries,
       },
       { 'cache-control': 'no-cache', 'access-control-allow-origin': '*' },

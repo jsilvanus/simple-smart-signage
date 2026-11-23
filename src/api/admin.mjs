@@ -1,4 +1,10 @@
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { createAdminAuth } from '../admin-auth/index.mjs';
+import { sniffKind } from '../download/index.mjs';
+import { sha256Hex } from '../storage/common.mjs';
 import { ERROR_STATUS, HttpError, sendJson } from '../router.mjs';
 import { StateError } from '../state/index.mjs';
 
@@ -26,6 +32,24 @@ async function runState(fn) {
     }
     throw err;
   }
+}
+
+const PNG_MAX_TITLE = 200;
+
+/** Reads a raw request body up to maxBytes. Throws HttpError(TOO_LARGE) when over. */
+async function readRawBody(req, maxBytes) {
+  const declared = Number(req.headers['content-length']);
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    throw new HttpError('TOO_LARGE', `File is larger than the ${maxBytes} byte limit`);
+  }
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > maxBytes) throw new HttpError('TOO_LARGE', `File is larger than the ${maxBytes} byte limit`);
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
 }
 
 function sendNoContent(res) {
@@ -67,7 +91,7 @@ export function registerAdminRoutes(router, ctx) {
   router.get('/api/v1/admin/screens', async (req, res) => {
     await adminAuth.authorize(req, 'read');
     const screens = await runState(() => state.listScreens());
-    sendJson(res, 200, { screens: screens.map(withPowerStatus) });
+    sendJson(res, 200, { serverTime: Date.now(), screens: screens.map(withPowerStatus) });
   });
 
   router.post('/api/v1/admin/screens', async (req, res) => {
@@ -148,6 +172,46 @@ export function registerAdminRoutes(router, ctx) {
     await runState(() => state.removeEntry(params.screenId, params.entryId));
     await triggerGc();
     sendNoContent(res);
+  });
+
+  // Manual PNG upload into a screen's playlist. The entry is added disabled, so it needs
+  // sissi:operate (enable) before it goes live. Body: raw image/png bytes.
+  router.post('/api/v1/admin/screens/:screenId/uploads', async (req, res, { params }) => {
+    await adminAuth.authorize(req, 'write');
+    assertScreenId(params.screenId);
+    const buf = await readRawBody(req, config.limits.imageBytes);
+    const sniffed = sniffKind(buf);
+    if (!sniffed || sniffed.kind !== 'image' || sniffed.ext !== 'png') {
+      throw new HttpError('UNSUPPORTED_TYPE', 'Only PNG images can be uploaded');
+    }
+    if (!storage) throw new HttpError('INTERNAL', 'Storage is not configured');
+
+    const sha256 = sha256Hex(buf);
+    const tmpPath = path.join(os.tmpdir(), `sissi-upload-${crypto.randomBytes(8).toString('hex')}.png`);
+    await fs.promises.writeFile(tmpPath, buf);
+    let screen;
+    try {
+      await storage.putMediaFromFile(sha256, 'png', tmpPath, 'image/png');
+      const pushId = `upload_${crypto.randomBytes(8).toString('hex')}`;
+      const rawTitle = String(req.headers['x-upload-title'] ?? '').trim();
+      const title = (rawTitle || 'Uploaded PNG').slice(0, PNG_MAX_TITLE);
+      const applied = await runState(() =>
+        state.applyPush(params.screenId, {
+          pushId,
+          mode: 'append',
+          title,
+          items: [{ mediaId: sha256, ext: 'png', kind: 'image' }],
+          enabled: false,
+        }),
+      );
+      screen = applied;
+    } finally {
+      await fs.promises.rm(tmpPath, { force: true }).catch(() => {});
+    }
+    const entry = (await runState(() => state.getScreen(params.screenId))).entries
+      .filter((e) => e.mediaId === sha256)
+      .at(-1);
+    sendJson(res, 201, { screenId: params.screenId, version: screen.playlistVersion, entry });
   });
 
   router.patch('/api/v1/admin/screens/:screenId/pushes/:pushId', async (req, res, { params }) => {

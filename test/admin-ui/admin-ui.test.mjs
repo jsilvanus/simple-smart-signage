@@ -152,3 +152,22 @@ test('helpers: buildScreenPayload, reorderedEntryIds, extractErrorMessage, forma
   assert.equal(formatAddedAt(''), '');
   assert.ok(formatAddedAt('2026-11-19T10:00:00.000Z').length > 0);
 });
+
+test('GET / redirects to the admin page, respecting the public path', async () => {
+  const srv = await setupUiServer();
+  try {
+    const res = await fetch(srv.base + '/', { redirect: 'manual' });
+    assert.equal(res.status, 302);
+    assert.equal(res.headers.get('location'), '/signage/admin/');
+  } finally {
+    await srv.close();
+  }
+  const bare = await setupUiServer({ SISSI_PUBLIC_PATH: '' });
+  try {
+    const res = await fetch(bare.base + '/', { redirect: 'manual' });
+    assert.equal(res.status, 302);
+    assert.equal(res.headers.get('location'), '/admin/');
+  } finally {
+    await bare.close();
+  }
+});

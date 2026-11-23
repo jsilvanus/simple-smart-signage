@@ -63,6 +63,12 @@ export function registerAdminUiRoutes(router, _ctx = {}) {
     sendStatic(req, res, html, 'text/html; charset=utf-8');
   }
 
+  // Root goes to the admin page for now (respects the public path: /signage/ -> /signage/admin/).
+  router.get('/', (req, res) => {
+    res.writeHead(302, { location: router.url('/admin/'), 'cache-control': 'no-cache' });
+    res.end();
+  });
+
   router.get('/admin', serveIndex);
   router.get('/admin/', serveIndex);
 

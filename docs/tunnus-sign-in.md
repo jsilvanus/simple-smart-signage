@@ -16,6 +16,7 @@ The Canva app signs in once with Tunnus (one client, a fixed audience list). Its
 
 | Right | Allows |
 |---|---|
+| `sissi:read` | Read only: `GET /api/v1/screens`, `GET /api/v1/push/:id` (push status) and the admin screen list. Write and operate also satisfy these reads. |
 | `sissi:write` | Publish content: `POST /api/v1/push` with `enabled: false` (the default), reorder entries, change an entry's seconds, remove **disabled** entries and pushes. |
 | `sissi:operate` | Make content live: push with `enabled: true` or `mode: replace` (these also need `sissi:write`, because they publish content), enable or disable an entry or a push, remove **live** entries and pushes. |
 
@@ -27,12 +28,12 @@ The two are independent: `operate` does not imply `write`. `GET /api/v1/screens`
 SISSI_AUTH_MODE=legacy|both|tunnus     # default legacy: nothing below is read
 SISSI_TUNNUS_ISSUER=<issuer URL>
 SISSI_TUNNUS_AUDIENCE=<the resource URI the Canva client requests for Sissi>
-SISSI_TUNNUS_GROUP_RIGHTS=<group>=sissi:write,sissi:operate;<group2>=sissi:write
+SISSI_TUNNUS_GROUP_RIGHTS=<group>=sissi:read;<group2>=sissi:write,sissi:operate
 SISSI_TUNNUS_JWKS_URL=                 # optional
 SISSI_TUNNUS_LEEWAY_SECONDS=30
 ```
 
-Only `sissi:write` and `sissi:operate` are ever granted. Wildcards (`*`), Pi modules and presets such as `@operator` in this value are ignored, so a mapping written for the Pi gateway can not give a Sissi right; a mapping that grants nothing is a startup error. Real group names belong in the private deploy repo, not here.
+Only `sissi:read`, `sissi:write` and `sissi:operate` are ever granted. Wildcards (`*`), Pi modules and presets such as `@operator` in this value are ignored, so a mapping written for the Pi gateway can not give a Sissi right; a mapping that grants nothing is a startup error. Real group names belong in the private deploy repo, not here.
 
 Modes: `legacy` is today's behaviour. `both` accepts Tunnus tokens next to the push key, the Canva token and the admin password (use while rolling out). `tunnus` refuses the push key, Canva tokens and the password.
 

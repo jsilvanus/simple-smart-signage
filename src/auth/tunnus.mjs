@@ -108,17 +108,28 @@ export function createTunnusVerifier(config, { fetch: fetchFn = globalThis.fetch
 }
 
 /**
- * need: 'any' (write or operate) | 'write' | 'operate' | array of those (all required).
- * Rights are independent: operate does not imply write, nor the other way round.
+ * need: 'read' (read, write or operate) | 'any' (write or operate) | 'write' | 'operate' | array of those (all required).
+ * Rights are independent: operate does not imply write, nor the other way round. Read is the
+ * only right that write or operate also satisfy, because they can already see everything read shows.
  */
 export function assertRights(principal, need) {
   if (principal?.kind !== 'tunnus') return; // legacy principals keep their existing trust
   const needs = Array.isArray(need) ? need : [need];
   for (const n of needs) {
-    const allowed =
-      n === 'any' ? principal.rights.has('sissi:write') || principal.rights.has('sissi:operate') : principal.rights.has(`sissi:${n}`);
+    let allowed;
+    let label;
+    if (n === 'read') {
+      allowed = ['sissi:read', 'sissi:write', 'sissi:operate'].some((r) => principal.rights.has(r));
+      label = 'sissi:read, sissi:write or sissi:operate';
+    } else if (n === 'any') {
+      allowed = principal.rights.has('sissi:write') || principal.rights.has('sissi:operate');
+      label = 'sissi:write or sissi:operate';
+    } else {
+      allowed = principal.rights.has(`sissi:${n}`);
+      label = `sissi:${n}`;
+    }
     if (!allowed) {
-      throw new HttpError('FORBIDDEN', `Requires sissi:${n === 'any' ? 'write or sissi:operate' : n}`);
+      throw new HttpError('FORBIDDEN', `Requires ${label}`);
     }
   }
 }

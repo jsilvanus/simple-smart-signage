@@ -320,3 +320,15 @@ test('CORS allowed, disallowed, and preflight handling over HTTP', async () => {
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test('SISSI_REQUIRE_TEAM_IDS=false switches Canva team-ID entry off', async () => {
+  const { createAuth } = await import('../../src/auth/index.mjs');
+  const { loadConfig } = await import('../../src/config.mjs');
+  const base = { SISSI_CANVA_APP_ID: 'app1', SISSI_CANVA_ALLOWED_BRANDS: 'brand1' };
+  const off = createAuth(loadConfig({ ...base, SISSI_REQUIRE_TEAM_IDS: 'false' }));
+  // With Canva off and no push key, no auth method is left, so the request is refused.
+  await assert.rejects(() => off.authenticate({ headers: { authorization: 'Bearer abc.def.ghi' } }), (err) => {
+    assert.equal(err.code, 'AUTH_NOT_CONFIGURED');
+    return true;
+  });
+});

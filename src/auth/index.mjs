@@ -38,7 +38,9 @@ export function createAuth(config, { fetch: fetchFn = globalThis.fetch, now = ()
   const legacyOn = mode !== 'tunnus';
   const appId = config?.canva?.appId || '';
   const allowedBrands = new Set(config?.canva?.allowedBrands ?? []);
-  const hasCanva = legacyOn && Boolean(appId && allowedBrands.size > 0);
+  // Team-ID entry is on only when SISSI_REQUIRE_TEAM_IDS is not false and a brand allow-list is set.
+  const teamIdsOn = config?.canva?.requireTeamIds !== false;
+  const hasCanva = legacyOn && teamIdsOn && Boolean(appId && allowedBrands.size > 0);
   const pushKey = config?.pushKey || '';
   const hasPushKey = legacyOn && Boolean(pushKey);
   const corsOrigins = new Set(config?.corsOrigins ?? []);

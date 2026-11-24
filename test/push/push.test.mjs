@@ -153,7 +153,7 @@ test('happy path: image + video (including kind omitted) and replace mode', asyn
       enabled: true,
       title: 'Morning Deck',
       pages: [
-        { pageNumber: 1, url: `${dlServer.base}/img.png?sig=secret123` },
+        { pageNumber: 1, url: `${dlServer.base}/img.png?sig=secret123`, alt: 'Welcome image', headline: 'Welcome', caption: 'Sunday service', link: 'https://example.org/service' },
         { pageNumber: 2, kind: 'video', url: `${dlServer.base}/vid.mp4`, seconds: 999 },
       ],
     },
@@ -187,6 +187,10 @@ test('happy path: image + video (including kind omitted) and replace mode', asyn
   assert.equal(playlist.entries.length, 2);
   assert.equal(playlist.entries[0].kind, 'image');
   assert.equal(playlist.entries[0].seconds, 10); // defaultImageSeconds
+  assert.equal(playlist.entries[0].alt, 'Welcome image');
+  assert.equal(playlist.entries[0].headline, 'Welcome');
+  assert.equal(playlist.entries[0].caption, 'Sunday service');
+  assert.equal(playlist.entries[0].link, 'https://example.org/service');
   assert.equal(playlist.entries[1].kind, 'video');
   assert.equal(playlist.entries[1].seconds, 7); // durationSeconds, ignoring 999
   assert.ok(await storage.statMedia(playlist.entries[0].mediaId, 'png'));

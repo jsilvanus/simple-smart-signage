@@ -91,6 +91,7 @@ test('GET /api/v1/screens requires auth and returns OpenAPI Screen shape with CO
       screens: [
         {
           id: 'lobby',
+          kind: 'screen',
           name: 'Lobby',
           orientation: 'landscape',
           width: 1920,

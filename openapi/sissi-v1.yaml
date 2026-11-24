@@ -10,6 +10,35 @@ servers:
 security:
   - bearer: []
 paths:
+  /v/{viewId}/playlist.json:
+    get:
+      operationId: getViewPlaylist
+      description: Public (no secret). Enabled entries of a view; an aggregate joins its members in order. CORS only for the view's allowedOrigins.
+      parameters:
+        - { name: viewId, in: path, required: true, schema: { type: string, pattern: '^[a-z0-9-]{1,40}$' } }
+      responses:
+        '200':
+          description: View playlist
+        '404':
+          description: Unknown view (screens are not views)
+  /v/{viewId}/frame:
+    get:
+      operationId: getViewFrame
+      description: Standalone page for an iframe. Content-Security-Policy frame-ancestors lists the view's allowedOrigins ('none' when empty).
+      parameters:
+        - { name: viewId, in: path, required: true, schema: { type: string, pattern: '^[a-z0-9-]{1,40}$' } }
+      responses:
+        '200': { description: HTML page }
+        '404': { description: Unknown view }
+  /v/{viewId}/embed.js:
+    get:
+      operationId: getViewEmbedScript
+      description: Script embed. Renders the view into every element with the attribute data-sissi-embed in a shadow root, placed before the script tag.
+      parameters:
+        - { name: viewId, in: path, required: true, schema: { type: string, pattern: '^[a-z0-9-]{1,40}$' } }
+      responses:
+        '200': { description: JavaScript }
+        '404': { description: Unknown view }
   /screens:
     get:
       operationId: listScreens
@@ -337,6 +366,7 @@ components:
       required: [id, name, orientation, defaultImageSeconds, maxVideoSeconds, entryCount, playlistVersion]
       properties:
         id: { type: string, pattern: '^[a-z0-9-]{1,40}$' }
+        kind: { type: string, enum: [screen, view, aggregate], description: Screens play on a display; views are embedded in web pages; aggregates join views (no items of their own) }
         name: { type: string }
         orientation: { type: string, enum: [landscape, vertical] }
         width: { type: integer, nullable: true }
@@ -403,6 +433,10 @@ components:
         title: { type: string }
         pushId: { type: string }
         addedAt: { type: string, format: date-time }
+        alt: { type: string, nullable: true, maxLength: 300, description: Alternative text with everything the image says }
+        headline: { type: string, nullable: true, maxLength: 120, description: Title rendered on the image }
+        caption: { type: string, nullable: true, maxLength: 500, description: Smaller text below the image }
+        link: { type: string, nullable: true, description: Optional https link; the item is clickable }
         enabled:
           type: boolean
           description: Only enabled entries are in playlist.json. New pushes add entries disabled unless the push says enabled true. Entries stored before this field existed count as enabled.

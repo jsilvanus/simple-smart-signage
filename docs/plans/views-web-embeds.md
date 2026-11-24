@@ -1,6 +1,6 @@
 # Views: Sissi content for web pages
 
-Status: plan, nothing built. Date: 2026-11-24. Requested by Juha.
+Status: section 7 items 1-2 built on branch claude/sissi-views-web (data model, text fields, aggregates, public routes, carousel/single/gallery renderer, tests). Not built: scoped rights and the read-only rights panel (section 5), the admin snippet panel (item 4), Canva (item 5). Date: 2026-11-24. Requested by Juha.
 Deployment (VPS, Traefik, Tunnus client setup) belongs to the "Seurakunnan appit" project and is out of scope here.
 
 ## 1. Idea
@@ -134,6 +134,9 @@ Order (Juha: piprogram, Canva and Sissi items first). Haiku-sized unless marked.
 Tasks 1-3 and 5 are separate cheap threads. Nothing needs a Pi or the VPS; the church web page snippet is pasted by whoever edits the site.
 
 ## 8. Decided and still open
+
+Built so far (2026-11-24): `src/views/embed.mjs` (validation, aggregate join, CSP/CORS), `src/views/runtime.js` (shared browser renderer; DOM and textContent only), `src/api/views.mjs` (the three public routes), `kind`/`embed`/`members`/text fields in `src/state`, `test/views/`. Checked in headless Chromium: the frame page shows the carousel, and the script embed mounts in a shadow root from a same-origin page. A cross-origin script embed was not checked, because this Chromium blocks public-to-loopback requests.
+
 
 Decided (Juha 2026-11-24): public views with per-view origins; text fields alt/title/text/link; aggregates; old `piprogram-atem` dropped; DVE list from PiGraphics via pigateway; rights managed entirely in Tunnus, Sissi's rights panel is read-only (ids and copyable keys); Tunnus gets `:`/`@` (separate Haiku thread in riksunsrk/infra), so `sissi:write@id` is the main form.
 

@@ -5,6 +5,7 @@ import { registerReadRoutes } from './api/read.mjs';
 import { registerAdminRoutes } from './api/admin.mjs';
 import { registerPlayerRoutes } from './api/player.mjs';
 import { registerAdminUiRoutes } from './api/admin-ui.mjs';
+import { registerViewRoutes } from './api/views.mjs';
 import { registerPowerRoutes } from './api/power.mjs';
 import { registerAdminOidcRoutes } from './api/admin-oidc.mjs';
 
@@ -53,6 +54,7 @@ export function registerRoutes(router, ctx) {
     registerAdminRoutes(router, ctx);
   }
   if (ctx.state) {
+    registerViewRoutes(router, ctx);
     registerPlayerRoutes(router, ctx);
     registerPowerRoutes(router, ctx);
   }

@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { ERROR_STATUS } from '../router.mjs';
+import { validateEmbed, validateItemText, validateMembers } from '../views/embed.mjs';
 
 const SCREEN_ID_RE = /^[a-z0-9-]{1,40}$/;
 const ORIENTATIONS = new Set(['landscape', 'vertical']);
@@ -54,6 +55,9 @@ function withEnabled(entry) {
 function toScreenView(doc) {
   return {
     id: doc.id,
+    kind: doc.kind ?? 'screen',
+    embed: doc.embed ?? null,
+    members: doc.members ?? null,
     name: doc.name,
     orientation: doc.orientation,
     width: doc.width ?? null,
@@ -66,6 +70,16 @@ function toScreenView(doc) {
     entries: doc.entries.map(withEnabled),
     power: doc.power ?? null,
   };
+}
+
+const VIEW_KIND_SET = new Set(['screen', 'view', 'aggregate']);
+
+function isViewDoc(doc) {
+  return doc.kind === 'view' || doc.kind === 'aggregate';
+}
+
+function isScreenDoc(doc) {
+  return (doc.kind ?? 'screen') === 'screen';
 }
 
 function validateOptionalShortString(value, field, maxLen = 64) {
@@ -179,9 +193,22 @@ function validateScreenCreate(input) {
       ? 10
       : validateImageSeconds(input.defaultImageSeconds, 'defaultImageSeconds');
   const maxVideoSeconds = validateNullablePositiveInt(input.maxVideoSeconds, 'maxVideoSeconds', 'INVALID_SECONDS');
-  const power = input.power === undefined ? null : validatePower(input.power);
+  const kind = input.kind ?? 'screen';
+  if (!VIEW_KIND_SET.has(kind)) {
+    throw new StateError('INVALID_SCREEN', 'kind must be screen, view or aggregate');
+  }
+  if (kind === 'screen') {
+    if (input.embed !== undefined || input.members !== undefined) {
+      throw new StateError('INVALID_SCREEN', 'embed and members are only for views and aggregates');
+    }
+  } else if (input.power !== undefined) {
+    throw new StateError('INVALID_SCREEN', 'Views have no power settings');
+  }
+  const power = kind === 'screen' && input.power !== undefined ? validatePower(input.power) : null;
+  const embed = kind === 'screen' ? null : validateEmbed(input.embed);
+  const members = kind === 'aggregate' ? validateMembers(input.members ?? [], input.id) : null;
 
-  return {
+  const doc = {
     id: input.id,
     name: input.name,
     orientation,
@@ -193,6 +220,12 @@ function validateScreenCreate(input) {
     version: 1,
     entries: [],
   };
+  if (kind !== 'screen') {
+    doc.kind = kind;
+    doc.embed = embed;
+    doc.members = members;
+  }
+  return doc;
 }
 
 function applyScreenPatch(doc, patch) {
@@ -226,7 +259,16 @@ function applyScreenPatch(doc, patch) {
   if (patch.maxVideoSeconds !== undefined) {
     doc.maxVideoSeconds = validateNullablePositiveInt(patch.maxVideoSeconds, 'maxVideoSeconds', 'INVALID_SECONDS');
   }
+  if (patch.embed !== undefined) {
+    if (isScreenDoc(doc)) throw new StateError('INVALID_SCREEN', 'embed is only for views and aggregates');
+    doc.embed = validateEmbed(patch.embed);
+  }
+  if (patch.members !== undefined) {
+    if (doc.kind !== 'aggregate') throw new StateError('INVALID_SCREEN', 'members is only for aggregates');
+    doc.members = validateMembers(patch.members, doc.id);
+  }
   if (patch.power !== undefined) {
+    if (!isScreenDoc(doc)) throw new StateError('INVALID_SCREEN', 'Views have no power settings');
     doc.power = validatePower(patch.power);
   }
 }
@@ -389,9 +431,15 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
       }
     }
 
+    const texts = items.map((item) => validateItemText(item));
+
     const screen = await mutateScreen(screenId, (doc) => {
+      if (doc.kind === 'aggregate') {
+        throw new StateError('KIND_MISMATCH', 'An aggregate holds views, not items: push to one of its views');
+      }
       const addedAt = nowDate().toISOString();
-      const newEntries = items.map((item) => ({
+      const newEntries = items.map((item, i) => ({
+        ...texts[i],
         entryId: nextId('entry_'),
         mediaId: item.mediaId,
         ext: item.ext,
@@ -510,6 +558,24 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
       }
       doc.entries = next;
     });
+  }
+
+  /** Public view of a view or aggregate: its embed settings, members and enabled entries. */
+  async function getViewDoc(id) {
+    const res = await storage.getJson(screenKey(id));
+    if (!res || !isViewDoc(res.value)) {
+      throw new StateError('SCREEN_NOT_FOUND', `Unknown view: ${id}`);
+    }
+    const doc = res.value;
+    return {
+      id: doc.id,
+      name: doc.name,
+      kind: doc.kind,
+      embed: doc.embed,
+      members: doc.members ?? null,
+      version: doc.version,
+      entries: doc.entries.filter(isEnabled).map(withEnabled),
+    };
   }
 
   async function getPlaylist(screenId) {
@@ -719,6 +785,7 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     setPushEnabled,
     removePush,
     getPlaylist,
+    getViewDoc,
     createPush,
     updatePush,
     getPush,

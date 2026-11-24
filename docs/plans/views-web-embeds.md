@@ -89,12 +89,9 @@ sissi:write@*                                       all
 
 Write and operate stay independent. Admin setup stays password-only.
 
-**Tunnus compatibility.** Tunnus currently accepts neither `:` nor probably `@` in the strings it manages, and the `groups` claim is what Sissi maps today (`SISSI_TUNNUS_GROUP_RIGHTS` maps group to right, so Tunnus itself only holds plain group names). Two ways, both supported by the plan:
-1. **Preferred, no Tunnus change:** Tunnus keeps plain group names such as `sissi-aikuistyo-write`; Sissi maps them to scoped rights. Mapping lives in Sissi, in env and in the rights UI below.
-2. **Extend Tunnus** (riksunsrk/infra) to accept `:`, `@`, `*`, `.` in group/scope names, so a Tunnus group can literally be `sissi:write@aikuistyo`; Sissi would then also accept a group that already is a right. Needs a change in Tunnus validation and a check of what its UI/OIDC claim encoding does with these characters. This is a separate thread in riksunsrk/infra and needs Juha's go (outside this repo).
-A third fallback syntax, if Tunnus only takes alphanumerics, `-` and `_`: `sissi-write-aikuistyo`, `sissi-operate-screen-all`. The parser accepts all three forms and normalises internally.
+**Rights live in Tunnus only** (Juha 2026-11-24). Sissi keeps no group-to-rights mapping of its own for scoped rights. Tunnus puts scoped keys such as `sissi:write@aikuistyo` in the token (`groups` claim or scopes, whatever Tunnus uses), and Sissi reads them. Tunnus is being extended (separate Haiku thread, riksunsrk/infra) to accept `:`, `@` and `*` in keys. The old env mapping `SISSI_TUNNUS_GROUP_RIGHTS` keeps working for the global rights it handles today; scoped rights come only from the token. Fallback spelling if Tunnus ends up alphanumeric-only: `sissi-write-aikuistyo`; the parser accepts both and normalises.
 
-**Rights UI** (admin page, on each screen, view and aggregate): a small panel "Who can do what" listing the Tunnus groups with a right on this target as rows (group, write, operate checkboxes), plus add/remove group. It edits the Sissi-side mapping stored in state (not env), so it is manageable without redeploy; env mapping stays as the global base. Only the admin password may edit it (a person with write rights cannot grant themselves more). Shows the effective result for a given group name.
+**Rights panel (read-only)** on each screen, view and aggregate: shows its id and the ready-to-copy keys to create in Tunnus (`sissi:read@<id>`, `sissi:write@<id>`, `sissi:operate@<id>`), plus the kind-wide forms (`@view:*`). It edits nothing. A list of all ids and keys is also at `GET /api/v1/admin/rights-keys` (admin only) for copy and paste. No push to Tunnus (see below), so admins create the keys and assign people in Tunnus.
 
 `GET /api/v1/screens` returns only targets where the caller has at least read, with `rights` (`["write"]` or `["write","operate"]`) so Canva can show the symbol and disable "enable right away" without operate. Tests: scope parsing in all three forms, matrix level x scope x route x kind, aggregate rules.
 
@@ -120,7 +117,7 @@ Assessment (Tunnus' management API was not read; this is from the design, to be 
   1. **v1: no push.** Single place per source: Tunnus holds who is in which group, Sissi holds what each group may do on each screen/view (admin only). The rights panel shows a ready-to-copy list of group names that the mapping uses, so an admin can create them in Tunnus.
   2. **Later, if wanted:** a narrow, separate Tunnus client for Sissi that may only create/delete groups whose names start with `sissi-` (or `sissi:`) and assign no memberships. Needs Tunnus to support such a restricted client; decide after the Tunnus thread shows what its API can do.
   3. **Not planned:** Sissi editing memberships or non-Sissi groups.
-- Recommendation: step 1 now, step 2 only if creating groups by hand becomes a nuisance.
+- Decided: rights management is entirely in Tunnus; step 1 only (read-only panel with copyable keys). Steps 2-3 are not planned.
 
 ## 7. Build tasks (after Juha's go)
 
@@ -128,7 +125,7 @@ Order (Juha: piprogram, Canva and Sissi items first). Haiku-sized unless marked.
 
 1. Sissi: `kind`, `embed`, `members`, entry text fields in state; view/aggregate admin CRUD.
 2. Sissi: `playlist.json`, `frame`, `embed.js`, carousel and single; aggregate join; CSP/CORS from `allowedOrigins`.
-3. Sissi: scoped rights parser (three forms), route checks, state-stored mapping, rights panel, `rights` in the screen list.
+3. Sissi: scoped rights parser, route checks, read-only rights panel and `rights-keys` list, `rights` in the screen list.
 4. Sissi: gallery renderer, admin snippet panel.
 5. Canva: new targets, DVE dropdown, screen/view pickers with rights symbols, text and link fields.
 6. riksunsrk/infra: Tunnus accepts `:` `@` `*` in group names (only if option 2 is chosen; Juha's go first).
@@ -138,6 +135,6 @@ Tasks 1-3 and 5 are separate cheap threads. Nothing needs a Pi or the VPS; the c
 
 ## 8. Decided and still open
 
-Decided (Juha 2026-11-24): public views with per-view origins; text fields alt/title/text/link; aggregates; old `piprogram-atem` dropped; DVE list from PiGraphics via pigateway; rights panel admin-only, stored in Sissi; Tunnus gets `:`/`@` (separate Haiku thread in riksunsrk/infra), so `sissi:write@id` is the main form.
+Decided (Juha 2026-11-24): public views with per-view origins; text fields alt/title/text/link; aggregates; old `piprogram-atem` dropped; DVE list from PiGraphics via pigateway; rights managed entirely in Tunnus, Sissi's rights panel is read-only (ids and copyable keys); Tunnus gets `:`/`@` (separate Haiku thread in riksunsrk/infra), so `sissi:write@id` is the main form.
 
-Still open: whether to ever push group definitions to Tunnus (recommendation above: not in v1); what piprogram's single landscape+vertical target exports (size handling is piprogram's; the build thread checks its contract).
+Still open: what piprogram's single landscape+vertical target exports (size handling is piprogram's; the build thread checks its contract).

@@ -103,13 +103,28 @@ A third fallback syntax, if Tunnus only takes alphanumerics, `-` and `_`: `sissi
 Targets, in this order (labels only; saved settings keep working through stable ids, with one merge noted below):
 
 1. **Keskuskirkko (piprogram)**: one target for both vertical and landscape (piprogram handles the images itself, so the user need not choose). Merges `piprogram-vertical-projector` and the landscape use; the export size is whatever piprogram's contract wants (to check in the thread that builds it; the old ids are mapped to the new one).
-2. **Keskuskirkko (ATEM)**: the PiGraphics target (`pigraphics-stream`). Adds a dropdown to choose the animation, the DVE (list from the PiGraphics/pigateway API, "none" default).
+2. **Keskuskirkko (ATEM)**: the PiGraphics target (`pigraphics-stream`). Adds a dropdown to choose the animation, the DVE ("none" default). The list is practically fixed: PiGraphics sends it to pigateway at startup, or when pigateway asks for it; pigateway serves it to the Canva plugin (`GET` on the existing `/api/v1/canva/*` side). Canva never talks to PiGraphics directly.
 3. **Infonäytöt (Sissi)**: lists the screens the user has rights to, each with a symbol for write or operate. Existing form (name, seconds, enable now; enable only with operate).
 4. **Verkkosivut (Sissi)**: lists the views the user may send to (aggregates not listed, since they take no items). Form: name, `alt`, `title`, `text`, `link`, seconds, and "enable right away" (needs operate; otherwise the item arrives disabled). Export PNG/MP4 sized from the view's aspect ratio.
 
-`piprogram-atem` (the old "PiProgram to ATEM") goes away as a separate choice; if it is still needed it is one question for Juha (see section 8). Tunnus sign-in in the app is PR #24. i18n fi/en/sv.
+The old `piprogram-atem` target is dropped (Juha 2026-11-24: it was not really used, since the library does not verify the target). Saved settings that name it are mapped to Keskuskirkko (piprogram). Tunnus sign-in in the app is PR #24. i18n fi/en/sv.
+
+### Pushing rights from Sissi into Tunnus
+
+Question from Juha: can Sissi write the rights it holds into Tunnus, as Tunnus rights already reach Sissi?
+
+Assessment (Tunnus' management API was not read; this is from the design, to be checked in the Tunnus thread):
+- The other direction is cheap because it is only token verification: Sissi holds no credential for Tunnus. The reverse needs Sissi to **hold a credential that can change the identity provider** (create groups, edit memberships). A bug or leak in a public-facing signage service would then be able to grant rights across the parish, including to Pi modules. That is the main reason not to do it.
+- Sissi can only know group names and what they may do; assigning people to groups is Tunnus' job and stays there.
+- What can be done safely, in steps:
+  1. **v1: no push.** Single place per source: Tunnus holds who is in which group, Sissi holds what each group may do on each screen/view (admin only). The rights panel shows a ready-to-copy list of group names that the mapping uses, so an admin can create them in Tunnus.
+  2. **Later, if wanted:** a narrow, separate Tunnus client for Sissi that may only create/delete groups whose names start with `sissi-` (or `sissi:`) and assign no memberships. Needs Tunnus to support such a restricted client; decide after the Tunnus thread shows what its API can do.
+  3. **Not planned:** Sissi editing memberships or non-Sissi groups.
+- Recommendation: step 1 now, step 2 only if creating groups by hand becomes a nuisance.
 
 ## 7. Build tasks (after Juha's go)
+
+Order (Juha: piprogram, Canva and Sissi items first). Haiku-sized unless marked.
 
 1. Sissi: `kind`, `embed`, `members`, entry text fields in state; view/aggregate admin CRUD.
 2. Sissi: `playlist.json`, `frame`, `embed.js`, carousel and single; aggregate join; CSP/CORS from `allowedOrigins`.
@@ -121,9 +136,8 @@ Targets, in this order (labels only; saved settings keep working through stable 
 
 Tasks 1-3 and 5 are separate cheap threads. Nothing needs a Pi or the VPS; the church web page snippet is pasted by whoever edits the site.
 
-## 8. Open questions
+## 8. Decided and still open
 
-- Tunnus: option 1 (plain group names, mapping in Sissi) or option 2 (extend Tunnus)? Plan builds the parser for both.
-- Does `piprogram-atem` (PiProgram to ATEM) stay anywhere, now that "Keskuskirkko (ATEM)" is PiGraphics?
-- Where does the list of DVE animations come from (PiGraphics API?), and what does the dropdown send?
-- Rights UI edits a mapping stored in Sissi state; OK that only the admin password can edit it?
+Decided (Juha 2026-11-24): public views with per-view origins; text fields alt/title/text/link; aggregates; old `piprogram-atem` dropped; DVE list from PiGraphics via pigateway; rights panel admin-only, stored in Sissi; Tunnus gets `:`/`@` (separate Haiku thread in riksunsrk/infra), so `sissi:write@id` is the main form.
+
+Still open: whether to ever push group definitions to Tunnus (recommendation above: not in v1); what piprogram's single landscape+vertical target exports (size handling is piprogram's; the build thread checks its contract).

@@ -77,6 +77,7 @@ async function resolveMissingExts(storage, entries) {
 function formatScreen(s) {
   return {
     id: s.id,
+    kind: s.kind ?? 'screen',
     name: s.name,
     orientation: s.orientation,
     width: s.width ?? null,

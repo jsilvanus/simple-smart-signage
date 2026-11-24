@@ -42,6 +42,11 @@ paths:
   /screens:
     get:
       operationId: listScreens
+      parameters:
+        - name: kind
+          in: query
+          required: false
+          schema: { type: string, enum: [screen, view, aggregate] }
       responses:
         '200':
           description: Screens for the plugin picker
@@ -377,6 +382,148 @@ components:
         enabledEntryCount: { type: integer, description: Entries that are live }
         playlistVersion: { type: integer }
         power: { $ref: '#/components/schemas/PowerConfig' }
+        embed:
+          type: object
+          nullable: true
+          properties:
+            type: { type: string, enum: [carousel, single, gallery] }
+            options:
+              type: object
+              properties:
+                fit: { type: string, enum: [contain, cover] }
+                aspect: { type: string, pattern: '^\\d{1,2}:\\d{1,2}
+    ScreenInput:
+      type: object
+      properties:
+        id: { type: string, pattern: '^[a-z0-9-]{1,40}$', description: Create only }
+        name: { type: string, minLength: 1, maxLength: 100 }
+        orientation: { type: string, enum: [landscape, vertical] }
+        width: { type: integer, nullable: true }
+        height: { type: integer, nullable: true }
+        defaultImageSeconds: { type: integer, minimum: 1, maximum: 3600 }
+        maxVideoSeconds: { type: integer, nullable: true, minimum: 1 }
+        power: { $ref: '#/components/schemas/PowerConfig' }
+    PowerConfig:
+      type: object
+      nullable: true
+      properties:
+        lanId: { type: string, nullable: true }
+        routerId: { type: string, nullable: true }
+        driver: { type: string, enum: [none, pull, samsung-lan, android-adb, wol-only, router-wol] }
+        mac: { type: string, nullable: true }
+        ip: { type: string, nullable: true }
+        override: { type: string, enum: [auto, on, off] }
+        schedule:
+          type: object
+          nullable: true
+          properties:
+            timezone: { type: string }
+            windows:
+              type: array
+              items:
+                type: object
+                required: [days, start, end]
+                properties:
+                  days: { type: array, items: { type: string, enum: [mon, tue, wed, thu, fri, sat, sun] } }
+                  start: { type: string, example: '08:00' }
+                  end: { type: string, example: '20:00' }
+    PowerStatus:
+      type: object
+      nullable: true
+      properties:
+        screenId: { type: string }
+        lanId: { type: string, nullable: true }
+        reachable: { type: boolean }
+        lastAction: { type: string, nullable: true }
+        error: { type: string, nullable: true }
+        updatedAt: { type: string, format: date-time }
+    Entry:
+      type: object
+      required: [entryId, mediaId, kind, seconds, title, pushId, addedAt]
+      properties:
+        entryId: { type: string }
+        mediaId: { type: string, description: sha256 hex }
+        kind: { type: string, enum: [image, video] }
+        seconds: { type: integer }
+        title: { type: string }
+        pushId: { type: string }
+        addedAt: { type: string, format: date-time }
+        alt: { type: string, nullable: true, maxLength: 300, description: Alternative text with everything the image says }
+        headline: { type: string, nullable: true, maxLength: 120, description: Title rendered on the image }
+        caption: { type: string, nullable: true, maxLength: 500, description: Smaller text below the image }
+        link: { type: string, nullable: true, description: Optional https link; the item is clickable }
+        enabled:
+          type: boolean
+          description: Only enabled entries are in playlist.json. New pushes add entries disabled unless the push says enabled true. Entries stored before this field existed count as enabled.
+    AdminScreen:
+      allOf:
+        - $ref: '#/components/schemas/Screen'
+        - type: object
+          properties:
+            entries:
+              type: array
+              items: { $ref: '#/components/schemas/Entry' }
+            powerStatus: { $ref: '#/components/schemas/PowerStatus' }
+    PushRequest:
+      type: object
+      required: [screenId, title, pages]
+      properties:
+        screenId: { type: string }
+        mode:
+          type: string
+          enum: [append, replace]
+          default: append
+          description: replace removes the screen's existing entries, so it is a live change and needs enabled true.
+        enabled:
+          type: boolean
+          default: false
+          description: false adds the entries disabled (content publishing, sissi:write). true makes them live at once (sissi:operate). Rights are enforced by the Tunnus work, not yet by this service.
+        title: { type: string, minLength: 1, maxLength: 200 }
+        pages:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: object
+            required: [pageNumber, url]
+            properties:
+              pageNumber: { type: integer }
+              kind: { type: string, enum: [image, video], description: Optional; service sniffs when omitted }
+              url: { type: string, format: uri }
+              seconds: { type: integer, minimum: 1, maximum: 3600, description: Images only; ignored for video }
+              alt: { type: string, nullable: true, maxLength: 300 }
+              headline: { type: string, nullable: true, maxLength: 120, description: Heading rendered on the image }
+              caption: { type: string, nullable: true, maxLength: 500, description: Description rendered below the image }
+              link: { type: string, nullable: true, format: uri, description: Optional HTTPS link for the entry }
+    PushAccepted:
+      type: object
+      required: [pushId, taskId, state, screenId]
+      properties:
+        pushId: { type: string }
+        taskId: { type: string }
+        state: { type: string, enum: [queued] }
+        screenId: { type: string }
+    PushStatus:
+      type: object
+      required: [pushId, screenId, state, progress, pages, error, playlistVersion]
+      properties:
+        pushId: { type: string }
+        screenId: { type: string }
+        state: { type: string, enum: [queued, downloading, ready, failed] }
+        progress: { type: number, minimum: 0, maximum: 1 }
+        pages:
+          type: object
+          properties: { done: { type: integer }, total: { type: integer } }
+        error:
+          nullable: true
+          type: object
+          properties:
+            code: { $ref: '#/components/schemas/ErrorCode' }
+            message: { type: string }
+        playlistVersion: { type: integer, nullable: true }
+ }
+                dots: { type: boolean }
+            allowedOrigins: { type: array, items: { type: string, format: uri } }
     ScreenInput:
       type: object
       properties:

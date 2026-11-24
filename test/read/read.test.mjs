@@ -260,3 +260,38 @@ test('GET /media/:file maps S3 InvalidRange error from storage.getMedia to 416',
     await srv.close();
   }
 });
+
+
+test('GET /api/v1/screens?kind=view lists only views and exposes embed aspect settings', async () => {
+  const srv = await setupServer();
+  try {
+    await srv.state.createScreen({
+      id: 'aikuistyo',
+      name: 'Aikuistyö',
+      kind: 'view',
+      orientation: 'landscape',
+      embed: { type: 'carousel', options: { aspect: '4:3', fit: 'contain' }, allowedOrigins: ['https://church.example'] },
+    });
+    await srv.state.createScreen({
+      id: 'aikuistyo-all',
+      name: 'Aikuistyö aggregate',
+      kind: 'aggregate',
+      members: ['aikuistyo'],
+      embed: { type: 'single' },
+    });
+    const token = srv.fakeCanva.signToken({ brandId: 'brand-ok', aud: 'app-test' });
+    const res = await http(srv.base, '/api/v1/screens?kind=view', {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    assert.equal(res.status, 200);
+    assert.equal(res.json.screens.length, 1);
+    assert.equal(res.json.screens[0].id, 'aikuistyo');
+    assert.deepEqual(res.json.screens[0].embed, {
+      type: 'carousel',
+      options: { fit: 'contain', aspect: '4:3', dots: true },
+      allowedOrigins: ['https://church.example'],
+    });
+  } finally {
+    await srv.close();
+  }
+});

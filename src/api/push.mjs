@@ -1,5 +1,6 @@
 import { HttpError, ERROR_STATUS, sendJson } from '../router.mjs';
 import { createPushRunner } from '../push/index.mjs';
+import { validateItemText } from '../views/embed.mjs';
 
 const SCREEN_ID_RE = /^[a-z0-9-]{1,40}$/;
 const PUSH_ID_RE = /^[a-zA-Z0-9_-]{1,80}$/;
@@ -94,6 +95,8 @@ function validatePushBody(body, config) {
       throw new HttpError('INVALID_SECONDS', 'seconds must be an integer between 1 and 3600', 422);
     }
     validatePageUrl(page.url, config);
+    // Validate and normalise view metadata at request time, not after the media download.
+    Object.assign(page, validateItemText(page));
   }
 
   return {

@@ -87,6 +87,7 @@ function formatScreen(s) {
     entryCount: s.entryCount,
     enabledEntryCount: s.enabledEntryCount,
     playlistVersion: s.playlistVersion,
+    ...(s.kind === 'view' || s.kind === 'aggregate' ? { embed: s.embed ?? null } : {}),
   };
 }
 

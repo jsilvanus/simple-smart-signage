@@ -1,6 +1,6 @@
 services:
   sissi:
-    image: ${IMAGE_REPO:-ghcr.io/jsilvanus/sissi}:${IMAGE_TAG:-latest}
+    image: ghcr.io/jsilvanus/sissi:${SISSI_IMAGE_TAG:-latest}
     container_name: sissi
     restart: unless-stopped
     deploy:
@@ -12,39 +12,38 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - SISSI_BASE_URL=${BASE_URL}
-      - SISSI_PUBLIC_PATH=${DOMAIN_PATH:-/signage}
-      - SISSI_CANVA_APP_ID=${CANVA_APP_ID:-}
-      - SISSI_CANVA_ALLOWED_BRANDS=${CANVA_ALLOWED_BRANDS:-}
-      - SISSI_REQUIRE_TEAM_IDS=true
-      - SISSI_PUSH_KEY=${PUSH_KEY:-}
-      - SISSI_CORS_ORIGINS=${CORS_ORIGINS:-}
-      - SISSI_DOWNLOAD_HOSTS=canva.com,canva.dev,canva-apps.com
-      - SISSI_ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
-      - SISSI_AUTH_MODE=${AUTH_MODE:-legacy}
-      - SISSI_TUNNUS_ISSUER=${TUNNUS_ISSUER:-}
-      - SISSI_TUNNUS_AUDIENCE=${TUNNUS_AUDIENCE:-}
-      - SISSI_TUNNUS_JWKS_URL=
-      - SISSI_TUNNUS_GROUP_RIGHTS=${TUNNUS_GROUP_RIGHTS:-}
-      - SISSI_OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET:-}
+      - SISSI_BASE_URL=${SISSI_BASE_URL}
+      - SISSI_PUBLIC_PATH=${SISSI_PUBLIC_PATH:-/signage}
+      - SISSI_CANVA_APP_ID=${SISSI_CANVA_APP_ID:-}
+      - SISSI_CANVA_ALLOWED_BRANDS=${SISSI_CANVA_ALLOWED_BRANDS:-}
+      - SISSI_REQUIRE_TEAM_IDS=${SISSI_REQUIRE_TEAM_IDS:-true}
+      - SISSI_PUSH_KEY=${SISSI_PUSH_KEY:-}
+      - SISSI_CORS_ORIGINS=${SISSI_CORS_ORIGINS:-}
+      - SISSI_DOWNLOAD_HOSTS=${SISSI_DOWNLOAD_HOSTS:-canva.com,canva.dev,canva-apps.com}
+      - SISSI_ADMIN_PASSWORD=${SISSI_ADMIN_PASSWORD:-}
+      - SISSI_AUTH_MODE=${SISSI_AUTH_MODE:-legacy}
+      - SISSI_TUNNUS_ISSUER=${SISSI_TUNNUS_ISSUER:-}
+      - SISSI_TUNNUS_AUDIENCE=${SISSI_TUNNUS_AUDIENCE:-}
+      - SISSI_TUNNUS_JWKS_URL=${SISSI_TUNNUS_JWKS_URL:-}
+      - SISSI_TUNNUS_GROUP_RIGHTS=${SISSI_TUNNUS_GROUP_RIGHTS:-}
       - METRICS_BEARER_TOKEN=${METRICS_BEARER_TOKEN:-}
-      - SISSI_STORAGE=${STORAGE_DRIVER:-local}
-      - SISSI_LOCAL_DIR=./data
-      - SISSI_S3_ENDPOINT=${S3_ENDPOINT:-}
-      - SISSI_S3_REGION=us-east-1
-      - SISSI_S3_BUCKET=${S3_BUCKET:-}
-      - SISSI_S3_ACCESS_KEY_ID=${S3_ACCESS_KEY:-}
-      - SISSI_S3_SECRET_ACCESS_KEY=${S3_SECRET_KEY:-}
-      - SISSI_S3_FORCE_PATH_STYLE=1
-      - SISSI_S3_PREFIX=
-      - SISSI_MAX_IMAGE_MB=40
-      - SISSI_MAX_VIDEO_MB=500
-      - SISSI_MAX_PUSH_MB=1024
-      - SISSI_MAX_BODY_KB=256
-      - SISSI_MAX_CONCURRENT_PUSHES=3
-      - SISSI_SW_MAX_VIDEO_MB=100
-      - SISSI_GC_GRACE_MINUTES=60
-      - SISSI_PUSH_RETENTION_HOURS=24
+      - SISSI_STORAGE=${SISSI_STORAGE:-local}
+      - SISSI_LOCAL_DIR=${SISSI_LOCAL_DIR:-./data}
+      - SISSI_S3_ENDPOINT=${SISSI_S3_ENDPOINT:-}
+      - SISSI_S3_REGION=${SISSI_S3_REGION:-us-east-1}
+      - SISSI_S3_BUCKET=${SISSI_S3_BUCKET:-}
+      - SISSI_S3_ACCESS_KEY_ID=${SISSI_S3_ACCESS_KEY_ID:-}
+      - SISSI_S3_SECRET_ACCESS_KEY=${SISSI_S3_SECRET_ACCESS_KEY:-}
+      - SISSI_S3_FORCE_PATH_STYLE=${SISSI_S3_FORCE_PATH_STYLE:-1}
+      - SISSI_S3_PREFIX=${SISSI_S3_PREFIX:-}
+      - SISSI_MAX_IMAGE_MB=${SISSI_MAX_IMAGE_MB:-40}
+      - SISSI_MAX_VIDEO_MB=${SISSI_MAX_VIDEO_MB:-500}
+      - SISSI_MAX_PUSH_MB=${SISSI_MAX_PUSH_MB:-1024}
+      - SISSI_MAX_BODY_KB=${SISSI_MAX_BODY_KB:-256}
+      - SISSI_MAX_CONCURRENT_PUSHES=${SISSI_MAX_CONCURRENT_PUSHES:-3}
+      - SISSI_SW_MAX_VIDEO_MB=${SISSI_SW_MAX_VIDEO_MB:-100}
+      - SISSI_GC_GRACE_MINUTES=${SISSI_GC_GRACE_MINUTES:-60}
+      - SISSI_PUSH_RETENTION_HOURS=${SISSI_PUSH_RETENTION_HOURS:-24}
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then((r) => { if (!r.ok) process.exit(1); }).catch(() => process.exit(1))"]
       interval: 30s
@@ -54,11 +53,11 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-public"
-      - "traefik.http.routers.sissi.rule=Host(`${DOMAIN}`) && PathPrefix(`${DOMAIN_PATH:-/signage}`)"
+      - "traefik.http.routers.sissi.rule=Host(`${SISSI_HOST}`) && PathPrefix(`${SISSI_PUBLIC_PATH:-/signage}`)"
       - "traefik.http.routers.sissi.entrypoints=websecure"
       - "traefik.http.routers.sissi.tls.certresolver=letsencrypt"
       - "traefik.http.routers.sissi.middlewares=sissi-stripprefix"
-      - "traefik.http.middlewares.sissi-stripprefix.stripprefix.prefixes=${DOMAIN_PATH:-/signage}"
+      - "traefik.http.middlewares.sissi-stripprefix.stripprefix.prefixes=${SISSI_PUBLIC_PATH:-/signage}"
       - "traefik.http.services.sissi.loadbalancer.server.port=3000"
 
 networks:

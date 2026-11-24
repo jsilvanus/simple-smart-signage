@@ -9,6 +9,7 @@ import { createTunnusVerifier } from './auth/tunnus.mjs';
 import { createDownloader } from './download/index.mjs';
 import { createPushRunner } from './push/index.mjs';
 import { createAdminAuth } from './admin-auth/index.mjs';
+import { createAdminOidc } from './admin-oidc/index.mjs';
 import { createPowerManager } from './power/manager.mjs';
 
 const config = loadConfig(process.env);
@@ -19,7 +20,8 @@ const tunnus = createTunnusVerifier(config);
 const auth = createAuth(config, { tunnus });
 const download = createDownloader(config);
 const pushRunner = createPushRunner({ config, storage, state, download, metrics });
-const adminAuth = createAdminAuth(config, { tunnus });
+const adminOidc = createAdminOidc(config, { tunnus });
+const adminAuth = createAdminAuth(config, { tunnus, oidc: adminOidc });
 const powerManager = createPowerManager({ config, state });
 
 await state.markInterruptedOnStart();
@@ -37,6 +39,7 @@ const server = createServer(config, {
   download,
   pushRunner,
   adminAuth,
+  adminOidc,
 });
 
 server.listen(config.port, () => {

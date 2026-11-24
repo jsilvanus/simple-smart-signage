@@ -6,6 +6,7 @@ import { registerAdminRoutes } from './api/admin.mjs';
 import { registerPlayerRoutes } from './api/player.mjs';
 import { registerAdminUiRoutes } from './api/admin-ui.mjs';
 import { registerPowerRoutes } from './api/power.mjs';
+import { registerAdminOidcRoutes } from './api/admin-oidc.mjs';
 
 function safeEqual(a, b) {
   const x = Buffer.from(a);
@@ -55,5 +56,6 @@ export function registerRoutes(router, ctx) {
     registerPlayerRoutes(router, ctx);
     registerPowerRoutes(router, ctx);
   }
+  registerAdminOidcRoutes(router, ctx);
   registerAdminUiRoutes(router, ctx);
 }

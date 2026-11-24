@@ -954,6 +954,25 @@ els.screenForm.addEventListener('submit', async (e) => {
   }
 });
 
+// Show the Tunnus button only where this install offers it.
+(async () => {
+  try {
+    const cfg = await apiFetch('/admin/auth-config', { redirectOn401: false });
+    if (cfg?.tunnus) {
+      const link = document.getElementById('tunnus-login');
+      if (link) {
+        link.href = `${base}/admin/login`;
+        link.hidden = false;
+      }
+    }
+    if (cfg && cfg.password === false) {
+      document.getElementById('login-form')?.setAttribute('hidden', '');
+    }
+  } catch {
+    // Keep the password form if the config cannot be read.
+  }
+})();
+
 // Initial bootstrap
 loadScreens().catch((err) => {
   if (err.status !== 401) {

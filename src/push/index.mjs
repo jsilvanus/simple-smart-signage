@@ -97,6 +97,10 @@ export function createPushRunner({ config, storage, state, download, metrics } =
             ext: dl.ext,
             kind: dl.kind,
             seconds: dl.kind === 'image' ? page.seconds : dl.durationSeconds,
+            alt: page.alt,
+            headline: page.headline,
+            caption: page.caption,
+            link: page.link,
           });
         } finally {
           if (dl?.tmpPath) {

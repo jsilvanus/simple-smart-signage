@@ -122,7 +122,12 @@ export function registerReadRoutes(router, ctx) {
   router.get('/api/v1/screens', async (req, res) => {
     auth.applyCors(req, res);
     auth.assertRights?.(await auth.authenticate(req), 'read');
-    const list = await state.listScreens();
+    const kind = new URL(req.url, 'http://x').searchParams.get('kind');
+    if (kind !== null && !['screen', 'view', 'aggregate'].includes(kind)) {
+      throw new HttpError('INVALID_KIND', 'kind must be screen, view or aggregate', 422);
+    }
+    let list = await state.listScreens();
+    if (kind) list = list.filter((s) => (s.kind ?? 'screen') === kind);
     sendJson(res, 200, { screens: list.map(formatScreen) });
   });
 

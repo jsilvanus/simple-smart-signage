@@ -4,6 +4,8 @@ import { createMemoryStorage } from '../../src/storage/index.mjs';
 import { createState, StateError } from '../../src/state/index.mjs';
 import { createAuth, testing } from '../../src/auth/index.mjs';
 import { registerViewRoutes } from '../../src/api/views.mjs';
+import { registerReadRoutes } from '../../src/api/read.mjs';
+
 import { startTestServer, http, testConfig } from '../helpers/server.mjs';
 
 async function setup() {
@@ -97,6 +99,29 @@ test('screens are not views: view routes answer 404 for them', async () => {
     await s.state.createScreen({ id: 'lobby', name: 'Lobby' });
     assert.equal((await http(s.base, '/v/lobby/playlist.json')).status, 404);
     assert.equal((await http(s.base, '/v/Bad_Id/frame')).status, 404);
+  } finally {
+    await s.close();
+  }
+});
+
+test('GET /api/v1/screens?kind= filters the list (Canva lists views and screens separately)', async () => {
+  const storage = createMemoryStorage();
+  const state = createState(storage);
+  const fakeCanva = testing.createFakeCanva({});
+  const env = { SISSI_CANVA_APP_ID: 'app-test', SISSI_CANVA_ALLOWED_BRANDS: 'brand-ok', SISSI_CORS_ORIGINS: 'https://canva.example' };
+  const auth = createAuth(testConfig(env), { fetch: fakeCanva.jwksFetch });
+  const s = await startTestServer(env, { storage, state, auth });
+  registerReadRoutes(s.ctx.router, s.ctx);
+  try {
+    await state.createScreen({ id: 'lobby', name: 'Lobby' });
+    await state.createScreen({ id: 'a1', name: 'A', kind: 'view', embed: {} });
+    await state.createScreen({ id: 'agg', name: 'G', kind: 'aggregate', members: ['a1'] });
+    const token = fakeCanva.signToken({ brandId: 'brand-ok', aud: 'app-test' });
+    const get = (q) => http(s.base, `/api/v1/screens${q}`, { headers: { authorization: `Bearer ${token}` } });
+    const ids = async (q) => (await get(q)).json.screens.map((x) => x.id);
+    assert.deepEqual(await ids('?kind=view'), ['a1']);
+    assert.deepEqual(await ids('?kind=screen'), ['lobby']);
+    assert.equal((await get('?kind=marquee')).status, 422);
   } finally {
     await s.close();
   }

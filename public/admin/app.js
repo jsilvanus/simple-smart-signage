@@ -297,14 +297,66 @@ function mediaUrlFor(entry) {
   return `${base}/media/${entry.mediaId}.${entry.ext || 'png'}`;
 }
 
+/** Image entries show themselves; video entries show their first-frame thumbnail when one exists. */
+function thumbUrlFor(entry) {
+  if (entry.kind === 'video' && entry.thumbMediaId) {
+    return `${base}/media/${entry.thumbMediaId}.${entry.thumbExt || 'png'}`;
+  }
+  return mediaUrlFor(entry);
+}
+
 function thumbFor(entry) {
   const img = document.createElement('img');
   img.className = 'entry-thumb';
   img.alt = '';
   img.loading = 'lazy';
   img.decoding = 'async';
-  img.src = mediaUrlFor(entry);
+  img.src = thumbUrlFor(entry);
   return img;
+}
+
+/**
+ * Draws one frame of a video file to a PNG blob (max 640 px wide). Seeks slightly in, since
+ * many encoders start on a black frame. Runs entirely in the browser: no server-side ffmpeg.
+ */
+function captureVideoFrame(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement('video');
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'auto';
+    const finish = (fn, value) => {
+      video.removeAttribute('src');
+      video.load();
+      URL.revokeObjectURL(url);
+      fn(value);
+    };
+    const draw = () => {
+      const srcW = video.videoWidth || 640;
+      const srcH = video.videoHeight || 360;
+      const scale = Math.min(1, 640 / srcW);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(srcW * scale));
+      canvas.height = Math.max(1, Math.round(srcH * scale));
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => (blob ? finish(resolve, blob) : finish(reject, new Error('Could not encode the thumbnail'))),
+        'image/png',
+      );
+    };
+    video.onerror = () => finish(reject, new Error('Could not read the video for a thumbnail'));
+    video.onloadeddata = () => {
+      const target = Math.min(0.1, (video.duration || 0) / 2);
+      if (target > 0) {
+        video.onseeked = draw;
+        video.currentTime = target;
+      } else {
+        draw();
+      }
+    };
+    video.src = url;
+  });
 }
 
 async function handleMove(screenId, entries, from, to) {
@@ -387,7 +439,7 @@ function renderEntries(screen) {
       handleMove(screen.id, entries, from, index);
     });
 
-    const icon = entry.kind === 'image'
+    const icon = entry.kind === 'image' || entry.thumbMediaId
       ? thumbFor(entry)
       : createKindIcon(entry.kind);
 
@@ -565,14 +617,15 @@ async function handleUpload(file) {
   if (!file) return;
   const screen = getSelectedScreen();
   if (!screen) return;
+  const isVideo = file.type === 'video/mp4' || /\.mp4$/i.test(file.name);
   setStatus('Uploading…');
   try {
-    const title = file.name.replace(/\.png$/i, '').slice(0, 200) || 'Uploaded PNG';
+    const title = file.name.replace(/\.(png|mp4)$/i, '').slice(0, 200) || (isVideo ? 'Uploaded video' : 'Uploaded PNG');
     const res = await fetch(apiUrl(base, `/admin/screens/${encodeURIComponent(screen.id)}/uploads`), {
       method: 'POST',
       credentials: 'same-origin',
       headers: {
-        'Content-Type': 'image/png',
+        'Content-Type': isVideo ? 'video/mp4' : 'image/png',
         'X-Sissi-Admin': '1',
         'X-Upload-Title': encodeURIComponent(title),
       },
@@ -586,7 +639,25 @@ async function handleUpload(file) {
       if (res.status === 401) showLogin(extractErrorMessage(data, 'Sign in again'));
       throw new Error(extractErrorMessage(data, `Upload failed (${res.status})`));
     }
-    setStatus('Uploaded. The entry is added disabled; enable it to put it on screen.');
+    let message = 'Uploaded. The entry is added disabled; enable it to put it on screen.';
+    if (isVideo && data?.entry?.entryId) {
+      try {
+        const thumb = await captureVideoFrame(file);
+        const tRes = await fetch(
+          apiUrl(base, `/admin/screens/${encodeURIComponent(screen.id)}/entries/${encodeURIComponent(data.entry.entryId)}/thumbnail`),
+          {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'image/png', 'X-Sissi-Admin': '1' },
+            body: thumb,
+          },
+        );
+        if (!tRes.ok) throw new Error(`thumbnail ${tRes.status}`);
+      } catch (thumbErr) {
+        message = `Uploaded without a thumbnail (${thumbErr.message}). The entry is added disabled; enable it to put it on screen.`;
+      }
+    }
+    setStatus(message);
     await loadScreens();
   } catch (err) {
     setError(err.message);

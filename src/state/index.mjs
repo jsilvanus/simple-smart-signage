@@ -472,6 +472,24 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     });
   }
 
+  /** Attach a first-frame PNG thumbnail (already stored as media) to a video entry. */
+  async function setEntryThumbnail(screenId, entryId, { mediaId, ext } = {}) {
+    if (typeof mediaId !== 'string' || !mediaId || ext !== 'png') {
+      throw new StateError('INVALID_PAGES', 'Thumbnail needs a mediaId and png ext');
+    }
+    return mutateScreen(screenId, (doc) => {
+      const entry = doc.entries.find((e) => e.entryId === entryId);
+      if (!entry) {
+        throw new StateError('ENTRY_NOT_FOUND', `Unknown entry: ${entryId}`);
+      }
+      if (entry.kind !== 'video') {
+        throw new StateError('INVALID_KIND', 'Thumbnails are only for video entries');
+      }
+      entry.thumbMediaId = mediaId;
+      entry.thumbExt = ext;
+    });
+  }
+
   /** Enable or disable every entry of one push. */
   async function setPushEnabled(screenId, pushId, enabled) {
     assertEnabledFlag(enabled);
@@ -604,6 +622,9 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
         if (entry.mediaId && entry.ext) {
           refs.add(`${entry.mediaId}.${entry.ext}`);
         }
+        if (entry.thumbMediaId && entry.thumbExt) {
+          refs.add(`${entry.thumbMediaId}.${entry.thumbExt}`);
+        }
       }
     }
     return refs;
@@ -694,6 +715,7 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     reorderEntries,
     setEntrySeconds,
     setEntryEnabled,
+    setEntryThumbnail,
     setPushEnabled,
     removePush,
     getPlaylist,

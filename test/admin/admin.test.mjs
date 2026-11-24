@@ -545,3 +545,73 @@ test('PNG upload adds a disabled entry to the playlist and rejects non-PNG bodie
   });
   assert.equal(bad.status, 415);
 });
+
+/** Minimal MP4: ftyp + moov/mvhd (timescale 1000, duration 3000 => 3 s). */
+function minimalMp4() {
+  const box = (type, body) => {
+    const head = Buffer.alloc(8);
+    head.writeUInt32BE(8 + body.length, 0);
+    head.write(type, 4, 'latin1');
+    return Buffer.concat([head, body]);
+  };
+  const ftyp = box('ftyp', Buffer.concat([Buffer.from('isom'), Buffer.alloc(4), Buffer.from('isom')]));
+  const mvhd = Buffer.alloc(100);
+  mvhd.writeUInt32BE(1000, 12);
+  mvhd.writeUInt32BE(3000, 16);
+  return Buffer.concat([ftyp, box('moov', box('mvhd', mvhd))]);
+}
+
+test('MP4 upload stores a video entry with its duration, and a first-frame thumbnail can be attached', async (t) => {
+  const srv = await setupAdminServer();
+  t.after(srv.close);
+  await srv.state.createScreen({ id: 'lobby', name: 'Lobby', orientation: 'landscape' });
+  const { cookie } = await loginCookie(srv.base);
+  const mp4 = minimalMp4();
+
+  const up = await fetch(`${srv.base}/signage/api/v1/admin/screens/lobby/uploads`, {
+    method: 'POST',
+    headers: { cookie, 'x-sissi-admin': '1', 'content-type': 'video/mp4', 'x-upload-title': 'Intro' },
+    body: mp4,
+  });
+  assert.equal(up.status, 201);
+  const { entry } = await up.json();
+  assert.equal(entry.kind, 'video');
+  assert.equal(entry.ext, 'mp4');
+  assert.equal(entry.seconds, 3);
+  assert.equal(entry.enabled, false);
+
+  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(64, 9)]);
+  const thumbUrl = `${srv.base}/signage/api/v1/admin/screens/lobby/entries/${entry.entryId}/thumbnail`;
+  const thumb = await fetch(thumbUrl, {
+    method: 'PUT',
+    headers: { cookie, 'x-sissi-admin': '1', 'content-type': 'image/png' },
+    body: png,
+  });
+  assert.equal(thumb.status, 200);
+  const thumbEntry = await thumb.json();
+  assert.equal(thumbEntry.thumbExt, 'png');
+  assert.ok(thumbEntry.thumbMediaId);
+
+  const refs = await srv.state.referencedMedia();
+  assert.ok(refs.has(`${entry.mediaId}.mp4`));
+  assert.ok(refs.has(`${thumbEntry.thumbMediaId}.png`), 'thumbnail must count as referenced for GC');
+
+  const notPng = await fetch(thumbUrl, {
+    method: 'PUT',
+    headers: { cookie, 'x-sissi-admin': '1', 'content-type': 'image/png' },
+    body: Buffer.from([0xff, 0xd8, 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+  });
+  assert.equal(notPng.status, 415);
+
+  // Thumbnails are for video entries only.
+  await srv.state.applyPush('lobby', {
+    pushId: 'img1', title: 'Still', items: [{ mediaId: 'c'.repeat(64), ext: 'png', kind: 'image' }],
+  });
+  const imgId = (await srv.state.getScreen('lobby')).entries.find((e) => e.kind === 'image').entryId;
+  const onImage = await fetch(`${srv.base}/signage/api/v1/admin/screens/lobby/entries/${imgId}/thumbnail`, {
+    method: 'PUT',
+    headers: { cookie, 'x-sissi-admin': '1', 'content-type': 'image/png' },
+    body: png,
+  });
+  assert.equal(onImage.status, 422);
+});

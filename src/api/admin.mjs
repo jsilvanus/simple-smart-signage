@@ -84,6 +84,13 @@ export function registerAdminRoutes(router, ctx) {
   });
 
   router.post('/api/v1/admin/logout', (req, res) => {
+    // A Tunnus browser session is cleared by its own cookie; the password session keeps its old path.
+    if (ctx.adminOidc?.readSession(req.headers.cookie)) {
+      if (req.headers['x-sissi-admin'] !== '1') throw new HttpError('UNAUTHORIZED', 'Missing X-Sissi-Admin header');
+      res.writeHead(204, { 'set-cookie': ctx.adminOidc.clearSession(config.publicPath || '/', Boolean(config.production)) });
+      res.end();
+      return;
+    }
     adminAuth.requireAdmin(req);
     adminAuth.logout(req, res);
   });

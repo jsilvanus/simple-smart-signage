@@ -20,7 +20,7 @@ The Canva app signs in once with Tunnus (one client, a fixed audience list). Its
 | `sissi:write` | Publish content: `POST /api/v1/push` with `enabled: false` (the default), reorder entries, change an entry's seconds, remove **disabled** entries and pushes. |
 | `sissi:operate` | Make content live: push with `enabled: true` or `mode: replace` (these also need `sissi:write`, because they publish content), enable or disable an entry or a push, remove **live** entries and pushes. |
 
-The two are independent: `operate` does not imply `write`. `GET /api/v1/screens`, the push status and the admin screen list need either one. Screen setup (create, rename, delete, power) stays on the admin password and never accepts a Tunnus token. The `/admin` web page still signs in with the password (no browser OIDC flow in Sissi).
+The two are independent: `operate` does not imply `write`. `GET /api/v1/screens`, the push status and the admin screen list need either one. Screen setup (create, rename, delete, power) stays on the admin password and never accepts a Tunnus token. The `/admin` page signs in with the password, or with Tunnus: `GET /admin/login` runs OIDC authorization code + PKCE against the issuer, and `GET /admin/callback` verifies the access token like an API token and sets a signed session cookie (12 h). The browser session has the same `sissi:*` rights as an API token, but setup routes (screens, power) stay password-only. Needs `SISSI_OIDC_CLIENT_SECRET` (the `sissi` confidential client, redirect `<origin><SISSI_PUBLIC_PATH>/admin/callback`); `SISSI_OIDC_CLIENT_ID` defaults to `sissi`.
 
 ## Configuration
 

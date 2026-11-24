@@ -217,6 +217,9 @@ export function loadConfig(env = process.env) {
       jwksUrl,
       groupRights,
       leewaySeconds: int('SISSI_TUNNUS_LEEWAY_SECONDS', 30, { max: 300 }),
+      // Browser sign-in to /admin (src/admin-oidc). Off unless the secret is set.
+      oidcClientId: str('SISSI_OIDC_CLIENT_ID', 'sissi'),
+      oidcClientSecret: str('SISSI_OIDC_CLIENT_SECRET'),
     };
   }
 

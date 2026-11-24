@@ -37,7 +37,7 @@ function clientIp(req) {
 /**
  * Create admin session authentication and rate-limited login/logout helpers.
  */
-export function createAdminAuth(config, { now = () => Date.now(), fetch: fetchFn = globalThis.fetch, tunnus } = {}) {
+export function createAdminAuth(config, { now = () => Date.now(), fetch: fetchFn = globalThis.fetch, tunnus, oidc = null } = {}) {
   const mode = config?.authMode ?? 'legacy';
   const tunnusVerifier = mode === 'legacy' ? null : (tunnus ?? createTunnusVerifier(config, { fetch: fetchFn, now }));
   const passwordOn = mode !== 'tunnus';
@@ -171,6 +171,15 @@ export function createAdminAuth(config, { now = () => Date.now(), fetch: fetchFn
       const principal = await tunnusVerifier.verify(m[1]);
       assertRights(principal, need);
       return principal;
+    }
+    // Browser session from the Tunnus sign-in on /admin. Writes still need the X-Sissi-Admin header.
+    const session = oidc?.readSession(req?.headers?.cookie);
+    if (session) {
+      if (STATE_CHANGING_METHODS.has(String(req?.method ?? 'GET').toUpperCase()) && req?.headers?.['x-sissi-admin'] !== '1') {
+        throw new HttpError('UNAUTHORIZED', 'Missing X-Sissi-Admin header');
+      }
+      assertRights(session, need);
+      return session;
     }
     requireAdmin(req);
     return { kind: 'admin' };

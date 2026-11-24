@@ -1034,6 +1034,8 @@ els.screenForm.addEventListener('submit', async (e) => {
       if (link) {
         link.href = `${base}/admin/login`;
         link.hidden = false;
+        const separator = document.getElementById('auth-separator');
+        if (separator) separator.hidden = false;
       }
     }
     if (cfg && cfg.password === false) {

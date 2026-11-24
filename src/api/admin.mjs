@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createAdminAuth } from '../admin-auth/index.mjs';
-import { sniffKind } from '../download/index.mjs';
+import { DownloadError, readMp4Duration, sniffKind } from '../download/index.mjs';
 import { sha256Hex } from '../storage/common.mjs';
 import { ERROR_STATUS, HttpError, sendJson } from '../router.mjs';
 import { StateError } from '../state/index.mjs';
@@ -35,6 +35,23 @@ async function runState(fn) {
 }
 
 const PNG_MAX_TITLE = 200;
+// Media kinds accepted by the manual upload endpoint (sniffKind kind/ext).
+const UPLOAD_KINDS = new Set(['image/png', 'video/mp4']);
+
+async function writeTmp(buf, ext) {
+  const tmpPath = path.join(os.tmpdir(), `sissi-upload-${crypto.randomBytes(8).toString('hex')}.${ext}`);
+  await fs.promises.writeFile(tmpPath, buf);
+  return tmpPath;
+}
+
+async function mp4Seconds(tmpPath) {
+  try {
+    return await readMp4Duration(tmpPath);
+  } catch (err) {
+    if (err instanceof DownloadError) throw new HttpError('UNSUPPORTED_TYPE', 'Could not read the MP4 duration');
+    throw err;
+  }
+}
 
 /** Reads a raw request body up to maxBytes. Throws HttpError(TOO_LARGE) when over. */
 async function readRawBody(req, maxBytes) {
@@ -181,37 +198,48 @@ export function registerAdminRoutes(router, ctx) {
     sendNoContent(res);
   });
 
-  // Manual PNG upload into a screen's playlist. The entry is added disabled, so it needs
-  // sissi:operate (enable) before it goes live. Body: raw image/png bytes.
+  // Manual upload into a screen's playlist: PNG (image) or MP4 (video). The entry is added
+  // disabled, so it needs sissi:operate (enable) before it goes live. Body: raw file bytes.
+  // Clients send a first-frame PNG for MP4s afterwards via the thumbnail endpoint below.
   router.post('/api/v1/admin/screens/:screenId/uploads', async (req, res, { params }) => {
     await adminAuth.authorize(req, 'write');
     assertScreenId(params.screenId);
-    const buf = await readRawBody(req, config.limits.imageBytes);
+    const buf = await readRawBody(req, config.limits.videoBytes);
     const sniffed = sniffKind(buf);
-    if (!sniffed || sniffed.kind !== 'image' || sniffed.ext !== 'png') {
-      throw new HttpError('UNSUPPORTED_TYPE', 'Only PNG images can be uploaded');
+    if (!sniffed || !UPLOAD_KINDS.has(`${sniffed.kind}/${sniffed.ext}`)) {
+      throw new HttpError('UNSUPPORTED_TYPE', 'Only PNG images and MP4 videos can be uploaded');
+    }
+    if (sniffed.kind === 'image' && buf.length > config.limits.imageBytes) {
+      throw new HttpError('TOO_LARGE', `File is larger than the ${config.limits.imageBytes} byte limit`);
     }
     if (!storage) throw new HttpError('INTERNAL', 'Storage is not configured');
 
     const sha256 = sha256Hex(buf);
-    const tmpPath = path.join(os.tmpdir(), `sissi-upload-${crypto.randomBytes(8).toString('hex')}.png`);
-    await fs.promises.writeFile(tmpPath, buf);
+    const rawTitle = String(req.headers['x-upload-title'] ?? '').trim();
+    const pushId = `upload_${crypto.randomBytes(8).toString('hex')}`;
+
+    let item;
+    let defaultTitle;
     let screen;
+    const tmpPath = await writeTmp(buf, sniffed.ext);
     try {
-      await storage.putMediaFromFile(sha256, 'png', tmpPath, 'image/png');
-      const pushId = `upload_${crypto.randomBytes(8).toString('hex')}`;
-      const rawTitle = String(req.headers['x-upload-title'] ?? '').trim();
-      const title = (rawTitle || 'Uploaded PNG').slice(0, PNG_MAX_TITLE);
-      const applied = await runState(() =>
-        state.applyPush(params.screenId, {
-          pushId,
-          mode: 'append',
-          title,
-          items: [{ mediaId: sha256, ext: 'png', kind: 'image' }],
-          enabled: false,
-        }),
+      if (sniffed.kind === 'video') {
+        const screenNow = await runState(() => state.getScreen(params.screenId));
+        const seconds = await mp4Seconds(tmpPath);
+        if (screenNow.maxVideoSeconds && seconds > screenNow.maxVideoSeconds) {
+          throw new HttpError('VIDEO_TOO_LONG', `Video is ${seconds}s; this screen allows at most ${screenNow.maxVideoSeconds}s`, 422);
+        }
+        item = { mediaId: sha256, ext: 'mp4', kind: 'video', seconds };
+        defaultTitle = 'Uploaded video';
+      } else {
+        item = { mediaId: sha256, ext: 'png', kind: 'image' };
+        defaultTitle = 'Uploaded PNG';
+      }
+      await storage.putMediaFromFile(sha256, sniffed.ext, tmpPath, sniffed.contentType);
+      const title = (rawTitle || defaultTitle).slice(0, PNG_MAX_TITLE);
+      screen = await runState(() =>
+        state.applyPush(params.screenId, { pushId, mode: 'append', title, items: [item], enabled: false }),
       );
-      screen = applied;
     } finally {
       await fs.promises.rm(tmpPath, { force: true }).catch(() => {});
     }
@@ -219,6 +247,37 @@ export function registerAdminRoutes(router, ctx) {
       .filter((e) => e.mediaId === sha256)
       .at(-1);
     sendJson(res, 201, { screenId: params.screenId, version: screen.playlistVersion, entry });
+  });
+
+  // Thumbnail for a video entry: a raw PNG (the client grabs the first frame). Stored as media
+  // and referenced from the entry so the playlist can show it instead of the generic video icon.
+  router.put('/api/v1/admin/screens/:screenId/entries/:entryId/thumbnail', async (req, res, { params }) => {
+    await adminAuth.authorize(req, 'write');
+    assertScreenId(params.screenId);
+    assertOpaqueId(params.entryId, 'ENTRY_NOT_FOUND', 'entry');
+    const buf = await readRawBody(req, config.limits.imageBytes);
+    const sniffed = sniffKind(buf);
+    if (!sniffed || sniffed.kind !== 'image' || sniffed.ext !== 'png') {
+      throw new HttpError('UNSUPPORTED_TYPE', 'A thumbnail must be a PNG image');
+    }
+    if (!storage) throw new HttpError('INTERNAL', 'Storage is not configured');
+    const screenNow = await runState(() => state.getScreen(params.screenId));
+    const target = screenNow.entries.find((e) => e.entryId === params.entryId);
+    if (!target) throw new HttpError('ENTRY_NOT_FOUND', `Unknown entry: ${params.entryId}`);
+    if (target.kind !== 'video') throw new HttpError('INVALID_KIND', 'Thumbnails are only for video entries', 422);
+
+    const sha256 = sha256Hex(buf);
+    const tmpPath = await writeTmp(buf, 'png');
+    try {
+      await storage.putMediaFromFile(sha256, 'png', tmpPath, 'image/png');
+    } finally {
+      await fs.promises.rm(tmpPath, { force: true }).catch(() => {});
+    }
+    const screen = await runState(() =>
+      state.setEntryThumbnail(params.screenId, params.entryId, { mediaId: sha256, ext: 'png' }),
+    );
+    const entry = screen.entries.find((e) => e.entryId === params.entryId);
+    sendJson(res, 200, entry);
   });
 
   router.patch('/api/v1/admin/screens/:screenId/pushes/:pushId', async (req, res, { params }) => {

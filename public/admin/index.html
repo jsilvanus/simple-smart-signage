@@ -13,7 +13,8 @@
     <main class="auth-card">
       <h1>SiSSi Admin</h1>
       <p class="muted">Sign in to manage signage screens and playlists.</p>
-      <form id="login-form" novalidate>
+      <div class="auth-methods">
+        <form id="login-form" novalidate>
         <div class="field">
           <label for="login-password">Admin password</label>
           <input
@@ -27,9 +28,10 @@
         </div>
         <p id="login-error" class="error-banner" role="alert" hidden></p>
         <button id="login-submit" type="submit" class="btn btn-primary">Sign in</button>
-      </form>
-      <p class="muted">or</p>
-      <a id="tunnus-login" class="btn" href="login" hidden>Sign in with Tunnus</a>
+        </form>
+        <span id="auth-separator" class="muted" hidden>or</span>
+        <a id="tunnus-login" class="btn" href="login" hidden>Sign in with Tunnus</a>
+      </div>
     </main>
   </div>
 

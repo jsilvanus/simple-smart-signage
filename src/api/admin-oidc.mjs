@@ -7,7 +7,7 @@ import { HttpError, sendJson, sendText } from '../router.mjs';
  * - GET /api/v1/admin/auth-config -> which sign-in methods this install offers (no secrets)
  */
 export function registerAdminOidcRoutes(router, ctx) {
-  const { config, adminOidc } = ctx;
+  const { config, adminOidc, adminAuth } = ctx;
   const cookiePath = config.publicPath || '/';
   const secure = Boolean(config.production);
 
@@ -16,10 +16,22 @@ export function registerAdminOidcRoutes(router, ctx) {
     return `${new URL(config.baseUrl).origin}${router.url('/admin/callback')}`;
   }
 
+  function sendCallbackError(res, status, message) {
+    const escaped = String(message || 'Sign-in failed.')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    const backHref = router.url('/admin/');
+    const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Sign-in failed</title></head><body><h1>Sign-in failed</h1><p>${escaped}</p><p><a href="${backHref}">Back to Sissi Admin</a></p></body></html>`;
+    sendText(res, status, html, 'text/html; charset=utf-8', { 'cache-control': 'no-store' });
+  }
+
   router.get('/api/v1/admin/auth-config', (req, res) => {
+    const session = Boolean(adminOidc?.readSession(req.headers.cookie) || adminAuth?.hasAdminCookie?.(req));
     sendJson(res, 200, {
       tunnus: Boolean(adminOidc),
       password: config.authMode !== 'tunnus' && Boolean(config.adminPassword),
+      session,
     });
   });
 
@@ -33,7 +45,7 @@ export function registerAdminOidcRoutes(router, ctx) {
   router.get('/admin/callback', async (req, res, { query }) => {
     if (!adminOidc) throw new HttpError('NOT_FOUND', 'Not found');
     if (query.get('error')) {
-      sendText(res, 401, 'Sign-in was cancelled or refused.', 'text/plain; charset=utf-8', { 'cache-control': 'no-store' });
+      sendCallbackError(res, 401, 'Sign-in was cancelled or refused.');
       return;
     }
     try {
@@ -52,7 +64,7 @@ export function registerAdminOidcRoutes(router, ctx) {
       });
       res.end();
     } catch (err) {
-      sendText(res, 401, err.message || 'Sign-in failed.', 'text/plain; charset=utf-8', { 'cache-control': 'no-store' });
+      sendCallbackError(res, 401, err.message || 'Sign-in failed.');
     }
   });
 }

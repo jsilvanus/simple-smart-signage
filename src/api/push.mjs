@@ -120,11 +120,15 @@ export function registerPushRoutes(router, ctx) {
 
     const raw = await router.readJson(req);
     const input = validatePushBody(raw, ctx.config);
-    // Content needs sissi:write. Going live (enabled) or replacing needs sissi:operate as well.
-    ctx.auth.assertRights?.(principal, input.enabled || input.mode === 'replace' ? ['write', 'operate'] : 'write');
 
     try {
-      await ctx.state.getScreen(input.screenId);
+      const screen = await ctx.state.getScreen(input.screenId);
+      if (screen.kind === 'aggregate') {
+        throw new HttpError('KIND_MISMATCH', 'Aggregates cannot receive pushed content', 422);
+      }
+      const target = { kind: (screen.kind ?? 'screen') === 'screen' ? 'screen' : 'view', id: screen.id };
+      // Content needs sissi:write. Going live (enabled) or replacing needs sissi:operate as well.
+      ctx.auth.assertRights?.(principal, input.enabled || input.mode === 'replace' ? ['write', 'operate'] : 'write', target);
       const push = await runner.enqueue(input);
       sendJson(
         res,
@@ -144,7 +148,8 @@ export function registerPushRoutes(router, ctx) {
 
   router.get('/api/v1/push/:pushId', async (req, res, { params }) => {
     ctx.auth.applyCors(req, res);
-    ctx.auth.assertRights?.(await ctx.auth.authenticate(req), 'read');
+    const principal = await ctx.auth.authenticate(req);
+    ctx.auth.assertRights?.(principal, 'read');
 
     if (typeof params.pushId !== 'string' || !PUSH_ID_RE.test(params.pushId)) {
       throw new HttpError('PUSH_NOT_FOUND', 'Unknown push', 404);
@@ -152,6 +157,9 @@ export function registerPushRoutes(router, ctx) {
 
     try {
       const push = await ctx.state.getPush(params.pushId);
+      const screen = await ctx.state.getScreen(push.screenId).catch(() => null);
+      const target = { kind: (screen?.kind ?? 'screen') === 'screen' ? 'screen' : 'view', id: push.screenId };
+      ctx.auth.assertRights?.(principal, 'read', target);
       sendJson(res, 200, {
         pushId: push.pushId,
         screenId: push.screenId,

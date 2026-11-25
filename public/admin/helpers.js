@@ -13,9 +13,19 @@ export function apiUrl(base, path) {
   return `${base}/api/v1${suffix}`;
 }
 
-/** Build the public player preview URL for a screen. */
-export function previewUrl(base, screenId) {
-  return `${base}/s/${encodeURIComponent(screenId)}`;
+/** Build the public player or view preview URL for a screen, view or aggregate. */
+export function previewUrl(base, screenId, kind = 'screen') {
+  const encoded = encodeURIComponent(screenId);
+  if (kind === 'view' || kind === 'aggregate') {
+    return `${base}/v/${encoded}/frame`;
+  }
+  return `${base}/s/${encoded}`;
+}
+
+/** Tunnus right keys for a single screen, view or aggregate. */
+export function rightsKeysFor(id, kind = 'screen') {
+  const scopeKind = kind === 'screen' ? 'screen' : 'view';
+  return ['read', 'write', 'operate'].map((a) => `sissi:${a}:${scopeKind}:${id}`);
 }
 
 function parseOptionalInt(value) {
@@ -59,6 +69,7 @@ export function formatScheduleWindows(windows) {
  * Empty optional numeric fields (width, height, maxVideoSeconds) become null.
  */
 export function buildScreenPayload(values, { isCreate = false } = {}) {
+  const kind = values.kind || 'screen';
   const payload = {
     name: String(values.name ?? '').trim(),
     orientation: values.orientation === 'vertical' ? 'vertical' : 'landscape',
@@ -69,6 +80,31 @@ export function buildScreenPayload(values, { isCreate = false } = {}) {
   };
   if (isCreate) {
     payload.id = String(values.id ?? '').trim();
+    if (kind !== 'screen') payload.kind = kind;
+  }
+  if (kind === 'view' || kind === 'aggregate') {
+    const allowedOrigins = String(values.embedOrigins ?? '')
+      .split(/[\r\n,]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    payload.embed = {
+      type: values.embedType || 'carousel',
+      options: {
+        fit: values.embedFit === 'cover' ? 'cover' : 'contain',
+        aspect: String(values.embedAspect ?? '16:9').trim() || '16:9',
+        dots: values.embedDots !== false,
+      },
+      allowedOrigins,
+    };
+    if (kind === 'aggregate') {
+      payload.members = Array.isArray(values.members)
+        ? values.members
+        : String(values.members ?? '')
+            .split(/[\r\n,]+/)
+            .map((s) => s.trim())
+            .filter(Boolean);
+    }
+    return payload;
   }
   if (values.powerDriver !== undefined) {
     const driver = values.powerDriver || 'none';

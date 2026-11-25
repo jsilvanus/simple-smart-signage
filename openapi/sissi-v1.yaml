@@ -391,11 +391,23 @@ components:
               type: object
               properties:
                 fit: { type: string, enum: [contain, cover] }
-                aspect: { type: string, pattern: '^\\d{1,2}:\\d{1,2}
+                aspect: { type: string, pattern: '^[1-9]\\d?:[1-9]\\d?$' }
+                dots: { type: boolean }
+            allowedOrigins:
+              type: array
+              items: { type: string, format: uri }
+        members:
+          type: array
+          nullable: true
+          items: { type: string }
+        rights:
+          type: array
+          items: { type: string, enum: [read, write, operate] }
     ScreenInput:
       type: object
       properties:
         id: { type: string, pattern: '^[a-z0-9-]{1,40}$', description: Create only }
+        kind: { type: string, enum: [screen, view, aggregate], default: screen, description: Create only }
         name: { type: string, minLength: 1, maxLength: 100 }
         orientation: { type: string, enum: [landscape, vertical] }
         width: { type: integer, nullable: true }
@@ -403,6 +415,10 @@ components:
         defaultImageSeconds: { type: integer, minimum: 1, maximum: 3600 }
         maxVideoSeconds: { type: integer, nullable: true, minimum: 1 }
         power: { $ref: '#/components/schemas/PowerConfig' }
+        members:
+          type: array
+          items: { type: string }
+          description: Aggregate only; view IDs in display order
     PowerConfig:
       type: object
       nullable: true

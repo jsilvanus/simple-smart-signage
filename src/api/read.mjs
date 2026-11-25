@@ -1,5 +1,6 @@
 import { pipeline } from 'node:stream/promises';
 import { HttpError, sendJson } from '../router.mjs';
+import { hasRight, rightsForTarget } from '../auth/tunnus.mjs';
 
 const SCREEN_ID_RE = /^[a-z0-9-]{1,40}$/;
 const MEDIA_FILE_RE = /^([0-9a-f]{64})\.([a-z0-9]+)$/;
@@ -74,7 +75,12 @@ async function resolveMissingExts(storage, entries) {
   return bySha;
 }
 
-function formatScreen(s) {
+function targetOf(s) {
+  return { kind: (s.kind ?? 'screen') === 'screen' ? 'screen' : 'view', id: s.id };
+}
+
+function formatScreen(s, principal) {
+  const rights = principal?.kind === 'tunnus' ? rightsForTarget(principal, targetOf(s)) : undefined;
   return {
     id: s.id,
     kind: s.kind ?? 'screen',
@@ -88,6 +94,7 @@ function formatScreen(s) {
     enabledEntryCount: s.enabledEntryCount,
     playlistVersion: s.playlistVersion,
     ...(s.kind === 'view' || s.kind === 'aggregate' ? { embed: s.embed ?? null } : {}),
+    ...(rights ? { rights } : {}),
   };
 }
 
@@ -122,14 +129,18 @@ export function registerReadRoutes(router, ctx) {
 
   router.get('/api/v1/screens', async (req, res) => {
     auth.applyCors(req, res);
-    auth.assertRights?.(await auth.authenticate(req), 'read');
+    const principal = await auth.authenticate(req);
+    auth.assertRights?.(principal, 'read');
     const kind = new URL(req.url, 'http://x').searchParams.get('kind');
     if (kind !== null && !['screen', 'view', 'aggregate'].includes(kind)) {
       throw new HttpError('INVALID_KIND', 'kind must be screen, view or aggregate', 422);
     }
     let list = await state.listScreens();
+    if (principal?.kind === 'tunnus') {
+      list = list.filter((s) => hasRight(principal, 'read', targetOf(s)));
+    }
     if (kind) list = list.filter((s) => (s.kind ?? 'screen') === kind);
-    sendJson(res, 200, { screens: list.map(formatScreen) });
+    sendJson(res, 200, { screens: list.map((s) => formatScreen(s, principal)) });
   });
 
   router.get('/s/:screenId/playlist.json', async (req, res, { params }) => {
@@ -239,6 +250,7 @@ export function registerReadRoutes(router, ctx) {
         'content-length': chunkLen,
         'content-range': `bytes ${media.start}-${media.end}/${media.size}`,
         'cache-control': CACHE_IMMUTABLE,
+        'access-control-allow-origin': '*',
       },
       media.stream,
     );

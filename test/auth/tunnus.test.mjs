@@ -256,3 +256,106 @@ test('mode both: the admin password and cookie still work next to Tunnus', async
   assert.equal(list.status, 200);
   assert.equal((await http(s.base, '/signage/api/v1/admin/screens', { headers: s.bearer(['editors']) })).status, 200);
 });
+
+test('empty group rights is allowed and sissi:admin expands to read/write/operate', () => {
+  const emptyCfg = testConfig({
+    SISSI_AUTH_MODE: 'tunnus',
+    SISSI_TUNNUS_ISSUER: 'https://id.example',
+    SISSI_TUNNUS_AUDIENCE: 'https://kehitys.example/sissi',
+    SISSI_TUNNUS_GROUP_RIGHTS: '',
+  });
+  assert.equal(emptyCfg.tunnus.groupRights.size, 0);
+
+  const adminCfg = testConfig({
+    ...baseEnv,
+    SISSI_TUNNUS_GROUP_RIGHTS: 'parish/riihimaki/sissi-admin=sissi:admin',
+  });
+  const set = adminCfg.tunnus.groupRights.get('parish/riihimaki/sissi-admin');
+  assert.deepEqual([...set].sort(), ['sissi:operate', 'sissi:read', 'sissi:write']);
+});
+
+test('scoped per-screen and per-view rights in groups/scope filter screens, guard push, aggregate patch, and rights-keys', async (t) => {
+  const s = await setup({
+    ...baseEnv,
+    SISSI_TUNNUS_GROUP_RIGHTS: '',
+  });
+  t.after(s.close);
+  await s.state.createScreen({ id: 'lobby', name: 'Lobby' });
+  await s.state.createScreen({ id: 'v1', name: 'View 1', kind: 'view', embed: {} });
+  await s.state.createScreen({ id: 'v2', name: 'View 2', kind: 'view', embed: {} });
+  await s.state.createScreen({ id: 'agg', name: 'Aggregate', kind: 'aggregate', members: ['v1'] });
+
+  const hScoped = s.bearer(['sissi:write:screen:hall', 'sissi:write:view:agg', 'sissi:read:view:v1']);
+  const screensRes = await http(s.base, '/signage/api/v1/screens', { headers: hScoped });
+  assert.equal(screensRes.status, 200);
+  assert.deepEqual(screensRes.json.screens.map((x) => x.id).sort(), ['agg', 'hall', 'v1']);
+  const hallItem = screensRes.json.screens.find((x) => x.id === 'hall');
+  assert.deepEqual(hallItem.rights, ['read', 'write']);
+
+  // Push to hall succeeds, push to lobby is forbidden.
+  assert.equal((await http(s.base, '/signage/api/v1/push', { method: 'POST', headers: hScoped, body: pushBody() })).status, 202);
+  assert.equal((await http(s.base, '/signage/api/v1/push', { method: 'POST', headers: hScoped, body: { ...pushBody(), screenId: 'lobby' } })).status, 403);
+
+  // Aggregate members-only PATCH requires write on agg and read on every member.
+  const patchOk = await http(s.base, '/signage/api/v1/admin/screens/agg', {
+    method: 'PATCH',
+    headers: hScoped,
+    body: { members: ['v1'] },
+  });
+  assert.equal(patchOk.status, 200);
+
+  const patchNoReadOnV2 = await http(s.base, '/signage/api/v1/admin/screens/agg', {
+    method: 'PATCH',
+    headers: hScoped,
+    body: { members: ['v1', 'v2'] },
+  });
+  assert.equal(patchNoReadOnV2.status, 403);
+
+  // rights-keys endpoint lists keys only for readable targets.
+  const rk = await http(s.base, '/signage/api/v1/admin/rights-keys', { headers: hScoped });
+  assert.equal(rk.status, 200);
+  assert.deepEqual(rk.json.keys.map((k) => k.id).sort(), ['agg', 'hall', 'v1']);
+});
+
+test('OIDC browser session with sissi:admin (write+operate) can use setup routes even in AUTH_MODE=tunnus', async (t) => {
+  const { createAdminOidc } = await import('../../src/admin-oidc/index.mjs');
+  const f = fakeTunnus();
+  const storage = createMemoryStorage();
+  const state = createState(storage);
+  const cfg = testConfig({
+    ...baseEnv,
+    SISSI_AUTH_MODE: 'tunnus',
+    SISSI_OIDC_CLIENT_SECRET: 'oidc-secret',
+    SISSI_TUNNUS_GROUP_RIGHTS: 'parish/riihimaki/sissi-admin=sissi:admin;editors=sissi:write',
+  });
+  const tunnus = createTunnusVerifier(cfg, { fetch: f.fetchFn });
+  const auth = createAuth(cfg, { fetch: f.fetchFn, tunnus });
+  const adminOidc = createAdminOidc(cfg, { tunnus });
+  const adminAuth = createAdminAuth(cfg, { tunnus, oidc: adminOidc });
+  const srv = await startTestServer(
+    { ...baseEnv, SISSI_AUTH_MODE: 'tunnus', SISSI_OIDC_CLIENT_SECRET: 'oidc-secret' },
+    { storage, state, auth, adminAuth, adminOidc },
+  );
+  registerAdminRoutes(srv.ctx.router, srv.ctx);
+  t.after(srv.close);
+
+  // Build signed session cookies via HMAC using the same helper by stubbing readSession or using adminOidc
+  const origRead = adminOidc.readSession;
+  let activeSession = { kind: 'tunnus', sub: 'admin-1', rights: new Set(['sissi:read', 'sissi:write', 'sissi:operate']) };
+  adminOidc.readSession = () => activeSession;
+  const ok = await http(srv.base, '/signage/api/v1/admin/screens', {
+    method: 'POST',
+    headers: { 'x-sissi-admin': '1' },
+    body: { id: 'oidc-screen', name: 'OIDC Screen' },
+  });
+  assert.equal(ok.status, 201);
+
+  activeSession = { kind: 'tunnus', sub: 'editor-1', rights: new Set(['sissi:write']) };
+  const denied = await http(srv.base, '/signage/api/v1/admin/screens', {
+    method: 'POST',
+    headers: { 'x-sissi-admin': '1' },
+    body: { id: 'oidc-screen-2', name: 'Denied' },
+  });
+  assert.equal(denied.status, 401);
+  adminOidc.readSession = origRead;
+});

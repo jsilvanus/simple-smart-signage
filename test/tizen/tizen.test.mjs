@@ -209,6 +209,7 @@ test('Playwright Tizen receiver: keep-awake, D-pad setup, playback, version swit
       pushId: 'p1',
       title: 'Push 1',
       mode: 'replace',
+      enabled: true,
       items: [
         { kind: 'image', mediaId: img1Sha, ext: 'png', seconds: 1 },
         { kind: 'video', mediaId: vidSha, ext: 'mp4', seconds: 1 },
@@ -300,6 +301,7 @@ test('Playwright Tizen receiver: keep-awake, D-pad setup, playback, version swit
       pushId: 'p2',
       title: 'Push 2',
       mode: 'replace',
+      enabled: true,
       items: [{ kind: 'image', mediaId: img2Sha, ext: 'png', seconds: 1 }],
     });
 

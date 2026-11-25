@@ -201,8 +201,13 @@ function validateScreenCreate(input) {
     if (input.embed !== undefined || input.members !== undefined) {
       throw new StateError('INVALID_SCREEN', 'embed and members are only for views and aggregates');
     }
-  } else if (input.power !== undefined) {
-    throw new StateError('INVALID_SCREEN', 'Views have no power settings');
+  } else {
+    if (input.power !== undefined) {
+      throw new StateError('INVALID_SCREEN', 'Views have no power settings');
+    }
+    if (kind === 'view' && input.members !== undefined) {
+      throw new StateError('INVALID_SCREEN', 'members is only for aggregates');
+    }
   }
   const power = kind === 'screen' && input.power !== undefined ? validatePower(input.power) : null;
   const embed = kind === 'screen' ? null : validateEmbed(input.embed);
@@ -234,6 +239,9 @@ function applyScreenPatch(doc, patch) {
   }
   if (patch.id !== undefined && patch.id !== doc.id) {
     throw new StateError('INVALID_SCREEN', 'Screen id cannot be changed');
+  }
+  if (patch.kind !== undefined && patch.kind !== (doc.kind ?? 'screen')) {
+    throw new StateError('INVALID_SCREEN', 'kind cannot be changed');
   }
   if (patch.name !== undefined) {
     if (typeof patch.name !== 'string' || patch.name.trim().length < 1 || patch.name.length > 100) {
@@ -342,8 +350,20 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     });
   }
 
+  async function assertAggregateMembers(members) {
+    for (const memberId of members ?? []) {
+      const res = await storage.getJson(screenKey(memberId));
+      if (!res || res.value?.kind !== 'view') {
+        throw new StateError('INVALID_SCREEN', `Aggregate member must be an existing view: ${memberId}`);
+      }
+    }
+  }
+
   async function createScreen(input) {
     const doc = validateScreenCreate(input);
+    if (doc.kind === 'aggregate' && doc.members?.length) {
+      await assertAggregateMembers(doc.members);
+    }
     return withScreenLock(doc.id, async () => {
       try {
         await storage.putJson(screenKey(doc.id), doc, { ifMatch: null });
@@ -358,19 +378,35 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
   }
 
   async function updateScreen(id, patch) {
+    if (patch?.members !== undefined) {
+      await assertAggregateMembers(validateMembers(patch.members, id));
+    }
     return mutateScreen(id, (doc) => {
       applyScreenPatch(doc, patch);
     });
   }
 
   async function deleteScreen(id) {
-    return withScreenLock(id, async () => {
+    const deletedKind = await withScreenLock(id, async () => {
       const res = await storage.getJson(screenKey(id));
       if (!res) {
         throw new StateError('SCREEN_NOT_FOUND', `Unknown screen: ${id}`);
       }
       await storage.deleteJson(screenKey(id));
+      return res.value?.kind ?? 'screen';
     });
+    if (deletedKind === 'view') {
+      const keys = await storage.listJson(SCREEN_PREFIX);
+      for (const k of keys) {
+        const res = await storage.getJson(k);
+        const doc = res?.value;
+        if (doc?.kind === 'aggregate' && Array.isArray(doc.members) && doc.members.includes(id)) {
+          await mutateScreen(doc.id, (d) => {
+            d.members = (d.members ?? []).filter((m) => m !== id);
+          }).catch(() => {});
+        }
+      }
+    }
   }
 
   async function getScreen(id) {
@@ -502,6 +538,22 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     });
   }
 
+  async function setEntryText(screenId, entryId, textPatch = {}) {
+    return mutateScreen(screenId, (doc) => {
+      const entry = doc.entries.find((e) => e.entryId === entryId);
+      if (!entry) {
+        throw new StateError('ENTRY_NOT_FOUND', `Unknown entry: ${entryId}`);
+      }
+      const next = {
+        alt: textPatch.alt !== undefined ? textPatch.alt : entry.alt,
+        headline: textPatch.headline !== undefined ? textPatch.headline : entry.headline,
+        caption: textPatch.caption !== undefined ? textPatch.caption : entry.caption,
+        link: textPatch.link !== undefined ? textPatch.link : entry.link,
+      };
+      Object.assign(entry, validateItemText(next));
+    });
+  }
+
   function assertEnabledFlag(enabled) {
     if (typeof enabled !== 'boolean') {
       throw new StateError('INVALID_ENABLED', 'enabled must be a boolean');
@@ -584,6 +636,9 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
       throw new StateError('SCREEN_NOT_FOUND', `Unknown screen: ${screenId}`);
     }
     const doc = res.value;
+    if (!isScreenDoc(doc)) {
+      throw new StateError('KIND_MISMATCH', 'Playlists at /s/:id are only for screens');
+    }
     return {
       screenId: doc.id,
       version: doc.version,
@@ -730,6 +785,9 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
       throw new StateError('INVALID_SCREEN', `Invalid power override: ${override}`);
     }
     return mutateScreen(screenId, (doc) => {
+      if (!isScreenDoc(doc)) {
+        throw new StateError('INVALID_SCREEN', 'Views have no power settings');
+      }
       doc.power = {
         lanId: null,
         routerId: null,
@@ -780,6 +838,7 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     removeEntry,
     reorderEntries,
     setEntrySeconds,
+    setEntryText,
     setEntryEnabled,
     setEntryThumbnail,
     setPushEnabled,

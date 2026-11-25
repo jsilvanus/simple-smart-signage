@@ -126,3 +126,95 @@ test('GET /api/v1/screens?kind= filters the list (Canva lists views and screens 
     await s.close();
   }
 });
+
+test('ETag 304, aggregate combined version, OPTIONS preflight, and KIND_MISMATCH guards', async () => {
+  const s = await setup();
+  try {
+    await s.state.createScreen({ id: 'm1', name: 'M1', kind: 'view', embed: { allowedOrigins: ['https://site.example'] } });
+    await s.state.createScreen({ id: 'agg1', name: 'Agg', kind: 'aggregate', members: ['m1'], embed: { allowedOrigins: ['https://site.example'] } });
+    await s.state.applyPush('m1', { pushId: 'p1', title: 'T', enabled: true, items: [{ kind: 'image', mediaId: 'aaa', ext: 'png', seconds: 5 }] });
+
+    const first = await http(s.base, '/v/m1/playlist.json', { headers: { origin: 'https://site.example' } });
+    assert.equal(first.status, 200);
+    const etag = first.headers.get('etag');
+    assert.ok(etag);
+    const notMod = await http(s.base, '/v/m1/playlist.json', { headers: { origin: 'https://site.example', 'if-none-match': etag } });
+    assert.equal(notMod.status, 304);
+
+    const agg = await http(s.base, '/v/agg1/playlist.json');
+    assert.match(String(agg.json.version), /m1@/);
+
+    const opt = await http(s.base, '/v/m1/playlist.json', { method: 'OPTIONS', headers: { origin: 'https://site.example' } });
+    assert.equal(opt.status, 204);
+    assert.equal(opt.headers.get('access-control-allow-origin'), 'https://site.example');
+    assert.match(opt.headers.get('access-control-allow-methods'), /GET/);
+
+    const optEmbed = await http(s.base, '/v/m1/embed.js', { method: 'OPTIONS', headers: { origin: 'https://evil.example' } });
+    assert.equal(optEmbed.status, 204);
+    assert.equal(optEmbed.headers.get('access-control-allow-origin'), null);
+
+    // /s/:viewId/playlist.json rejects views and aggregates with 422 KIND_MISMATCH
+    assert.equal((await http(s.base, '/s/m1/playlist.json')).status, 422);
+
+    // Aggregate creation rejects unknown/non-view members, and deleting a member cascades cleanup
+    await assert.rejects(() => s.state.createScreen({ id: 'badagg', name: 'Bad', kind: 'aggregate', members: ['missing'] }), (e) => e.code === 'INVALID_SCREEN');
+    await s.state.deleteScreen('m1');
+    const aggAfter = await s.state.getScreen('agg1');
+    assert.deepEqual(aggAfter.members, []);
+  } finally {
+    await s.close();
+  }
+});
+
+test('runtime.js mounts carousel with --sv-aspect/--sv-fit CSS vars and .sv-dot sizing in browser', async () => {
+  const { chromium } = await import('playwright-core');
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const chromePath = ['C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe', 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'].find((p) => fs.existsSync(p));
+  if (!chromePath) return;
+  const s = await setup();
+  const browser = await chromium.launch({ executablePath: chromePath, headless: true });
+  const tmpFile = path.join(os.tmpdir(), `sissi-dom-${Date.now()}.png`);
+  try {
+    await s.state.createScreen({
+      id: 'domview',
+      name: 'DOM View',
+      kind: 'view',
+      embed: { type: 'carousel', options: { aspect: '4:5', fit: 'cover', dots: true }, allowedOrigins: ['http://127.0.0.1'] },
+    });
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
+    fs.writeFileSync(tmpFile, png);
+    const { createHash } = await import('node:crypto');
+    const sha = createHash('sha256').update(png).digest('hex');
+    await s.ctx.storage.putMediaFromFile(sha, 'png', tmpFile, 'image/png');
+    await s.state.applyPush('domview', {
+      pushId: 'p1',
+      title: 'T',
+      enabled: true,
+      items: [
+        { kind: 'image', mediaId: sha, ext: 'png', seconds: 5, headline: 'One' },
+        { kind: 'image', mediaId: sha, ext: 'png', seconds: 5, headline: 'Two' },
+      ],
+    });
+    const page = await browser.newPage();
+    await page.goto(`${s.base}/v/domview/frame`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('#root .sv-dot', { timeout: 5000 });
+    const check = await page.evaluate(() => {
+      const wrap = document.querySelector('#root .sissi-view');
+      const dot = document.querySelector('#root .sv-dot');
+      return {
+        aspect: wrap?.style.getPropertyValue('--sv-aspect'),
+        fit: wrap?.style.getPropertyValue('--sv-fit'),
+        dotWidth: dot ? parseFloat(getComputedStyle(dot).width) : null,
+      };
+    });
+    assert.equal(check.aspect, '4 / 5');
+    assert.equal(check.fit, 'cover');
+    assert.ok(check.dotWidth !== null && check.dotWidth < 25, `dot width should be small, got ${check.dotWidth}`);
+  } finally {
+    fs.rmSync(tmpFile, { force: true });
+    await browser.close();
+    await s.close();
+  }
+});

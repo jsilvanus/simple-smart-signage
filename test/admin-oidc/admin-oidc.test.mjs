@@ -90,3 +90,55 @@ test('no client secret means browser sign-in is not configured', () => {
   const f = fakeTunnus();
   assert.equal(createAdminOidc(config({ SISSI_OIDC_CLIENT_SECRET: '' }), { tunnus: f.tunnus, fetch: f.fetch }), null);
 });
+
+test('beginLogin includes nonce and groups scope without resource; finishLogin verifies id_token when present', async () => {
+  let verifiedNonce = null;
+  let issuedNonce = null;
+  const fetch = async (url) => {
+    if (String(url).endsWith('/.well-known/openid-configuration')) {
+      return new Response(JSON.stringify({
+        authorization_endpoint: 'https://id.example/authorize',
+        token_endpoint: 'https://id.example/token',
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (String(url) === 'https://id.example/token') {
+      return new Response(JSON.stringify({ access_token: 'opaque', id_token: 'ID_TOK' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+    return new Response('nope', { status: 404 });
+  };
+  const tunnus = {
+    verify: async () => {
+      throw new Error('should prefer id_token');
+    },
+    verifyIdToken: async (tok, opts) => {
+      assert.equal(tok, 'ID_TOK');
+      verifiedNonce = opts.nonce;
+      return { kind: 'tunnus', sub: 'u-id', name: 'ID User', rights: new Set(['sissi:read']) };
+    },
+  };
+  const oidc = createAdminOidc(config(), { tunnus, fetch });
+  const { location, setCookie } = await oidc.beginLogin({
+    redirectUri: 'https://kehitys.example/sissi/admin/callback',
+    cookiePath: '/sissi',
+    secure: false,
+  });
+  const u = new URL(location);
+  assert.equal(u.searchParams.get('scope'), 'openid profile email groups');
+  assert.equal(u.searchParams.get('resource'), null);
+  issuedNonce = u.searchParams.get('nonce');
+  assert.ok(issuedNonce && issuedNonce.length >= 20);
+
+  const { sessionCookie } = await oidc.finishLogin({
+    code: 'C',
+    state: u.searchParams.get('state'),
+    cookieHeader: setCookie.split(';')[0],
+    redirectUri: 'https://kehitys.example/sissi/admin/callback',
+    cookiePath: '/sissi',
+    secure: false,
+  });
+  assert.equal(verifiedNonce, issuedNonce);
+  assert.equal(oidc.readSession(sessionCookie.split(';')[0]).sub, 'u-id');
+});

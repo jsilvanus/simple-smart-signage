@@ -146,13 +146,20 @@ export function createAdminAuth(config, { now = () => Date.now(), fetch: fetchFn
   }
 
   function requireAdmin(req) {
+    const method = String(req?.method ?? 'GET').toUpperCase();
+    const session = oidc?.readSession(req?.headers?.cookie);
+    if (session?.rights?.has('sissi:write') && session?.rights?.has('sissi:operate')) {
+      if (STATE_CHANGING_METHODS.has(method) && req?.headers?.['x-sissi-admin'] !== '1') {
+        throw new HttpError('UNAUTHORIZED', 'Missing X-Sissi-Admin header');
+      }
+      return;
+    }
     if (!passwordOn) throw new HttpError('UNAUTHORIZED', 'Password sign-in is disabled');
     ensureConfigured();
     const token = parseCookie(req?.headers?.cookie, COOKIE_NAME);
     if (!verifyToken(token, getNowMs())) {
       throw new HttpError('UNAUTHORIZED', 'Admin authentication required');
     }
-    const method = String(req?.method ?? 'GET').toUpperCase();
     if (STATE_CHANGING_METHODS.has(method) && req?.headers?.['x-sissi-admin'] !== '1') {
       throw new HttpError('UNAUTHORIZED', 'Missing X-Sissi-Admin header');
     }
@@ -165,11 +172,11 @@ export function createAdminAuth(config, { now = () => Date.now(), fetch: fetchFn
    * cookie is required, exactly as before (unless SISSI_AUTH_MODE=tunnus). Setup routes
    * (screens, power) keep calling requireAdmin and never accept a Tunnus token.
    */
-  async function authorize(req, need) {
+  async function authorize(req, need, target = null) {
     const m = /^Bearer\s+(\S+)$/i.exec((req?.headers?.authorization ?? '').trim());
     if (m && tunnusVerifier) {
       const principal = await tunnusVerifier.verify(m[1]);
-      assertRights(principal, need);
+      assertRights(principal, need, target);
       return principal;
     }
     // Browser session from the Tunnus sign-in on /admin. Writes still need the X-Sissi-Admin header.
@@ -178,11 +185,21 @@ export function createAdminAuth(config, { now = () => Date.now(), fetch: fetchFn
       if (STATE_CHANGING_METHODS.has(String(req?.method ?? 'GET').toUpperCase()) && req?.headers?.['x-sissi-admin'] !== '1') {
         throw new HttpError('UNAUTHORIZED', 'Missing X-Sissi-Admin header');
       }
-      assertRights(session, need);
+      assertRights(session, need, target);
       return session;
     }
     requireAdmin(req);
     return { kind: 'admin' };
+  }
+
+  function hasAdminCookie(req) {
+    if (config.authMode === 'tunnus' || !secret) return false;
+    try {
+      const token = parseCookie(req?.headers?.cookie, COOKIE_NAME);
+      return Boolean(token && verifyToken(token));
+    } catch {
+      return false;
+    }
   }
 
   function logout(req, res) {
@@ -194,6 +211,7 @@ export function createAdminAuth(config, { now = () => Date.now(), fetch: fetchFn
   return {
     login,
     requireAdmin,
+    hasAdminCookie,
     authorize,
     logout,
   };

@@ -26,7 +26,10 @@ export function createServer(config, deps = {}) {
   };
   registerRoutes(router, ctx);
   const server = http.createServer((req, res) => {
-    if (ctx.auth?.handleCors?.(req, res)) return;
+    const rawPath = String(req.url ?? '/').split('?')[0];
+    const relPath = router.stripPrefix ? router.stripPrefix(rawPath) : rawPath;
+    const isPublicAsset = relPath.startsWith('/v/') || relPath.startsWith('/s/') || relPath.startsWith('/media/');
+    if (!isPublicAsset && ctx.auth?.handleCors?.(req, res)) return;
     router.handle(req, res);
   });
   server.ctx = ctx;

@@ -56,8 +56,15 @@ export function createTunnusVerifier(config, { fetch: fetchFn = globalThis.fetch
   };
   const getKey = createJwksResolver(getJwksUrl, { fetchFn, now });
 
-  /** token -> { sub, name, rights: Set<string> }. Throws HttpError UNAUTHORIZED / FORBIDDEN. */
-  async function verify(token) {
+  const RIGHT_KEY_RE = /^sissi:(read|write|operate)(?::(screen|view):([A-Za-z0-9_-]+))?$/;
+
+  function expandClaimRight(raw) {
+    if (raw === 'sissi:admin') return ['sissi:read', 'sissi:write', 'sissi:operate'];
+    if (RIGHT_KEY_RE.test(raw)) return [raw];
+    return [];
+  }
+
+  async function verifyClaims(token, expectedAudience, expectedNonce = null) {
     const parts = String(token).split('.');
     if (parts.length !== 3) throw unauthorized();
     const [headerB64, payloadB64, sigB64] = parts;
@@ -84,7 +91,7 @@ export function createTunnusVerifier(config, { fetch: fetchFn = globalThis.fetch
     const p = decodePart(payloadB64);
     if (!p) throw unauthorized();
     if (typeof p.iss !== 'string' || p.iss.replace(/\/+$/, '') !== t.issuer) throw unauthorized();
-    const audOk = p.aud === t.audience || (Array.isArray(p.aud) && p.aud.includes(t.audience));
+    const audOk = p.aud === expectedAudience || (Array.isArray(p.aud) && p.aud.includes(expectedAudience));
     if (!audOk) throw unauthorized();
 
     const nowSec = now() / 1000;
@@ -93,41 +100,84 @@ export function createTunnusVerifier(config, { fetch: fetchFn = globalThis.fetch
     if (p.nbf !== undefined && (typeof p.nbf !== 'number' || !Number.isFinite(p.nbf) || nowSec + leeway < p.nbf)) {
       throw unauthorized();
     }
+    if (expectedNonce && p.nonce !== expectedNonce) throw unauthorized();
     if (typeof p.sub !== 'string' || !p.sub) throw unauthorized();
 
     const groups = Array.isArray(p.groups) ? p.groups.filter((g) => typeof g === 'string') : [];
+    const scopeParts = typeof p.scope === 'string' ? p.scope.split(/\s+/).filter(Boolean) : [];
     const rights = new Set();
-    for (const g of groups) for (const r of t.groupRights.get(g) ?? []) rights.add(r);
+    for (const g of groups) {
+      for (const r of t.groupRights.get(g) ?? []) rights.add(r);
+      for (const r of expandClaimRight(g)) rights.add(r);
+    }
+    for (const s of scopeParts) {
+      for (const r of expandClaimRight(s)) rights.add(r);
+    }
     if (rights.size === 0) {
       throw new HttpError('FORBIDDEN', 'Your account has no signage rights');
     }
     return { kind: 'tunnus', sub: p.sub, name: typeof p.name === 'string' ? p.name : undefined, rights };
   }
 
-  return { verify, issuer: t.issuer };
+  /** API access token -> { sub, name, rights: Set<string> }. Throws HttpError UNAUTHORIZED / FORBIDDEN. */
+  async function verify(token) {
+    return verifyClaims(token, t.audience);
+  }
+
+  /** OIDC ID token -> { sub, name, rights: Set<string> }. Checks aud === oidcClientId and optional nonce. */
+  async function verifyIdToken(idToken, { nonce } = {}) {
+    if (!t.oidcClientId) throw unauthorized();
+    return verifyClaims(idToken, t.oidcClientId, nonce ?? null);
+  }
+
+  return { verify, verifyIdToken, issuer: t.issuer };
+}
+
+const PARSE_RIGHT_RE = /^sissi:(read|write|operate)(?::(screen|view):([A-Za-z0-9_-]+))?$/;
+
+export function parseRightKey(key) {
+  const m = PARSE_RIGHT_RE.exec(String(key ?? ''));
+  if (!m) return null;
+  return { action: m[1], targetKind: m[2] ?? null, targetId: m[3] ?? null };
+}
+
+function actionSatisfies(grantedAction, neededAction) {
+  if (neededAction === 'read') return grantedAction === 'read' || grantedAction === 'write' || grantedAction === 'operate';
+  return grantedAction === neededAction;
+}
+
+export function hasRight(principal, need, target = null) {
+  if (principal?.kind !== 'tunnus') return true;
+  if (need === 'any') return hasRight(principal, 'write', target) || hasRight(principal, 'operate', target);
+  for (const key of principal.rights ?? []) {
+    const parsed = parseRightKey(key);
+    if (!parsed || !actionSatisfies(parsed.action, need)) continue;
+    if (!parsed.targetKind) return true;
+    if (!target) return true;
+    if (parsed.targetKind === target.kind && parsed.targetId === target.id) return true;
+  }
+  return false;
+}
+
+export function rightsForTarget(principal, target) {
+  return ['read', 'write', 'operate'].filter((a) => hasRight(principal, a, target));
 }
 
 /**
  * need: 'read' (read, write or operate) | 'any' (write or operate) | 'write' | 'operate' | array of those (all required).
- * Rights are independent: operate does not imply write, nor the other way round. Read is the
- * only right that write or operate also satisfy, because they can already see everything read shows.
+ * target: optional { kind: 'screen' | 'view', id: string } to check scoped rights in addition to global rights.
  */
-export function assertRights(principal, need) {
+export function assertRights(principal, need, target = null) {
   if (principal?.kind !== 'tunnus') return; // legacy principals keep their existing trust
   const needs = Array.isArray(need) ? need : [need];
   for (const n of needs) {
-    let allowed;
-    let label;
-    if (n === 'read') {
-      allowed = ['sissi:read', 'sissi:write', 'sissi:operate'].some((r) => principal.rights.has(r));
-      label = 'sissi:read, sissi:write or sissi:operate';
-    } else if (n === 'any') {
-      allowed = principal.rights.has('sissi:write') || principal.rights.has('sissi:operate');
-      label = 'sissi:write or sissi:operate';
-    } else {
-      allowed = principal.rights.has(`sissi:${n}`);
-      label = `sissi:${n}`;
-    }
+    const allowed = hasRight(principal, n, target);
+    const label =
+      n === 'read'
+        ? 'sissi:read, sissi:write or sissi:operate'
+        : n === 'any'
+          ? 'sissi:write or sissi:operate'
+          : `sissi:${n}`;
     if (!allowed) {
       throw new HttpError('FORBIDDEN', `Requires ${label}`);
     }

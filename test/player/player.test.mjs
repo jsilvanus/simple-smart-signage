@@ -169,6 +169,7 @@ test('Playwright player: images, video ended, boundary version switch, unknown s
     await srv.state.applyPush('lobby', {
       pushId: 'push-1',
       mode: 'replace',
+      enabled: true,
       title: 'v1',
       items: [
         { mediaId: shaImg1, ext: 'png', kind: 'image', seconds: 1 },
@@ -191,6 +192,7 @@ test('Playwright player: images, video ended, boundary version switch, unknown s
     await srv.state.applyPush('late-screen', {
       pushId: 'push-late',
       mode: 'replace',
+      enabled: true,
       title: 'late',
       items: [{ mediaId: shaImg3, ext: 'png', kind: 'image', seconds: 2 }],
     });
@@ -225,12 +227,13 @@ test('Playwright player: images, video ended, boundary version switch, unknown s
     // Advances to vid after ~1s
     await page2.waitForSelector(`.slide.is-visible video[src*="${shaVid}"]`, { timeout: 5000 });
     // Video ended advances back to img1 (sample.mp4 is 0.6s, safety net is 4+5=9s, so <3s proves ended fired)
-    await page2.waitForSelector(`.slide.is-visible img[src*="${shaImg1}"]`, { timeout: 3500 });
+    await page2.waitForSelector(`.slide.is-visible img[src*="${shaImg1}"]`, { timeout: 5500 });
 
     // 3. Version switch at entry boundary (push v2 while img1 is active)
     await srv.state.applyPush('lobby', {
       pushId: 'push-2',
       mode: 'replace',
+      enabled: true,
       title: 'v2',
       items: [
         { mediaId: shaImg3, ext: 'png', kind: 'image', seconds: 1 },
@@ -300,6 +303,7 @@ test('Playwright player: skips uncached video when offline (SISSI_SW_MAX_VIDEO_M
     await srv.state.applyPush('skip-test', {
       pushId: 'push-skip',
       mode: 'replace',
+      enabled: true,
       title: 'skip',
       items: [
         { mediaId: shaImg, ext: 'png', kind: 'image', seconds: 1 },

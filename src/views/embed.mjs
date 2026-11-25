@@ -54,7 +54,7 @@ export function validateEmbed(input) {
   const fit = options.fit ?? 'contain';
   if (fit !== 'contain' && fit !== 'cover') throw invalid('embed.options.fit must be contain or cover');
   const aspect = options.aspect ?? '16:9';
-  if (typeof aspect !== 'string' || !/^\d{1,2}:\d{1,2}$/.test(aspect)) {
+  if (typeof aspect !== 'string' || !/^[1-9]\d?:[1-9]\d?$/.test(aspect)) {
     throw invalid('embed.options.aspect must look like 16:9');
   }
   return {
@@ -62,6 +62,12 @@ export function validateEmbed(input) {
     options: { fit, aspect, dots: options.dots !== false },
     allowedOrigins: normaliseOrigins(src.allowedOrigins),
   };
+}
+
+/** Tunnus right keys for a single screen, view or aggregate. */
+export function rightsKeysForTarget(id, kind) {
+  const scopeKind = kind === 'screen' ? 'screen' : 'view';
+  return ['read', 'write', 'operate'].map((action) => `sissi:${action}:${scopeKind}:${id}`);
 }
 
 /** Text fields of one item. All optional; text is plain text, never HTML. */
@@ -83,9 +89,12 @@ export function validateItemText(input = {}) {
   if (link === undefined || link === null || link === '') {
     out.link = null;
   } else {
+    if (typeof link !== 'string' || link.length > 2048) {
+      throw new HttpError('INVALID_PAGES', 'link must be an absolute https URL up to 2048 characters', 422);
+    }
     let u;
     try {
-      u = new URL(String(link));
+      u = new URL(link);
     } catch {
       throw new HttpError('INVALID_PAGES', 'link must be an absolute https URL', 422);
     }

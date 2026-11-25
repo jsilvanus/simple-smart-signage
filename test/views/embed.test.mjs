@@ -57,3 +57,11 @@ test('CORS: only the allowed origin is echoed', () => {
 test('escapeHtml neutralises markup', () => {
   assert.equal(escapeHtml('<a href="x">&\'</a>'), '&lt;a href=&quot;x&quot;&gt;&amp;&#39;&lt;/a&gt;');
 });
+
+test('aspect ratio rejects zero components and link rejects non-string or >2048 chars', () => {
+  assert.throws(() => validateEmbed({ options: { aspect: '0:9' } }), (e) => e.status === 422);
+  assert.throws(() => validateEmbed({ options: { aspect: '16:0' } }), (e) => e.status === 422);
+  assert.equal(validateEmbed({ options: { aspect: '4:5' } }).options.aspect, '4:5');
+  assert.throws(() => validateItemText({ link: 123 }), (e) => e.status === 422);
+  assert.throws(() => validateItemText({ link: `https://example.org/${'a'.repeat(2040)}` }), (e) => e.status === 422);
+});

@@ -86,17 +86,18 @@ export function createAdminOidc(config, { tunnus, fetch: fetchFn = globalThis.fe
     const doc = await discover();
     const state = b64url(randomBytes(24));
     const verifier = b64url(randomBytes(48));
-    const tx = sign({ state, verifier, exp: now() + TX_TTL_MS });
+    const nonce = b64url(randomBytes(24));
+    const tx = sign({ state, verifier, nonce, exp: now() + TX_TTL_MS });
     const url = new URL(doc.authorization_endpoint);
     url.search = new URLSearchParams({
       response_type: 'code',
       client_id: t.oidcClientId,
       redirect_uri: redirectUri,
-      scope: 'openid profile',
+      scope: 'openid profile email groups',
       state,
+      nonce,
       code_challenge: pkceChallenge(verifier),
       code_challenge_method: 'S256',
-      resource: t.audience,
     }).toString();
     const setCookie = `${TX_COOKIE}=${tx}; Path=${cookiePath}; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`;
     return { location: url.toString(), setCookie };
@@ -125,9 +126,14 @@ export function createAdminOidc(config, { tunnus, fetch: fetchFn = globalThis.fe
     });
     if (!res?.ok) throw new Error('Tunnus did not accept the sign-in. Try again.');
     const tok = await res.json();
-    if (typeof tok?.access_token !== 'string') throw new Error('Tunnus returned no access token.');
-    // Same checks as an API token: signature, iss, aud, exp, sub, and rights from groups only.
-    const principal = await tunnus.verify(tok.access_token);
+    let principal;
+    if (typeof tok?.id_token === 'string' && typeof tunnus.verifyIdToken === 'function') {
+      principal = await tunnus.verifyIdToken(tok.id_token, { nonce: tx.nonce });
+    } else if (typeof tok?.access_token === 'string') {
+      principal = await tunnus.verify(tok.access_token);
+    } else {
+      throw new Error('Tunnus returned no access token.');
+    }
     const session = sign({
       sub: principal.sub,
       name: principal.name ?? null,

@@ -615,3 +615,27 @@ test('MP4 upload stores a video entry with its duration, and a first-frame thumb
   });
   assert.equal(onImage.status, 422);
 });
+
+test('PATCH entry supports updating view text fields (headline, alt, caption, link)', async (t) => {
+  const srv = await setupAdminServer();
+  t.after(srv.close);
+  await srv.state.createScreen({ id: 'news', name: 'News', kind: 'view', embed: {} });
+  await srv.state.applyPush('news', {
+    pushId: 'p1',
+    title: 'News',
+    items: [{ mediaId: PNG_SHA, ext: 'png', kind: 'image', seconds: 8 }],
+  });
+  const entryId = (await srv.state.getScreen('news')).entries[0].entryId;
+  const { cookie } = await loginCookie(srv.base);
+
+  const patch = await http(srv.base, `/signage/api/v1/admin/screens/news/entries/${entryId}`, {
+    method: 'PATCH',
+    headers: { cookie, 'x-sissi-admin': '1' },
+    body: { headline: 'Hello', alt: 'Alt text', caption: 'Cap', link: 'https://example.org/info' },
+  });
+  assert.equal(patch.status, 200);
+  assert.equal(patch.json.headline, 'Hello');
+  assert.equal(patch.json.alt, 'Alt text');
+  assert.equal(patch.json.caption, 'Cap');
+  assert.equal(patch.json.link, 'https://example.org/info');
+});

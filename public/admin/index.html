@@ -87,7 +87,44 @@
             </div>
           </div>
 
-          <section class="playlist-section" aria-labelledby="playlist-heading">
+          <section id="embed-section" class="embed-section" aria-labelledby="embed-heading" hidden>
+            <div class="panel-header">
+              <h3 id="embed-heading">Web Embed</h3>
+              <span id="embed-summary" class="muted"></span>
+            </div>
+            <p id="aggregate-members-summary" class="muted" hidden></p>
+            <div class="snippet-grid">
+              <div class="snippet-row">
+                <label for="embed-script-snippet">Script embed</label>
+                <div class="copy-row">
+                  <input id="embed-script-snippet" type="text" readonly>
+                  <copy-button>
+                    <button type="button" class="btn btn-sm" command="--copy" commandfor="embed-script-snippet">Copy</button>
+                    <span class="tip muted" role="status" aria-live="polite"></span>
+                  </copy-button>
+                </div>
+              </div>
+              <div class="snippet-row">
+                <label for="embed-iframe-snippet">Iframe embed</label>
+                <div class="copy-row">
+                  <input id="embed-iframe-snippet" type="text" readonly>
+                  <copy-button>
+                    <button type="button" class="btn btn-sm" command="--copy" commandfor="embed-iframe-snippet">Copy</button>
+                    <span class="tip muted" role="status" aria-live="polite"></span>
+                  </copy-button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="rights-section" class="rights-section" aria-labelledby="rights-heading" hidden>
+            <div class="panel-header">
+              <h3 id="rights-heading">Tunnus Rights Keys</h3>
+            </div>
+            <div id="rights-keys-list" class="rights-keys-list"></div>
+          </section>
+
+          <section id="playlist-section" class="playlist-section" aria-labelledby="playlist-heading">
             <div class="panel-header">
               <h3 id="playlist-heading">Playlist</h3>
               <span id="playlist-version" class="badge">v0</span>
@@ -109,6 +146,15 @@
       <div class="dialog-header">
         <h2 id="screen-dialog-title">New screen</h2>
         <button type="button" id="screen-dialog-close" class="btn-icon" aria-label="Close">✕</button>
+      </div>
+
+      <div class="field" id="screen-kind-field">
+        <label for="screen-kind">Kind</label>
+        <select id="screen-kind" name="kind">
+          <option value="screen">Screen (TV / player)</option>
+          <option value="view">View (web embed)</option>
+          <option value="aggregate">Aggregate (combined views)</option>
+        </select>
       </div>
 
       <div class="field" id="screen-id-field">
@@ -163,7 +209,48 @@
         <input id="screen-max-video" name="maxVideoSeconds" type="number" min="1" placeholder="No limit">
       </div>
 
-      <fieldset class="power-fieldset">
+      <fieldset id="embed-fieldset" class="embed-fieldset" hidden>
+        <legend>Web embed settings</legend>
+        <div class="field-row">
+          <div class="field">
+            <label for="embed-type">Layout</label>
+            <select id="embed-type" name="embedType">
+              <option value="carousel">Carousel</option>
+              <option value="single">Single</option>
+              <option value="gallery">Gallery</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="embed-fit">Media fit</label>
+            <select id="embed-fit" name="embedFit">
+              <option value="contain">Contain</option>
+              <option value="cover">Cover</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="embed-aspect">Aspect ratio</label>
+            <input id="embed-aspect" name="embedAspect" type="text" value="16:9" placeholder="16:9">
+          </div>
+          <div class="field">
+            <label class="checkbox-label" for="embed-dots">
+              <input id="embed-dots" name="embedDots" type="checkbox" checked>
+              Show carousel dots
+            </label>
+          </div>
+        </div>
+        <div class="field">
+          <label for="embed-origins">Allowed origins (one per line, e.g. <code>https://example.fi</code>)</label>
+          <textarea id="embed-origins" name="embedOrigins" rows="2" placeholder="https://www.riihimaenseurakunta.fi"></textarea>
+        </div>
+        <div class="field" id="aggregate-members-field" hidden>
+          <label for="embed-members">Member view IDs (comma or newline separated)</label>
+          <textarea id="embed-members" name="members" rows="2" placeholder="view-a, view-b"></textarea>
+        </div>
+      </fieldset>
+
+      <fieldset id="power-fieldset" class="power-fieldset">
         <legend>Power management (optional)</legend>
         <div class="field-row">
           <div class="field">

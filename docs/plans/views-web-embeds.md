@@ -2,6 +2,7 @@
 
 Status: section 7 items 1-2 built on branch claude/sissi-views-web (data model, text fields, aggregates, public routes, carousel/single/gallery renderer, tests). Not built: scoped rights and the read-only rights panel (section 5), the admin snippet panel (item 4), Canva (item 5). Date: 2026-11-24. Requested by Juha.
 Deployment (VPS, Traefik, Tunnus client setup) belongs to the "Seurakunnan appit" project and is out of scope here.
+Responsive image size variants for views are planned separately in [`views-image-variants.md`](views-image-variants.md).
 
 ## 1. Idea
 

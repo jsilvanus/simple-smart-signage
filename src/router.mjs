@@ -141,6 +141,7 @@ export function createRouter({ publicPath = '', bodyLimit = 256 * 1024, metrics 
     put: (p, h) => add('PUT', p, h),
     patch: (p, h) => add('PATCH', p, h),
     delete: (p, h) => add('DELETE', p, h),
+    options: (p, h) => add('OPTIONS', p, h),
     /** Root-relative URL including the public prefix, e.g. router.url('/media/x.png'). */
     url: (path) => prefix + path,
     readJson: (req) => readJsonBody(req, bodyLimit),

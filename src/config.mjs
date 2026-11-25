@@ -26,16 +26,26 @@ export function normalizePublicPath(p) {
 }
 
 export const SISSI_RIGHTS = Object.freeze(['sissi:read', 'sissi:write', 'sissi:operate']);
+const SCOPED_RIGHT_RE = /^sissi:(read|write|operate)(?::(screen|view):[A-Za-z0-9_-]+)?$/;
+
+function expandRightToken(token) {
+  if (token === 'sissi:admin') return SISSI_RIGHTS;
+  if (SCOPED_RIGHT_RE.test(token)) return [token];
+  return [];
+}
 
 /**
  * "<group>=sissi:write,sissi:operate;<group2>=sissi:write" -> Map(group -> Set(right)).
- * Only sissi:read, sissi:write and sissi:operate are ever granted. Anything else (a wildcard, Pi modules,
- * presets such as @operator) is ignored on purpose, so a mapping written for the Pi gateway
- * can never give a Sissi right. A mapping that grants nothing is a configuration error.
+ * Only sissi:read, sissi:write, sissi:operate (optionally scoped to :screen:<id> or :view:<id>)
+ * and sissi:admin (expands to read+write+operate) are ever granted. Anything else (a wildcard,
+ * Pi modules, presets such as @operator) is ignored on purpose. An empty string is allowed when
+ * rights come directly from Tunnus tokens; a non-empty string that grants nothing is an error.
  */
 export function parseGroupRights(raw, problems = []) {
   const map = new Map();
-  for (const part of String(raw ?? '').split(';')) {
+  const trimmed = String(raw ?? '').trim();
+  if (!trimmed) return map;
+  for (const part of trimmed.split(';')) {
     const entry = part.trim();
     if (!entry) continue;
     const idx = entry.indexOf('=');
@@ -48,7 +58,7 @@ export function parseGroupRights(raw, problems = []) {
       .slice(idx + 1)
       .split(',')
       .map((r) => r.trim())
-      .filter((r) => SISSI_RIGHTS.includes(r));
+      .flatMap(expandRightToken);
     if (!group || rights.length === 0) continue;
     const set = map.get(group) ?? new Set();
     for (const r of rights) set.add(r);

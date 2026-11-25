@@ -7,7 +7,45 @@ import {
   previewUrl,
   reorderedEntryIds,
   resolveBasePath,
+  rightsKeysFor,
 } from './helpers.js';
+
+if (typeof customElements !== 'undefined' && !customElements.get('copy-button')) {
+  customElements.define(
+    'copy-button',
+    class extends HTMLElement {
+      #timer = 0;
+      connectedCallback() {
+        this.addEventListener('command', (e) => {
+          if (e.command === '--copy') this.#copy(e.source);
+        });
+        this.addEventListener('click', (e) => {
+          const btn = e.target?.closest?.('button[command="--copy"]');
+          if (btn && !('command' in HTMLButtonElement.prototype)) this.#copy(btn);
+        });
+      }
+      async #copy(source) {
+        const targetId = source?.getAttribute?.('commandfor');
+        const target = targetId ? document.getElementById(targetId) : null;
+        const text = target ? ('value' in target ? target.value : target.textContent) : '';
+        if (!text || !navigator.clipboard?.writeText) return;
+        try {
+          await navigator.clipboard.writeText(text.trim());
+          const tip = this.querySelector('.tip');
+          if (tip) {
+            tip.textContent = 'Copied';
+            clearTimeout(this.#timer);
+            this.#timer = setTimeout(() => {
+              tip.textContent = '';
+            }, 1500);
+          }
+        } catch {
+          // Clipboard permission denied
+        }
+      }
+    },
+  );
+}
 
 const base = resolveBasePath(location.pathname);
 
@@ -49,9 +87,18 @@ const els = {
   editScreenBtn: document.getElementById('edit-screen-btn'),
   deleteScreenBtn: document.getElementById('delete-screen-btn'),
 
+  playlistSection: document.getElementById('playlist-section'),
   playlistVersion: document.getElementById('playlist-version'),
   playlistEmpty: document.getElementById('playlist-empty'),
   entriesList: document.getElementById('entries-list'),
+
+  embedSection: document.getElementById('embed-section'),
+  embedSummary: document.getElementById('embed-summary'),
+  aggregateMembersSummary: document.getElementById('aggregate-members-summary'),
+  embedScriptSnippet: document.getElementById('embed-script-snippet'),
+  embedIframeSnippet: document.getElementById('embed-iframe-snippet'),
+  rightsSection: document.getElementById('rights-section'),
+  rightsKeysList: document.getElementById('rights-keys-list'),
 
   screenDialog: document.getElementById('screen-dialog'),
   screenDialogTitle: document.getElementById('screen-dialog-title'),
@@ -60,6 +107,7 @@ const els = {
   screenDialogSubmit: document.getElementById('screen-dialog-submit'),
   screenForm: document.getElementById('screen-form'),
   screenFormError: document.getElementById('screen-form-error'),
+  screenKind: document.getElementById('screen-kind'),
   screenIdField: document.getElementById('screen-id-field'),
   screenId: document.getElementById('screen-id'),
   screenName: document.getElementById('screen-name'),
@@ -68,6 +116,15 @@ const els = {
   screenHeight: document.getElementById('screen-height'),
   screenDefaultSeconds: document.getElementById('screen-default-seconds'),
   screenMaxVideo: document.getElementById('screen-max-video'),
+  embedFieldset: document.getElementById('embed-fieldset'),
+  embedType: document.getElementById('embed-type'),
+  embedFit: document.getElementById('embed-fit'),
+  embedAspect: document.getElementById('embed-aspect'),
+  embedDots: document.getElementById('embed-dots'),
+  embedOrigins: document.getElementById('embed-origins'),
+  aggregateMembersField: document.getElementById('aggregate-members-field'),
+  embedMembers: document.getElementById('embed-members'),
+  powerFieldset: document.getElementById('power-fieldset'),
   screenPowerDriver: document.getElementById('screen-power-driver'),
   screenPowerLanId: document.getElementById('screen-power-lan-id'),
   screenPowerRouterId: document.getElementById('screen-power-router-id'),
@@ -228,7 +285,8 @@ function renderScreensList() {
     const sub = document.createElement('span');
     sub.className = 'screen-item-sub';
     const dims = screen.width && screen.height ? `${screen.width}×${screen.height}` : 'auto';
-    sub.textContent = `${screen.id} · ${screen.orientation} · ${dims}`;
+    const kindLabel = screen.kind && screen.kind !== 'screen' ? `${screen.kind} · ` : '';
+    sub.textContent = `${screen.id} · ${kindLabel}${screen.orientation} · ${dims}`;
 
     btn.append(title, sub);
     li.append(btn);
@@ -249,11 +307,65 @@ function renderDetail() {
 
   els.detailName.textContent = screen.name;
   els.detailId.textContent = screen.id;
+  const kind = screen.kind ?? 'screen';
+  const isViewLike = kind === 'view' || kind === 'aggregate';
   const dims = screen.width && screen.height ? `${screen.width}×${screen.height}px` : 'auto size';
   const maxVid = screen.maxVideoSeconds ? `max video ${screen.maxVideoSeconds}s` : 'no video limit';
-  els.detailMeta.textContent = `${screen.orientation} · ${dims} · default image ${screen.defaultImageSeconds}s · ${maxVid}`;
-  els.previewLink.href = previewUrl(base, screen.id);
+  els.detailMeta.textContent = `${kind} · ${screen.orientation} · ${dims} · default image ${screen.defaultImageSeconds}s · ${maxVid}`;
+  els.previewLink.href = previewUrl(base, screen.id, kind);
+  els.previewLink.textContent = isViewLike ? 'Preview view ↗' : 'Preview screen ↗';
   els.playlistVersion.textContent = `v${screen.playlistVersion ?? 0}`;
+
+  if (els.embedSection) {
+    els.embedSection.hidden = !isViewLike;
+    if (isViewLike) {
+      const origin = location.origin;
+      const encoded = encodeURIComponent(screen.id);
+      const embed = screen.embed ?? {};
+      const opts = embed.options ?? {};
+      const origins = embed.allowedOrigins ?? [];
+      els.embedSummary.textContent = `${embed.type ?? 'carousel'} · ${opts.aspect ?? '16:9'} · ${opts.fit ?? 'contain'} · ${origins.length} origin(s)`;
+      els.embedScriptSnippet.value = `<script src="${origin}${base}/v/${encoded}/embed.js"></script>`;
+      els.embedIframeSnippet.value = `<iframe src="${origin}${base}/v/${encoded}/frame" title="${screen.name}" style="width:100%;aspect-ratio:${String(opts.aspect ?? '16:9').replace(':', '/')};border:0" loading="lazy"></iframe>`;
+      if (kind === 'aggregate') {
+        els.aggregateMembersSummary.hidden = false;
+        els.aggregateMembersSummary.textContent = `Members: ${(screen.members ?? []).join(', ') || 'none'}`;
+      } else {
+        els.aggregateMembersSummary.hidden = true;
+      }
+    }
+  }
+
+  if (els.rightsSection && els.rightsKeysList) {
+    els.rightsSection.hidden = false;
+    els.rightsKeysList.replaceChildren();
+    for (const key of rightsKeysFor(screen.id, kind)) {
+      const row = document.createElement('div');
+      row.className = 'copy-row';
+      const code = document.createElement('code');
+      const codeId = `rk-${key.replace(/[^a-z0-9_-]/gi, '-')}`;
+      code.id = codeId;
+      code.textContent = key;
+      const cb = document.createElement('copy-button');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-sm';
+      btn.setAttribute('command', '--copy');
+      btn.setAttribute('commandfor', codeId);
+      btn.textContent = 'Copy';
+      const tip = document.createElement('span');
+      tip.className = 'tip muted';
+      tip.setAttribute('role', 'status');
+      tip.setAttribute('aria-live', 'polite');
+      cb.append(btn, tip);
+      row.append(code, cb);
+      els.rightsKeysList.append(row);
+    }
+  }
+
+  if (els.playlistSection) {
+    els.playlistSection.hidden = kind === 'aggregate';
+  }
 
   const hasPower = Boolean(screen.power && screen.power.driver && screen.power.driver !== 'none');
   els.powerOverrideGroup.hidden = !hasPower;
@@ -482,6 +594,63 @@ function renderEntries(screen) {
     metaEl.append(pushGroup, addedEl);
     info.append(titleEl, metaEl);
 
+    if (screen.kind === 'view') {
+      const textForm = document.createElement('form');
+      textForm.className = 'entry-text-form';
+      const headlineInput = document.createElement('input');
+      headlineInput.type = 'text';
+      headlineInput.maxLength = 120;
+      headlineInput.placeholder = 'Headline';
+      headlineInput.value = entry.headline ?? '';
+      const altInput = document.createElement('input');
+      altInput.type = 'text';
+      altInput.maxLength = 300;
+      altInput.placeholder = 'Alt text';
+      altInput.value = entry.alt ?? '';
+      const captionInput = document.createElement('input');
+      captionInput.type = 'text';
+      captionInput.maxLength = 500;
+      captionInput.placeholder = 'Caption';
+      captionInput.value = entry.caption ?? '';
+      const linkInput = document.createElement('input');
+      linkInput.type = 'url';
+      linkInput.maxLength = 2048;
+      linkInput.placeholder = 'https://... link';
+      linkInput.value = entry.link ?? '';
+      const saveTextBtn = document.createElement('button');
+      saveTextBtn.type = 'submit';
+      saveTextBtn.className = 'btn btn-sm';
+      saveTextBtn.textContent = 'Save text';
+      saveTextBtn.disabled = state.busy;
+      textForm.append(headlineInput, altInput, captionInput, linkInput, saveTextBtn);
+      textForm.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        setError('');
+        setStatus('');
+        state.busy = true;
+        render();
+        try {
+          await apiFetch(`/admin/screens/${encodeURIComponent(screen.id)}/entries/${encodeURIComponent(entry.entryId)}`, {
+            method: 'PATCH',
+            body: {
+              headline: headlineInput.value || null,
+              alt: altInput.value || null,
+              caption: captionInput.value || null,
+              link: linkInput.value || null,
+            },
+          });
+          await loadScreens();
+          setStatus('Entry text updated.');
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          state.busy = false;
+          render();
+        }
+      });
+      info.append(textForm);
+    }
+
     const controls = document.createElement('div');
     controls.className = 'entry-controls';
 
@@ -706,12 +875,25 @@ function confirmAction({ title, message, okLabel = 'Delete' }) {
   });
 }
 
+function syncKindFields(kind) {
+  const isViewLike = kind === 'view' || kind === 'aggregate';
+  if (els.embedFieldset) els.embedFieldset.hidden = !isViewLike;
+  if (els.powerFieldset) els.powerFieldset.hidden = isViewLike;
+  if (els.aggregateMembersField) els.aggregateMembersField.hidden = kind !== 'aggregate';
+}
+
 function openScreenDialog(screen = null) {
   state.editingId = screen ? screen.id : null;
   showBanner(els.screenFormError, '');
-  els.screenDialogTitle.textContent = screen ? `Edit screen: ${screen.id}` : 'New screen';
+  els.screenDialogTitle.textContent = screen ? `Edit ${screen.kind ?? 'screen'}: ${screen.id}` : 'New screen / view';
 
   if (screen) {
+    const kind = screen.kind ?? 'screen';
+    if (els.screenKind) {
+      els.screenKind.value = kind;
+      els.screenKind.disabled = true;
+    }
+    syncKindFields(kind);
     els.screenIdField.hidden = true;
     els.screenId.disabled = true;
     els.screenId.required = false;
@@ -722,6 +904,14 @@ function openScreenDialog(screen = null) {
     els.screenHeight.value = screen.height ?? '';
     els.screenDefaultSeconds.value = screen.defaultImageSeconds ?? 10;
     els.screenMaxVideo.value = screen.maxVideoSeconds ?? '';
+    const emb = screen.embed ?? {};
+    const embOpts = emb.options ?? {};
+    if (els.embedType) els.embedType.value = emb.type ?? 'carousel';
+    if (els.embedFit) els.embedFit.value = embOpts.fit ?? 'contain';
+    if (els.embedAspect) els.embedAspect.value = embOpts.aspect ?? '16:9';
+    if (els.embedDots) els.embedDots.checked = embOpts.dots !== false;
+    if (els.embedOrigins) els.embedOrigins.value = (emb.allowedOrigins ?? []).join('\n');
+    if (els.embedMembers) els.embedMembers.value = (screen.members ?? []).join(', ');
     const p = screen.power ?? {};
     els.screenPowerDriver.value = p.driver ?? 'none';
     els.screenPowerLanId.value = p.lanId ?? '';
@@ -731,12 +921,21 @@ function openScreenDialog(screen = null) {
     els.screenPowerIp.value = p.ip ?? '';
     els.screenPowerWindows.value = formatScheduleWindows(p.schedule?.windows);
   } else {
+    if (els.screenKind) {
+      els.screenKind.disabled = false;
+      els.screenKind.value = 'screen';
+    }
+    syncKindFields('screen');
     els.screenIdField.hidden = false;
     els.screenId.disabled = false;
     els.screenId.required = true;
     els.screenForm.reset();
     els.screenOrientation.value = 'landscape';
     els.screenDefaultSeconds.value = '10';
+    if (els.embedType) els.embedType.value = 'carousel';
+    if (els.embedFit) els.embedFit.value = 'contain';
+    if (els.embedAspect) els.embedAspect.value = '16:9';
+    if (els.embedDots) els.embedDots.checked = true;
     els.screenPowerDriver.value = 'none';
   }
 
@@ -968,6 +1167,7 @@ els.deleteScreenBtn.addEventListener('click', async () => {
 
 els.screenDialogClose.addEventListener('click', () => els.screenDialog.close());
 els.screenDialogCancel.addEventListener('click', () => els.screenDialog.close());
+els.screenKind?.addEventListener('change', () => syncKindFields(els.screenKind.value));
 
 els.screenForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -978,6 +1178,7 @@ els.screenForm.addEventListener('submit', async (e) => {
   try {
     payload = buildScreenPayload(
       {
+        kind: isCreate ? (els.screenKind?.value ?? 'screen') : (existingScreen?.kind ?? 'screen'),
         id: els.screenId.value,
         name: els.screenName.value,
         orientation: els.screenOrientation.value,
@@ -985,6 +1186,12 @@ els.screenForm.addEventListener('submit', async (e) => {
         height: els.screenHeight.value,
         defaultImageSeconds: els.screenDefaultSeconds.value,
         maxVideoSeconds: els.screenMaxVideo.value,
+        embedType: els.embedType?.value,
+        embedFit: els.embedFit?.value,
+        embedAspect: els.embedAspect?.value,
+        embedDots: els.embedDots?.checked,
+        embedOrigins: els.embedOrigins?.value,
+        members: els.embedMembers?.value,
         powerDriver: els.screenPowerDriver.value,
         powerLanId: els.screenPowerLanId.value,
         powerRouterId: els.screenPowerRouterId.value,

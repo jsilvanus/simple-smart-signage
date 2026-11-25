@@ -12,13 +12,23 @@ function scriptJson(value) {
   return JSON.stringify(value).replaceAll('<', '\\u003c');
 }
 
-function sendPublic(res, status, body, headers) {
+function sendPublic(req, res, status, body, headers) {
   const data = Buffer.from(typeof body === 'string' ? body : JSON.stringify(body));
+  const etag = `"${createHash('sha1').update(data).digest('base64url')}"`;
+  if (req.headers['if-none-match'] === etag) {
+    res.writeHead(304, {
+      'cache-control': 'public, max-age=0, must-revalidate',
+      etag,
+      ...headers,
+    });
+    res.end();
+    return;
+  }
   res.writeHead(status, {
     'content-type': 'application/json; charset=utf-8',
     'content-length': data.length,
     'cache-control': 'public, max-age=0, must-revalidate',
-    etag: `"${createHash('sha1').update(data).digest('base64url')}"`,
+    etag,
     ...headers,
   });
   res.end(data);
@@ -44,7 +54,7 @@ export function registerViewRoutes(router, ctx) {
   }
 
   async function playlistOf(view) {
-    if (view.kind === 'view') return view.entries;
+    if (view.kind === 'view') return { entries: view.entries, version: view.version };
     const members = [];
     for (const id of view.members ?? []) {
       try {
@@ -54,7 +64,9 @@ export function registerViewRoutes(router, ctx) {
         // A member that was deleted or is not a view is skipped, not an error.
       }
     }
-    return joinMembers(members.map((m) => ({ id: m.id, entries: m.entries })));
+    const entries = joinMembers(members.map((m) => ({ id: m.id, entries: m.entries })));
+    const version = `${view.version}:${members.map((m) => `${m.id}@${m.version}`).join(',')}`;
+    return { entries, version };
   }
 
   function toPublicEntries(entries) {
@@ -71,19 +83,28 @@ export function registerViewRoutes(router, ctx) {
     }));
   }
 
+  router.options('/v/:viewId/playlist.json', async (req, res, { params }) => {
+    const view = await loadView(params.viewId);
+    const cors = corsHeaders(req.headers.origin, view.embed?.allowedOrigins ?? []);
+    const allowMethods = cors['access-control-allow-origin'] ? { 'access-control-allow-methods': 'GET, HEAD, OPTIONS' } : {};
+    res.writeHead(204, { ...cors, ...allowMethods, 'cache-control': 'public, max-age=300' });
+    res.end();
+  });
+
   router.get('/v/:viewId/playlist.json', async (req, res, { params }) => {
     const view = await loadView(params.viewId);
-    const entries = toPublicEntries(await playlistOf(view));
+    const pl = await playlistOf(view);
+    const entries = toPublicEntries(pl.entries);
     const body = {
       viewId: view.id,
       name: view.name,
       kind: view.kind,
-      version: view.version,
+      version: pl.version,
       embed: view.embed,
       entries,
     };
     const cors = corsHeaders(req.headers.origin, view.embed?.allowedOrigins ?? []);
-    sendPublic(res, 200, body, cors);
+    sendPublic(req, res, 200, body, cors);
   });
 
   router.get('/v/:viewId/frame', async (req, res, { params }) => {
@@ -100,7 +121,7 @@ export function registerViewRoutes(router, ctx) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>${escapeHtml(view.name)}</title>
-<style>html,body{margin:0;height:100%;background:#fff}#root{height:100%}</style>
+<style>html,body{margin:0;height:100%;background:#fff}body{display:flex;align-items:center;justify-content:center}#root{width:100%;max-height:100%}</style>
 </head>
 <body>
 <div id="root"></div>
@@ -124,21 +145,47 @@ export function registerViewRoutes(router, ctx) {
     res.end(html);
   });
 
+  router.options('/v/:viewId/embed.js', async (req, res, { params }) => {
+    const view = await loadView(params.viewId);
+    const cors = corsHeaders(req.headers.origin, view.embed?.allowedOrigins ?? []);
+    const allowMethods = cors['access-control-allow-origin'] ? { 'access-control-allow-methods': 'GET, HEAD, OPTIONS' } : {};
+    res.writeHead(204, { ...cors, ...allowMethods, 'cache-control': 'public, max-age=300' });
+    res.end();
+  });
+
   router.get('/v/:viewId/embed.js', async (req, res, { params }) => {
     const view = await loadView(params.viewId);
+    const cors = corsHeaders(req.headers.origin, view.embed?.allowedOrigins ?? []);
+    const scriptPath = router.url(`/v/${view.id}/embed.js`);
     const bootstrap = `
 (function () {
+  var viewId = ${JSON.stringify(view.id)};
   var self = document.currentScript;
-  var base = self && self.src ? new URL('.', self.src) : new URL('.', location.href);
+  var src = (self && self.src) || new URL(${JSON.stringify(scriptPath)}, location.href).href;
+  var base = new URL('.', src);
   var cfg = { playlistUrl: new URL('playlist.json', base).href, embed: ${scriptJson(view.embed)}, intervalMs: 60000 };
+  function mountEl(h) {
+    h.setAttribute('data-sissi-mounted', '1');
+    var root = h.attachShadow ? h.attachShadow({ mode: 'open' }) : h;
+    window.SissiViews.mount(root, cfg);
+  }
   function mountAll() {
     var holders = document.querySelectorAll('[data-sissi-embed]');
+    var mounted = 0;
     for (var i = 0; i < holders.length; i++) {
       var h = holders[i];
       if (h.getAttribute('data-sissi-mounted')) continue;
-      h.setAttribute('data-sissi-mounted', '1');
-      var root = h.attachShadow ? h.attachShadow({ mode: 'open' }) : h;
-      window.SissiViews.mount(root, cfg);
+      var target = h.getAttribute('data-sissi-view');
+      if (target && target !== viewId) continue;
+      mountEl(h);
+      mounted++;
+    }
+    if (!mounted && self && self.parentNode) {
+      var box = document.createElement('div');
+      box.setAttribute('data-sissi-embed', '');
+      box.setAttribute('data-sissi-view', viewId);
+      self.parentNode.insertBefore(box, self.nextSibling);
+      mountEl(box);
     }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountAll); else mountAll();
@@ -146,6 +193,7 @@ export function registerViewRoutes(router, ctx) {
     sendText(res, 200, `${RUNTIME}\n${bootstrap}`, 'text/javascript; charset=utf-8', {
       'cache-control': 'public, max-age=300',
       'x-content-type-options': 'nosniff',
+      ...cors,
     });
   });
 }

@@ -132,6 +132,7 @@ export function loadConfig(env = process.env) {
     problems.push('SISSI_ALLOW_PRIVATE_DOWNLOADS is refused when NODE_ENV=production');
   }
 
+  const explicitBaseUrl = str('SISSI_BASE_URL');
   const baseUrl = str('SISSI_BASE_URL', 'http://localhost:3000').replace(/\/+$/, '');
   try {
     const u = new URL(baseUrl);
@@ -233,6 +234,57 @@ export function loadConfig(env = process.env) {
     };
   }
 
+  const publicPath = normalizePublicPath(env.SISSI_PUBLIC_PATH === undefined ? '/signage' : env.SISSI_PUBLIC_PATH);
+
+  // Tunnus service discovery self-registration (docs/tunnus-discovery.md). Off unless SISSI_DISCOVERY=1.
+  // The discovery API lives under the Tunnus issuer, so the issuer is the base URL here.
+  let discovery = null;
+  if (bool('SISSI_DISCOVERY', false)) {
+    const issuer = str('SISSI_TUNNUS_ISSUER').replace(/\/+$/, '');
+    const audience = str('SISSI_TUNNUS_AUDIENCE');
+    const clientId = str('SISSI_OIDC_CLIENT_ID', 'sissi');
+    const clientSecret = str('SISSI_OIDC_CLIENT_SECRET');
+    const venue = str('SISSI_DISCOVERY_VENUE', 'parish-wide');
+    const servicePrefix = str('SISSI_DISCOVERY_SERVICE_ID_PREFIX', 'sissi');
+    const publisherClientId = str('SISSI_DISCOVERY_PUBLISHER_CLIENT_ID') || clientId;
+    if (authMode === 'legacy') {
+      problems.push('SISSI_DISCOVERY=1 requires SISSI_AUTH_MODE=both or tunnus (the advertised auth is Tunnus OIDC)');
+    }
+    if (!issuer) {
+      problems.push('SISSI_TUNNUS_ISSUER is required when SISSI_DISCOVERY=1');
+    } else {
+      try {
+        const u = new URL(issuer);
+        if (u.protocol !== 'https:' && !(u.protocol === 'http:' && !production)) throw new Error('protocol');
+      } catch {
+        problems.push(`SISSI_TUNNUS_ISSUER must be an https URL (got "${issuer}")`);
+      }
+    }
+    if (!audience) problems.push('SISSI_TUNNUS_AUDIENCE is required when SISSI_DISCOVERY=1');
+    if (!clientSecret) problems.push('SISSI_OIDC_CLIENT_SECRET is required when SISSI_DISCOVERY=1');
+    // Discovery advertises this public URL to other apps; in production it must be an explicit https URL.
+    if (production && (!explicitBaseUrl || !baseUrl.startsWith('https://'))) {
+      problems.push('SISSI_BASE_URL must be an explicit https URL when SISSI_DISCOVERY=1 and NODE_ENV=production');
+    }
+    if (!/^[a-z0-9_-]{1,32}$/.test(venue)) {
+      problems.push(`SISSI_DISCOVERY_VENUE must match ^[a-z0-9_-]{1,32}$ (got "${venue}")`);
+    }
+    if (!/^[a-z0-9][a-z0-9._-]{0,40}$/.test(servicePrefix)) {
+      problems.push(`SISSI_DISCOVERY_SERVICE_ID_PREFIX must be a lowercase id prefix (got "${servicePrefix}")`);
+    }
+    discovery = {
+      tunnusUrl: issuer,
+      clientId,
+      clientSecret,
+      publisherClientId,
+      audience,
+      venue,
+      servicePrefix,
+      heartbeatSeconds: int('SISSI_DISCOVERY_HEARTBEAT_SECONDS', 60, { min: 5, max: 3600 }),
+      publicBaseUrl: `${baseUrl}${publicPath}`,
+    };
+  }
+
   const config = {
     authMode,
     tunnus,
@@ -240,7 +292,7 @@ export function loadConfig(env = process.env) {
     production,
     port: int('PORT', 3000, { max: 65535 }),
     baseUrl,
-    publicPath: normalizePublicPath(env.SISSI_PUBLIC_PATH === undefined ? '/signage' : env.SISSI_PUBLIC_PATH),
+    publicPath,
     canva: {
       appId: str('SISSI_CANVA_APP_ID'),
       allowedBrands: list(env.SISSI_CANVA_ALLOWED_BRANDS),
@@ -271,6 +323,7 @@ export function loadConfig(env = process.env) {
     powerRouters,
     powerPollSeconds: int('SISSI_POWER_POLL_SECONDS', 60, { min: 1 }),
     powerDataDir: str('SISSI_POWER_DATA_DIR'),
+    discovery,
   };
 
   if (problems.length) throw new ConfigError(problems);

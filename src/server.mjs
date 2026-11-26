@@ -22,6 +22,7 @@ export function createServer(config, deps = {}) {
     pushRunner: deps.pushRunner,
     adminAuth: deps.adminAuth,
     adminOidc: deps.adminOidc,
+    discovery: deps.discovery,
     now: deps.now,
   };
   registerRoutes(router, ctx);

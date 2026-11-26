@@ -50,6 +50,7 @@ All supported variables are listed in [`.env.example`](../.env.example). Key pro
 | `SISSI_PASSWORD_LOGIN` | `true` (default) keeps password sign-in. `false` turns it off while `SISSI_AUTH_MODE=both` keeps Canva and Tunnus sign-in. |
 | `SISSI_AUTH_MODE` | `legacy` (default: push key, Canva token, admin password), `both` (Tunnus sign-in next to them) or `tunnus` (Tunnus only; push key, Canva token and password are refused). See [tunnus-sign-in.md](tunnus-sign-in.md). |
 | `SISSI_TUNNUS_ISSUER`, `SISSI_TUNNUS_AUDIENCE`, `SISSI_TUNNUS_GROUP_RIGHTS`, `SISSI_TUNNUS_JWKS_URL` | Required when the mode is not `legacy` (JWKS URL optional, discovered otherwise). |
+| `SISSI_DISCOVERY` | `1` registers Sissi's screens and web views with the Tunnus service catalogue. Needs `SISSI_TUNNUS_ISSUER`, `SISSI_TUNNUS_AUDIENCE`, `SISSI_OIDC_CLIENT_SECRET`; off by default. See [tunnus-discovery.md](tunnus-discovery.md). |
 | `METRICS_BEARER_TOKEN` | Bearer token required for `GET /metrics` (`503 AUTH_NOT_CONFIGURED` if unset). |
 
 ### S3 storage

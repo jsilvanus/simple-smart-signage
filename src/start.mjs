@@ -53,9 +53,10 @@ server.listen(config.port, () => {
 discovery.start();
 
 for (const sig of ['SIGTERM', 'SIGINT']) {
-  process.on(sig, () => {
+  process.on(sig, async () => {
+    // Deregister first, bounded to 3 s in total, so a slow keep-alive connection cannot hold it up.
+    await discovery.stop({ deregister: true, timeoutMs: 3000 });
     server.close(async () => {
-      await discovery.stop({ deregister: true });
       await powerManager.stop();
       await pushRunner.waitForIdle();
       process.exit(0);

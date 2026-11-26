@@ -15,11 +15,12 @@ const NAME_MAX = 100;
 const FORMATS = ['png', 'jpeg', 'mp4'];
 const SIGNAGE_CAPABILITIES = ['screen_push', 'playlist_management', 'export_target'];
 const VIEW_CAPABILITIES = ['embed', 'export_target'];
-const PUSH_INGEST = { path: '/api/v1/push', method: 'POST', content_type: 'application/json' };
+const PUSH_PATH = '/api/v1/push';
 const LANDSCAPE_RESOLUTION = { width: 1920, height: 1080 };
 const VERTICAL_RESOLUTION = { width: 1080, height: 1920 };
 const RETRY_MIN_MS = 10_000;
 const RETRY_MAX_MS = 60_000;
+const DELETE_FALLBACK_MS = 3000;
 
 /** Service ids for a prefix, e.g. 'sissi' -> ['sissi-signage', 'sissi-views']. */
 export function serviceIdsFor(prefix) {
@@ -57,9 +58,12 @@ export function resolutionOf(screen) {
   return { ...(screen.orientation === 'vertical' ? VERTICAL_RESOLUTION : LANDSCAPE_RESOLUTION) };
 }
 
-/** One export target for a Sissi screen or view (same shape for both). */
-export function exportTargetOf(screen) {
-  return {
+/**
+ * One export target for a Sissi screen or view. `ingest.url` is absolute (the public path is kept);
+ * `ingestAuth` is set only on view targets, whose service itself has no auth.
+ */
+export function exportTargetOf(screen, publicBaseUrl, ingestAuth = null) {
+  const target = {
     id: screen.id,
     name: clampName(screen.name, screen.id),
     category: 'signage',
@@ -67,26 +71,45 @@ export function exportTargetOf(screen) {
     resolution: resolutionOf(screen),
     formats: [...FORMATS],
     multi_page: true,
-    ingest: { ...PUSH_INGEST },
+    ingest: { url: `${publicBaseUrl}${PUSH_PATH}`, method: 'POST', content_type: 'application/json' },
     body_defaults: { screenId: screen.id },
+  };
+  if (ingestAuth) target.ingest.auth = { ...ingestAuth };
+  return target;
+}
+
+function signageMetadataFor(list, base) {
+  return {
+    export_targets: list.map((s) => exportTargetOf(s, base)),
+    screens: list.map((s) => s.id),
   };
 }
 
-/**
- * Drops entries from the longest list until the serialized metadata fits the budget.
- * Returns true when anything was dropped.
- */
-function fitBudget(metadata, budget = METADATA_BUDGET_BYTES) {
-  let dropped = false;
-  while (Buffer.byteLength(JSON.stringify(metadata)) > budget) {
-    const longest = Object.keys(metadata)
-      .filter((k) => Array.isArray(metadata[k]) && metadata[k].length > 0)
-      .sort((a, b) => metadata[b].length - metadata[a].length)[0];
-    if (!longest) break;
-    metadata[longest].pop();
-    dropped = true;
+function viewsMetadataFor(list, base, authSpec) {
+  return {
+    views: list.map((v) => {
+      const root = `${base}/v/${encodeURIComponent(v.id)}`;
+      return {
+        id: v.id,
+        kind: v.kind,
+        name: clampName(v.name, v.id),
+        frame_url: `${root}/frame`,
+        embed_script_url: `${root}/embed.js`,
+        playlist_url: `${root}/playlist.json`,
+      };
+    }),
+    // A view is dropped from both lists together, so they stay consistent.
+    export_targets: list.filter((v) => v.kind === 'view').map((v) => exportTargetOf(v, base, authSpec)),
+  };
+}
+
+/** Keeps the longest prefix of `list` whose metadata fits the byte budget. */
+function fitList(list, build, budget = METADATA_BUDGET_BYTES) {
+  let kept = list;
+  while (kept.length > 0 && Buffer.byteLength(JSON.stringify(build(kept))) > budget) {
+    kept = kept.slice(0, -1);
   }
-  return dropped;
+  return kept;
 }
 
 /**
@@ -98,6 +121,7 @@ function fitBudget(metadata, budget = METADATA_BUDGET_BYTES) {
 export function buildDiscoveryServices(dc, screens) {
   const base = dc.publicBaseUrl;
   const [signageId, viewsId] = serviceIdsFor(dc.servicePrefix);
+  const authSpec = { type: 'oidc', client_id: dc.publisherClientId, audience: dc.audience };
   const truncated = [];
   const capped = (list, label) => {
     if (list.length <= MAX_ENTRIES) return list;
@@ -109,31 +133,15 @@ export function buildDiscoveryServices(dc, screens) {
     screens.filter((s) => (s.kind ?? 'screen') === 'screen'),
     'screens',
   );
-  const signageMetadata = {
-    export_targets: screenList.map(exportTargetOf),
-    screens: screenList.map((s) => s.id),
-  };
-  if (fitBudget(signageMetadata)) truncated.push('screens (size budget)');
+  const keptScreens = fitList(screenList, (l) => signageMetadataFor(l, base));
+  if (keptScreens.length < screenList.length) truncated.push('screens (size budget)');
 
   const viewList = capped(
     screens.filter((s) => s.kind === 'view' || s.kind === 'aggregate'),
     'views',
   );
-  const viewsMetadata = {
-    views: viewList.map((v) => {
-      const root = `${base}/v/${encodeURIComponent(v.id)}`;
-      return {
-        id: v.id,
-        kind: v.kind,
-        name: clampName(v.name, v.id),
-        frame_url: `${root}/frame`,
-        embed_script_url: `${root}/embed.js`,
-        playlist_url: `${root}/playlist.json`,
-      };
-    }),
-    export_targets: viewList.filter((v) => v.kind === 'view').map(exportTargetOf),
-  };
-  if (fitBudget(viewsMetadata)) truncated.push('views (size budget)');
+  const keptViews = fitList(viewList, (l) => viewsMetadataFor(l, base, authSpec));
+  if (keptViews.length < viewList.length) truncated.push('views (size budget)');
 
   const services = [
     {
@@ -142,9 +150,9 @@ export function buildDiscoveryServices(dc, screens) {
       type: 'signage',
       venue: dc.venue,
       endpoint_url: base,
-      auth: { type: 'oidc', client_id: dc.clientId, audience: dc.audience },
+      auth: { ...authSpec },
       capabilities: [...SIGNAGE_CAPABILITIES],
-      metadata: signageMetadata,
+      metadata: signageMetadataFor(keptScreens, base),
     },
     {
       id: viewsId,
@@ -154,7 +162,7 @@ export function buildDiscoveryServices(dc, screens) {
       endpoint_url: base,
       auth: { type: 'none' },
       capabilities: [...VIEW_CAPABILITIES],
-      metadata: viewsMetadata,
+      metadata: viewsMetadataFor(keptViews, base, authSpec),
     },
   ];
   return { services, truncated };
@@ -164,13 +172,20 @@ function sha256(text) {
   return createHash('sha256').update(text).digest('hex');
 }
 
-function withTimeout(promise, ms) {
-  let handle;
-  const timeout = new Promise((resolve) => {
-    handle = setTimeout(() => resolve(undefined), ms);
-    handle.unref?.();
+function abortError() {
+  return Object.assign(new Error('The operation was aborted'), { name: 'AbortError' });
+}
+
+/** Resolves when `promise` settles or `signal` aborts, whichever comes first. */
+function untilAborted(promise, signal) {
+  return new Promise((resolve) => {
+    if (signal.aborted) return resolve();
+    signal.addEventListener('abort', () => resolve(), { once: true });
+    promise.then(
+      () => resolve(),
+      () => resolve(),
+    );
   });
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(handle));
 }
 
 const DISABLED = Object.freeze({
@@ -187,10 +202,12 @@ const DISABLED = Object.freeze({
 
 /**
  * Discovery lifecycle controller. One @tunnus/discovery client per service; the client's
- * service is fixed at creation, so a changed payload replaces its client (PUT overwrites).
+ * service is fixed at creation, so a changed payload replaces its client: the old client's
+ * in-flight requests are aborted and drained before the new one starts (PUT overwrites).
  *   start()    begins registration in the background and checks for changes every heartbeat interval
  *   refresh()  checks for changes now; never rejects (admin routes fire and forget)
- *   stop({ deregister: true })  stops clients and best-effort DELETEs both services (bounded)
+ *   stop({ deregister: true, timeoutMs })  aborts in-flight requests, then best-effort DELETEs both
+ *              services. Everything is bounded by one budget of timeoutMs (default 3 s).
  * A 401/403 from Tunnus marks the controller fatal: no further requests, nothing retried.
  *
  * options: { state, logger, fetch, checkMs, retryMinMs, retryMaxMs }
@@ -210,7 +227,8 @@ export function createDiscovery(config, options = {}) {
   let fatal = false;
   let timer = null;
   let chain = Promise.resolve();
-  /** @type {Map<string, { hash: string, client: ReturnType<typeof createDiscoveryClient> }>} */
+  let shutdownSignal = null;
+  /** @type {Map<string, { id: string, hash: string, client: object, abort: () => void, drain: () => Promise<void> }>} */
   const clients = new Map();
 
   function markFatal(status) {
@@ -218,7 +236,7 @@ export function createDiscovery(config, options = {}) {
     fatal = true;
     clearInterval(timer);
     timer = null;
-    for (const { client } of clients.values()) client.stop();
+    for (const entry of clients.values()) entry.abort();
     logger.error?.(`[discovery] Tunnus refused the discovery client (${status}); not retrying`);
   }
 
@@ -229,8 +247,42 @@ export function createDiscovery(config, options = {}) {
     return res;
   };
 
+  /**
+   * Starts one client for one service. Its PUT/heartbeat requests share an AbortController and
+   * are tracked, so replacing or stopping the client cancels them and waits for them to settle.
+   * DELETE is the exception: it uses the shutdown budget, so it still runs after an abort.
+   */
   function startClient(service) {
-    const client = createDiscoveryClient({
+    const ac = new AbortController();
+    const inflight = new Set();
+    const entry = {
+      id: service.id,
+      hash: null,
+      client: null,
+      abort() {
+        ac.abort();
+        entry.client.stop();
+      },
+      async drain() {
+        await Promise.allSettled([...inflight]);
+      },
+    };
+    const boundFetch = (url, init = {}) => {
+      const isDelete = init.method === 'DELETE';
+      if (!isDelete && ac.signal.aborted) return Promise.reject(abortError());
+      const signal = isDelete ? (shutdownSignal ?? AbortSignal.timeout(DELETE_FALLBACK_MS)) : ac.signal;
+      const request = (async () => {
+        const res = await guardedFetch(url, { ...init, signal });
+        // Aborted while the response was on its way: fail before the client reads the body.
+        if (!isDelete && ac.signal.aborted) throw abortError();
+        return res;
+      })();
+      inflight.add(request);
+      const done = () => inflight.delete(request);
+      request.then(done, done);
+      return request;
+    };
+    entry.client = createDiscoveryClient({
       tunnusUrl: dc.tunnusUrl,
       clientId: dc.clientId,
       clientSecret: dc.clientSecret,
@@ -241,23 +293,32 @@ export function createDiscovery(config, options = {}) {
       autoDeregisterOnShutdown: false,
       backgroundInitialRegister: true,
       logger,
-      fetch: guardedFetch,
+      fetch: boundFetch,
     });
-    client.start().catch((err) => logger.error?.(`[discovery] start failed: ${err.message}`));
-    return client;
+    entry.client.start().catch((err) => logger.error?.(`[discovery] start failed: ${err.message}`));
+    return entry;
   }
 
   async function reconcile() {
     if (!running || fatal) return false;
     const screens = await state.listScreens();
+    // stop() or a fatal auth error may have happened while the list was read.
+    if (!running || fatal) return false;
     const { services, truncated } = buildDiscoveryServices(dc, screens);
     let changed = false;
     for (const service of services) {
       const hash = sha256(JSON.stringify(service));
       const current = clients.get(service.id);
       if (current?.hash === hash) continue;
-      current?.client.stop();
-      clients.set(service.id, { hash, client: startClient(service) });
+      if (current) {
+        clients.delete(service.id);
+        current.abort();
+        await current.drain();
+      }
+      if (!running || fatal) return changed;
+      const entry = startClient(service);
+      entry.hash = hash;
+      clients.set(service.id, entry);
       changed = true;
       logger.info?.(`[discovery] registering ${service.id}`);
     }
@@ -302,17 +363,22 @@ export function createDiscovery(config, options = {}) {
       running = false;
       clearInterval(timer);
       timer = null;
-      await withTimeout(chain, timeoutMs);
-      const entries = [...clients.entries()];
-      for (const [, { client }] of entries) client.stop();
+      const budget = AbortSignal.timeout(timeoutMs);
+      shutdownSignal = budget;
+      const entries = [...clients.values()];
       clients.clear();
+      for (const entry of entries) entry.abort();
+      await untilAborted(chain, budget);
       if (!deregister || fatal) return;
-      await Promise.all(
-        entries.map(async ([id, { client }]) => {
-          const ok = await withTimeout(client.deregister(), timeoutMs);
-          if (ok === true) logger.info?.(`[discovery] deregistered ${id}`);
-          else logger.warn?.(`[discovery] deregister ${id} did not complete`);
-        }),
+      await untilAborted(
+        Promise.all(
+          entries.map(async (entry) => {
+            const ok = await entry.client.deregister();
+            if (ok === true) logger.info?.(`[discovery] deregistered ${entry.id}`);
+            else logger.warn?.(`[discovery] deregister ${entry.id} did not complete`);
+          }),
+        ),
+        budget,
       );
     },
 
@@ -321,7 +387,7 @@ export function createDiscovery(config, options = {}) {
       return {
         enabled: true,
         running,
-        registered: all.length > 0 && all.every(({ client }) => client.state.isRegistered),
+        registered: all.length > 0 && all.every((entry) => entry.client.state.isRegistered),
         fatal,
       };
     },

@@ -132,6 +132,7 @@ export function loadConfig(env = process.env) {
     problems.push('SISSI_ALLOW_PRIVATE_DOWNLOADS is refused when NODE_ENV=production');
   }
 
+  const explicitBaseUrl = str('SISSI_BASE_URL');
   const baseUrl = str('SISSI_BASE_URL', 'http://localhost:3000').replace(/\/+$/, '');
   try {
     const u = new URL(baseUrl);
@@ -245,6 +246,10 @@ export function loadConfig(env = process.env) {
     const clientSecret = str('SISSI_OIDC_CLIENT_SECRET');
     const venue = str('SISSI_DISCOVERY_VENUE', 'parish-wide');
     const servicePrefix = str('SISSI_DISCOVERY_SERVICE_ID_PREFIX', 'sissi');
+    const publisherClientId = str('SISSI_DISCOVERY_PUBLISHER_CLIENT_ID') || clientId;
+    if (authMode === 'legacy') {
+      problems.push('SISSI_DISCOVERY=1 requires SISSI_AUTH_MODE=both or tunnus (the advertised auth is Tunnus OIDC)');
+    }
     if (!issuer) {
       problems.push('SISSI_TUNNUS_ISSUER is required when SISSI_DISCOVERY=1');
     } else {
@@ -257,6 +262,10 @@ export function loadConfig(env = process.env) {
     }
     if (!audience) problems.push('SISSI_TUNNUS_AUDIENCE is required when SISSI_DISCOVERY=1');
     if (!clientSecret) problems.push('SISSI_OIDC_CLIENT_SECRET is required when SISSI_DISCOVERY=1');
+    // Discovery advertises this public URL to other apps; in production it must be an explicit https URL.
+    if (production && (!explicitBaseUrl || !baseUrl.startsWith('https://'))) {
+      problems.push('SISSI_BASE_URL must be an explicit https URL when SISSI_DISCOVERY=1 and NODE_ENV=production');
+    }
     if (!/^[a-z0-9_-]{1,32}$/.test(venue)) {
       problems.push(`SISSI_DISCOVERY_VENUE must match ^[a-z0-9_-]{1,32}$ (got "${venue}")`);
     }
@@ -267,6 +276,7 @@ export function loadConfig(env = process.env) {
       tunnusUrl: issuer,
       clientId,
       clientSecret,
+      publisherClientId,
       audience,
       venue,
       servicePrefix,

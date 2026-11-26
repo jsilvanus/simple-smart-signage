@@ -30,7 +30,7 @@ export function registerAdminOidcRoutes(router, ctx) {
     const session = Boolean(adminOidc?.readSession(req.headers.cookie) || adminAuth?.hasAdminCookie?.(req));
     sendJson(res, 200, {
       tunnus: Boolean(adminOidc),
-      password: config.authMode !== 'tunnus' && Boolean(config.adminPassword),
+      password: config.authMode !== 'tunnus' && config.passwordLogin !== false && Boolean(config.adminPassword),
       session,
     });
   });

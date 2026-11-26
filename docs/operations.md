@@ -46,7 +46,8 @@ All supported variables are listed in [`.env.example`](../.env.example). Key pro
 | `SISSI_CORS_ORIGINS` | Comma-separated bare origins (e.g. `https://app-xxxx.canva-apps.com`) allowed to call `/api/v1/*` from the Canva app. Disallowed preflights return `403`. |
 | `SISSI_DOWNLOAD_HOSTS` | Comma-separated allowed export download host suffixes (default `canva.com,canva.dev,canva-apps.com`). |
 | `SISSI_PUSH_KEY` | Optional static Bearer token for curl/scripted pushes. Leave unset if only Canva tokens should be accepted. |
-| `SISSI_ADMIN_PASSWORD` | Password for `/signage/admin` and `/api/v1/admin/*`. Required for admin access (`503 AUTH_NOT_CONFIGURED` if unset). |
+| `SISSI_ADMIN_PASSWORD` | Password for `/signage/admin` and `/api/v1/admin/*`. Required for admin access (`503 AUTH_NOT_CONFIGURED` if unset) while password sign-in is on. |
+| `SISSI_PASSWORD_LOGIN` | `true` (default) keeps password sign-in. `false` turns it off while `SISSI_AUTH_MODE=both` keeps Canva and Tunnus sign-in. |
 | `SISSI_AUTH_MODE` | `legacy` (default: push key, Canva token, admin password), `both` (Tunnus sign-in next to them) or `tunnus` (Tunnus only; push key, Canva token and password are refused). See [tunnus-sign-in.md](tunnus-sign-in.md). |
 | `SISSI_TUNNUS_ISSUER`, `SISSI_TUNNUS_AUDIENCE`, `SISSI_TUNNUS_GROUP_RIGHTS`, `SISSI_TUNNUS_JWKS_URL` | Required when the mode is not `legacy` (JWKS URL optional, discovered otherwise). |
 | `METRICS_BEARER_TOKEN` | Bearer token required for `GET /metrics` (`503 AUTH_NOT_CONFIGURED` if unset). |

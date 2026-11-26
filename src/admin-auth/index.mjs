@@ -40,7 +40,7 @@ function clientIp(req) {
 export function createAdminAuth(config, { now = () => Date.now(), fetch: fetchFn = globalThis.fetch, tunnus, oidc = null } = {}) {
   const mode = config?.authMode ?? 'legacy';
   const tunnusVerifier = mode === 'legacy' ? null : (tunnus ?? createTunnusVerifier(config, { fetch: fetchFn, now }));
-  const passwordOn = mode !== 'tunnus';
+  const passwordOn = mode !== 'tunnus' && config?.passwordLogin !== false;
   const failuresByIp = new Map();
   const cookiePath = config?.publicPath || '/';
   const secureAttr = config?.production ? '; Secure' : '';
@@ -193,7 +193,7 @@ export function createAdminAuth(config, { now = () => Date.now(), fetch: fetchFn
   }
 
   function hasAdminCookie(req) {
-    if (config.authMode === 'tunnus' || !secret) return false;
+    if (config.authMode === 'tunnus' || config.passwordLogin === false || !secret) return false;
     try {
       const token = parseCookie(req?.headers?.cookie, COOKIE_NAME);
       return Boolean(token && verifyToken(token));

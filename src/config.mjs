@@ -252,6 +252,8 @@ export function loadConfig(env = process.env) {
     corsOrigins,
     downloadHosts,
     adminPassword: str('SISSI_ADMIN_PASSWORD'),
+    // Password sign-in on/off, separate from SISSI_AUTH_MODE. Default on (today's behaviour).
+    passwordLogin: bool('SISSI_PASSWORD_LOGIN', true),
     metricsToken: str('METRICS_BEARER_TOKEN'),
     storage: { kind: storageKind, localDir: str('SISSI_LOCAL_DIR', './data'), s3 },
     limits: {

@@ -40,3 +40,7 @@ Modes: `legacy` is today's behaviour. `both` accepts Tunnus tokens next to the p
 ## Public URL
 
 Compose routes ``Host(`${SISSI_HOST}`) && PathPrefix(`${SISSI_PUBLIC_PATH:-/signage}`)``; the default path is **`/signage`**, not `/sissi`. So the URL is `https://<SISSI_HOST>/signage` unless the deploy sets `SISSI_PUBLIC_PATH`. `SISSI_TUNNUS_AUDIENCE` must equal what Tunnus puts in `aud` for Sissi (the `allowed_resources` entry), which need not be the URL but conventionally is.
+
+## Service discovery
+
+Sissi can also register its screens and web views in the Tunnus service catalogue (`SISSI_DISCOVERY=1`). See [tunnus-discovery.md](tunnus-discovery.md).

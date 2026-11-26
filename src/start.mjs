@@ -11,6 +11,7 @@ import { createPushRunner } from './push/index.mjs';
 import { createAdminAuth } from './admin-auth/index.mjs';
 import { createAdminOidc } from './admin-oidc/index.mjs';
 import { createPowerManager } from './power/manager.mjs';
+import { createDiscovery } from './discovery/index.mjs';
 
 const config = loadConfig(process.env);
 const metrics = createMetrics();
@@ -23,6 +24,7 @@ const pushRunner = createPushRunner({ config, storage, state, download, metrics 
 const adminOidc = createAdminOidc(config, { tunnus });
 const adminAuth = createAdminAuth(config, { tunnus, oidc: adminOidc });
 const powerManager = createPowerManager({ config, state });
+const discovery = createDiscovery(config, { state });
 
 await state.markInterruptedOnStart();
 
@@ -40,15 +42,20 @@ const server = createServer(config, {
   pushRunner,
   adminAuth,
   adminOidc,
+  discovery,
 });
 
 server.listen(config.port, () => {
   console.log(`sissi listening on :${config.port} (public path "${config.publicPath || '/'}")`);
 });
 
+// Registration runs in the background; a Tunnus outage never delays or blocks startup.
+discovery.start();
+
 for (const sig of ['SIGTERM', 'SIGINT']) {
   process.on(sig, () => {
     server.close(async () => {
+      await discovery.stop({ deregister: true });
       await powerManager.stop();
       await pushRunner.waitForIdle();
       process.exit(0);

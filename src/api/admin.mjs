@@ -81,6 +81,10 @@ function sendNoContent(res) {
  */
 export function registerAdminRoutes(router, ctx) {
   const { config, state, storage } = ctx;
+  // Tunnus discovery re-sync after screen/view changes (fire and forget; see src/discovery).
+  const resyncDiscovery = () => {
+    void ctx.discovery?.refresh?.();
+  };
   const adminAuth = ctx.adminAuth ?? createAdminAuth(config);
 
   async function triggerGc() {
@@ -153,6 +157,7 @@ export function registerAdminRoutes(router, ctx) {
     const body = await router.readJson(req);
     const screen = await runState(() => state.createScreen(body));
     sendJson(res, 201, withPowerStatus(screen));
+    resyncDiscovery();
   });
 
   router.patch('/api/v1/admin/screens/:screenId', async (req, res, { params }) => {
@@ -174,6 +179,7 @@ export function registerAdminRoutes(router, ctx) {
     }
     const screen = await runState(() => state.updateScreen(params.screenId, body));
     sendJson(res, 200, withPowerStatus(screen));
+    resyncDiscovery();
   });
 
   router.post('/api/v1/admin/screens/:screenId/power/override', async (req, res, { params }) => {
@@ -190,6 +196,7 @@ export function registerAdminRoutes(router, ctx) {
     await runState(() => state.deleteScreen(params.screenId));
     await triggerGc();
     sendNoContent(res);
+    resyncDiscovery();
   });
 
   router.put('/api/v1/admin/screens/:screenId/entries', async (req, res, { params }) => {

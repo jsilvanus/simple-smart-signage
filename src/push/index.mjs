@@ -101,6 +101,8 @@ export function createPushRunner({ config, storage, state, download, metrics } =
             headline: page.headline,
             caption: page.caption,
             link: page.link,
+            startDatetime: page.startDatetime,
+            endDatetime: page.endDatetime,
           });
         } finally {
           if (dl?.tmpPath) {

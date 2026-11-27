@@ -197,6 +197,8 @@ paths:
               properties:
                 seconds: { type: integer, minimum: 1, maximum: 3600 }
                 enabled: { type: boolean, description: true makes the entry live, false takes it off the screen (live change). }
+                startDatetime: { type: string, format: date-time, nullable: true, description: 'ISO 8601 with UTC offset. Before this the entry is not in any playlist. null = no start limit. Needs sissi:write.' }
+                endDatetime: { type: string, format: date-time, nullable: true, description: 'ISO 8601 with UTC offset. From this moment the entry is not in any playlist. Must be after startDatetime. null = no end limit.' }
       responses:
         '200': { description: Updated }
         '404': { $ref: '#/components/responses/Error' }
@@ -207,6 +209,26 @@ paths:
       responses:
         '204': { description: Removed }
         '404': { $ref: '#/components/responses/Error' }
+  /admin/screens/{screenId}/purge-expired:
+    post:
+      operationId: adminPurgeExpiredEntries
+      description: Removes every entry whose endDatetime has passed (enabled or not). Needs sissi:write. Not for aggregates.
+      security: [{ adminCookie: [] }]
+      parameters:
+        - { name: screenId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Number of removed entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  screenId: { type: string }
+                  removed: { type: integer }
+                  version: { type: integer }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
   /admin/screens/{screenId}/pushes/{pushId}:
     patch:
       operationId: adminSetPushEnabled
@@ -345,6 +367,7 @@ components:
         - INVALID_PAGES
         - INVALID_KIND
         - INVALID_SECONDS
+        - INVALID_SCHEDULE
         - INVALID_SCREEN
         - PAGE_URL_NOT_ALLOWED
         - TOO_MANY_PAGES
@@ -471,6 +494,8 @@ components:
         enabled:
           type: boolean
           description: Only enabled entries are in playlist.json. New pushes add entries disabled unless the push says enabled true. Entries stored before this field existed count as enabled.
+        startDatetime: { type: string, format: date-time, nullable: true, description: Entry is shown from this moment (null = no start limit) }
+        endDatetime: { type: string, format: date-time, nullable: true, description: Entry is not shown from this moment on (null = no end limit) }
     AdminScreen:
       allOf:
         - $ref: '#/components/schemas/Screen'
@@ -603,6 +628,8 @@ components:
         enabled:
           type: boolean
           description: Only enabled entries are in playlist.json. New pushes add entries disabled unless the push says enabled true. Entries stored before this field existed count as enabled.
+        startDatetime: { type: string, format: date-time, nullable: true, description: Entry is shown from this moment (null = no start limit) }
+        endDatetime: { type: string, format: date-time, nullable: true, description: Entry is not shown from this moment on (null = no end limit) }
     AdminScreen:
       allOf:
         - $ref: '#/components/schemas/Screen'

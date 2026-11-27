@@ -54,7 +54,7 @@ export function registerViewRoutes(router, ctx) {
   }
 
   async function playlistOf(view) {
-    if (view.kind === 'view') return { entries: view.entries, version: view.version };
+    if (view.kind === 'view') return { entries: view.entries, version: view.version, nextChangeAt: view.nextChangeAt };
     const members = [];
     for (const id of view.members ?? []) {
       try {
@@ -66,7 +66,8 @@ export function registerViewRoutes(router, ctx) {
     }
     const entries = joinMembers(members.map((m) => ({ id: m.id, entries: m.entries })));
     const version = `${view.version}:${members.map((m) => `${m.id}@${m.version}`).join(',')}`;
-    return { entries, version };
+    const changes = members.map((m) => m.nextChangeAt).filter(Boolean).sort();
+    return { entries, version, nextChangeAt: changes[0] ?? null };
   }
 
   function toPublicEntries(entries) {
@@ -100,6 +101,7 @@ export function registerViewRoutes(router, ctx) {
       name: view.name,
       kind: view.kind,
       version: pl.version,
+      nextChangeAt: pl.nextChangeAt,
       embed: view.embed,
       entries,
     };

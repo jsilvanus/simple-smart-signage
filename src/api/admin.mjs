@@ -224,21 +224,30 @@ export function registerAdminRoutes(router, ctx) {
       body?.headline !== undefined ||
       body?.caption !== undefined ||
       body?.link !== undefined;
-    // seconds and text metadata are content (sissi:write); enabled is the live change (sissi:operate).
+    const hasSchedule = body?.startDatetime !== undefined || body?.endDatetime !== undefined;
+    // seconds, text metadata and the schedule window are content (sissi:write); enabled is the live change (sissi:operate).
     await adminAuth.authorize(
       req,
       [
-        ...(body?.seconds !== undefined || hasText ? ['write'] : []),
+        ...(body?.seconds !== undefined || hasText || hasSchedule ? ['write'] : []),
         ...(body?.enabled !== undefined ? ['operate'] : []),
       ],
       target,
     );
-    if (body?.seconds === undefined && body?.enabled === undefined && !hasText) {
-      throw new HttpError('INVALID_SECONDS', 'Provide seconds, enabled, or text fields');
+    if (body?.seconds === undefined && body?.enabled === undefined && !hasText && !hasSchedule) {
+      throw new HttpError('INVALID_SECONDS', 'Provide seconds, enabled, schedule, or text fields');
     }
     let screen;
     if (body.seconds !== undefined) {
       screen = await runState(() => state.setEntrySeconds(params.screenId, params.entryId, body.seconds));
+    }
+    if (hasSchedule) {
+      screen = await runState(() =>
+        state.setEntrySchedule(params.screenId, params.entryId, {
+          startDatetime: body.startDatetime,
+          endDatetime: body.endDatetime,
+        }),
+      );
     }
     if (hasText) {
       screen = await runState(() =>
@@ -255,6 +264,16 @@ export function registerAdminRoutes(router, ctx) {
     }
     const entry = screen.entries.find((e) => e.entryId === params.entryId);
     sendJson(res, 200, entry);
+  });
+
+  // Remove every entry whose end time has passed. Content change (write); expired entries are not on screen anyway.
+  router.post('/api/v1/admin/screens/:screenId/purge-expired', async (req, res, { params }) => {
+    assertScreenId(params.screenId);
+    const screenNow = await runState(() => state.getScreen(params.screenId));
+    await adminAuth.authorize(req, 'write', targetOf(screenNow));
+    const { screen, removed } = await runState(() => state.removeExpiredEntries(params.screenId));
+    if (removed > 0) await triggerGc();
+    sendJson(res, 200, { screenId: screen.id, removed, version: screen.playlistVersion });
   });
 
   router.delete('/api/v1/admin/screens/:screenId/entries/:entryId', async (req, res, { params }) => {

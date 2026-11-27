@@ -97,6 +97,12 @@ function validatePushBody(body, config) {
     validatePageUrl(page.url, config);
     // Validate and normalise view metadata at request time, not after the media download.
     Object.assign(page, validateItemText(page));
+    for (const field of ['startDatetime', 'endDatetime']) {
+      const v = page[field];
+      if (v !== undefined && v !== null && (typeof v !== 'string' || Number.isNaN(Date.parse(v)))) {
+        throw new HttpError('INVALID_SCHEDULE', `${field} must be an ISO 8601 datetime`, 422);
+      }
+    }
   }
 
   return {

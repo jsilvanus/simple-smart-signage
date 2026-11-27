@@ -166,23 +166,34 @@
   /** Renders `playlist` (the view's JSON) into `root` (an element or a shadow root). */
   function render(root, playlist, embed) {
     while (root.firstChild) root.removeChild(root.firstChild);
+    var cfg = embed || {};
+    var options = cfg.options || {};
+    var host = root.host || root;
+    var entries = (playlist.entries || []).filter(function (e) { return e && e.url; });
+    // Nothing live: render nothing at all (no box, no text) so the host page shows no gap.
+    if (!entries.length) {
+      host.style.display = 'none';
+      notifyEmpty(true);
+      return;
+    }
+    host.style.display = '';
+    notifyEmpty(false);
     var style = el('style');
     style.textContent = STYLE;
     root.appendChild(style);
-    var cfg = embed || {};
-    var options = cfg.options || {};
     var wrap = el('div', { class: 'sissi-view', 'data-type': cfg.type || 'carousel' });
     wrap.style.setProperty('--sv-aspect', String(options.aspect || '16:9').replace(':', ' / '));
     wrap.style.setProperty('--sv-fit', options.fit === 'cover' ? 'cover' : 'contain');
     root.appendChild(wrap);
-    var entries = (playlist.entries || []).filter(function (e) { return e && e.url; });
-    if (!entries.length) {
-      wrap.appendChild(text('div', 'sv-empty', 'Ei sisältöä.'));
-      return;
-    }
     if (cfg.type === 'gallery') gallery(entries, wrap);
     else if (cfg.type === 'single') single(entries, wrap);
     else carousel(entries, options, wrap);
+  }
+
+  /** Inside an iframe, tell the host page whether there is anything to show, so it can hide the empty frame. */
+  function notifyEmpty(empty) {
+    if (window.parent === window) return;
+    try { window.parent.postMessage({ sissi: 'empty', empty: empty }, '*'); } catch (e) { /* ignore */ }
   }
 
   /** Fetches the playlist from `url` and renders it; re-checks every `intervalMs`. Returns a stop function. */
@@ -192,13 +203,25 @@
     }
     var last = null;
     var stopped = false;
+    var changeTimer = null;
+    // Re-check right when a scheduled entry goes live or expires, not only on the regular interval.
+    function scheduleChange(iso) {
+      if (changeTimer) { clearTimeout(changeTimer); changeTimer = null; }
+      var at = iso ? Date.parse(iso) : NaN;
+      if (isNaN(at)) return;
+      var wait = at - Date.now() + 500;
+      if (wait < 500 || wait > 2147483000) return;
+      changeTimer = setTimeout(load, wait);
+    }
     function load() {
       return fetch(opts.playlistUrl, { cache: 'no-cache', credentials: 'omit' })
         .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
         .then(function (body) {
-          if (body === last || stopped) return;
-          last = body;
+          if (stopped) return;
           var parsed = JSON.parse(body);
+          scheduleChange(parsed.nextChangeAt);
+          if (body === last) return;
+          last = body;
           render(root, parsed, parsed.embed || opts.embed);
         })
         .catch(function () { /* keep the last good content */ });
@@ -208,6 +231,7 @@
     function stop() {
       stopped = true;
       clearInterval(timer);
+      if (changeTimer) clearTimeout(changeTimer);
       if (TIMERS && TIMERS.get(root) === stop) TIMERS.delete(root);
     }
     if (TIMERS) TIMERS.set(root, stop);

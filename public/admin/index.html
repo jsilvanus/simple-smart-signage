@@ -42,7 +42,6 @@
       </div>
       <div class="topbar-actions">
         <button id="refresh-btn" type="button" class="btn">Refresh</button>
-        <button id="new-screen-btn" type="button" class="btn btn-primary">+ New screen</button>
         <button id="logout-btn" type="button" class="btn">Log out</button>
       </div>
     </header>
@@ -51,13 +50,32 @@
     <div id="app-status" class="status-banner container" role="status" aria-live="polite" hidden></div>
 
     <main class="workspace container">
-      <aside class="screens-panel" aria-label="Screens">
-        <div class="panel-header">
-          <h2>Screens</h2>
-          <span id="screens-count" class="badge">0</span>
-        </div>
-        <ul id="screens-list" class="screens-list"></ul>
-        <p id="screens-empty" class="muted empty-note" hidden>No screens yet. Create one to get started.</p>
+      <aside class="screens-panel" aria-label="Screens and views">
+        <button id="new-screen-btn" type="button" class="btn btn-primary create-btn">Create</button>
+
+        <section class="list-section" aria-labelledby="screens-heading">
+          <div class="panel-header">
+            <h2 id="screens-heading">Screens</h2>
+            <span id="screens-count" class="badge">0</span>
+          </div>
+          <input id="screens-filter" type="search" class="list-filter" placeholder="Filter screens" aria-label="Filter screens" autocomplete="off">
+          <ul id="screens-list" class="screens-list"></ul>
+          <p id="screens-empty" class="muted empty-note" hidden>No screens yet.</p>
+        </section>
+
+        <section class="list-section" aria-labelledby="views-heading">
+          <div class="panel-header">
+            <h2 id="views-heading">Views</h2>
+            <span id="views-count" class="badge">0</span>
+          </div>
+          <select id="views-type" class="list-filter" aria-label="Filter views by type">
+            <option value="">All types</option>
+            <option value="view">View</option>
+            <option value="aggregate">Aggregate</option>
+          </select>
+          <ul id="views-list" class="screens-list"></ul>
+          <p id="views-empty" class="muted empty-note" hidden>No views yet.</p>
+        </section>
       </aside>
 
       <section class="detail-panel" aria-label="Selected screen">
@@ -128,7 +146,7 @@
             <div class="panel-header">
               <h3 id="playlist-heading">Playlist</h3>
               <span id="playlist-version" class="badge">v0</span>
-              <button type="button" id="view-toggle" class="btn btn-sm">Thumbnail view</button>
+              <button type="button" id="purge-expired-btn" class="btn btn-sm" title="Remove entries whose end time has passed">Clear expired</button>
               <label class="btn btn-sm upload-btn">Upload PNG/MP4
                 <input type="file" id="upload-input" accept="image/png,video/mp4" hidden>
               </label>
@@ -144,7 +162,7 @@
   <dialog id="screen-dialog" aria-labelledby="screen-dialog-title">
     <form id="screen-form" class="dialog-form" novalidate>
       <div class="dialog-header">
-        <h2 id="screen-dialog-title">New screen</h2>
+        <h2 id="screen-dialog-title">Create</h2>
         <button type="button" id="screen-dialog-close" class="btn-icon" aria-label="Close">✕</button>
       </div>
 

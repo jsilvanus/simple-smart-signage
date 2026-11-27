@@ -143,3 +143,8 @@ The Step 1 plan flags one open operational question: **whether Yodeck's Web Page
 - Exported metrics:
   - `sissi_http_requests_total{method,route,status}` (counter)
   - `sissi_http_request_seconds_total{route}` (counter)
+
+## Scheduled content
+
+Every entry has optional `startDatetime` and `endDatetime` (ISO 8601 with UTC offset, `null` = no limit). An entry is in the screen and view playlists only when it is enabled and `start <= now < end`. Playlist responses carry `nextChangeAt` (next start or end, or `null`); the web embed re-checks at that moment, and the playlist `version` changes when time changes the live set. `POST /api/v1/admin/screens/{id}/purge-expired` (`sissi:write`) removes every entry whose end time has passed. An empty view renders nothing on the host page; inside an iframe the frame posts `{sissi:'empty'}` to its parent, and the admin iframe snippet includes a small script that hides the frame.
+

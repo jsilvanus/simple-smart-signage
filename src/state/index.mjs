@@ -52,6 +52,73 @@ function withEnabled(entry) {
   return { ...entry, enabled: isEnabled(entry) };
 }
 
+const DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
+
+/** Normalises one optional ISO 8601 datetime (with offset) to a UTC ISO string; null/''/undefined mean "no limit". */
+function validateDatetime(value, field) {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'string' || !DATETIME_RE.test(value) || Number.isNaN(Date.parse(value))) {
+    throw new StateError('INVALID_SCHEDULE', `${field} must be an ISO 8601 datetime with a UTC offset, or null`);
+  }
+  return new Date(value).toISOString();
+}
+
+/** Validates a { startDatetime, endDatetime } pair; end must be after start. */
+function validateEntryWindow({ startDatetime, endDatetime } = {}) {
+  const start = validateDatetime(startDatetime, 'startDatetime');
+  const end = validateDatetime(endDatetime, 'endDatetime');
+  if (start && end && Date.parse(end) <= Date.parse(start)) {
+    throw new StateError('INVALID_SCHEDULE', 'endDatetime must be after startDatetime');
+  }
+  return { startDatetime: start, endDatetime: end };
+}
+
+function boundaryMs(value) {
+  if (value === undefined || value === null) return null;
+  const ms = Date.parse(value);
+  return Number.isNaN(ms) ? null : ms;
+}
+
+/** True when `nowMs` is inside the entry's start/end window (missing limits are open). Entries without a window always are. */
+function inWindow(entry, nowMs) {
+  const start = boundaryMs(entry.startDatetime);
+  const end = boundaryMs(entry.endDatetime);
+  return (start === null || start <= nowMs) && (end === null || nowMs < end);
+}
+
+/** An entry is shown only when it is enabled and inside its window. */
+function isLive(entry, nowMs) {
+  return isEnabled(entry) && inWindow(entry, nowMs);
+}
+
+/**
+ * The entries that are live at `nowMs`, plus what a player needs to follow time-driven changes:
+ * - `crossed`: how many start/end boundaries of enabled entries have passed (changes whenever the live set does).
+ * - `nextChangeAt`: ISO time of the next boundary, or null.
+ */
+function liveSnapshot(entries, nowMs) {
+  let crossed = 0;
+  let next = null;
+  for (const entry of entries) {
+    if (!isEnabled(entry)) continue;
+    for (const b of [boundaryMs(entry.startDatetime), boundaryMs(entry.endDatetime)]) {
+      if (b === null) continue;
+      if (b <= nowMs) crossed++;
+      else if (next === null || b < next) next = b;
+    }
+  }
+  return {
+    entries: entries.filter((e) => isLive(e, nowMs)),
+    crossed,
+    nextChangeAt: next === null ? null : new Date(next).toISOString(),
+  };
+}
+
+/** Playlist version that also moves when scheduled entries go live or expire. Unscheduled playlists keep `version` as is. */
+function effectiveVersion(version, crossed) {
+  return crossed === 0 ? version : version * 1000 + Math.min(crossed, 999);
+}
+
 function toScreenView(doc) {
   return {
     id: doc.id,
@@ -468,6 +535,7 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     }
 
     const texts = items.map((item) => validateItemText(item));
+    const windows = items.map((item) => validateEntryWindow(item));
 
     const screen = await mutateScreen(screenId, (doc) => {
       if (doc.kind === 'aggregate') {
@@ -476,6 +544,7 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
       const addedAt = nowDate().toISOString();
       const newEntries = items.map((item, i) => ({
         ...texts[i],
+        ...windows[i],
         entryId: nextId('entry_'),
         mediaId: item.mediaId,
         ext: item.ext,
@@ -554,6 +623,40 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     });
   }
 
+  /** Set the start/end window of one entry. Only the keys present in `patch` change; null clears a limit. */
+  async function setEntrySchedule(screenId, entryId, patch = {}) {
+    return mutateScreen(screenId, (doc) => {
+      const entry = doc.entries.find((e) => e.entryId === entryId);
+      if (!entry) {
+        throw new StateError('ENTRY_NOT_FOUND', `Unknown entry: ${entryId}`);
+      }
+      const next = validateEntryWindow({
+        startDatetime: patch.startDatetime !== undefined ? patch.startDatetime : entry.startDatetime,
+        endDatetime: patch.endDatetime !== undefined ? patch.endDatetime : entry.endDatetime,
+      });
+      entry.startDatetime = next.startDatetime;
+      entry.endDatetime = next.endDatetime;
+    });
+  }
+
+  /** Remove every entry whose end time has passed (enabled or not). Returns { screen, removed }. */
+  async function removeExpiredEntries(screenId) {
+    const nowMs = nowDate().getTime();
+    let removed = 0;
+    const screen = await mutateScreen(screenId, (doc) => {
+      if (doc.kind === 'aggregate') {
+        throw new StateError('KIND_MISMATCH', 'An aggregate has no playlist of its own');
+      }
+      const keep = doc.entries.filter((e) => {
+        const end = boundaryMs(e.endDatetime);
+        return end === null || end > nowMs;
+      });
+      removed = doc.entries.length - keep.length;
+      doc.entries = keep;
+    });
+    return { screen, removed };
+  }
+
   function assertEnabledFlag(enabled) {
     if (typeof enabled !== 'boolean') {
       throw new StateError('INVALID_ENABLED', 'enabled must be a boolean');
@@ -619,14 +722,16 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
       throw new StateError('SCREEN_NOT_FOUND', `Unknown view: ${id}`);
     }
     const doc = res.value;
+    const snap = liveSnapshot(doc.entries, nowDate().getTime());
     return {
       id: doc.id,
       name: doc.name,
       kind: doc.kind,
       embed: doc.embed,
       members: doc.members ?? null,
-      version: doc.version,
-      entries: doc.entries.filter(isEnabled).map(withEnabled),
+      version: effectiveVersion(doc.version, snap.crossed),
+      nextChangeAt: snap.nextChangeAt,
+      entries: snap.entries.map(withEnabled),
     };
   }
 
@@ -639,11 +744,13 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     if (!isScreenDoc(doc)) {
       throw new StateError('KIND_MISMATCH', 'Playlists at /s/:id are only for screens');
     }
+    const snap = liveSnapshot(doc.entries, nowDate().getTime());
     return {
       screenId: doc.id,
-      version: doc.version,
+      version: effectiveVersion(doc.version, snap.crossed),
+      nextChangeAt: snap.nextChangeAt,
       orientation: doc.orientation,
-      entries: doc.entries.filter(isEnabled),
+      entries: snap.entries,
     };
   }
 
@@ -840,6 +947,8 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     setEntrySeconds,
     setEntryText,
     setEntryEnabled,
+    setEntrySchedule,
+    removeExpiredEntries,
     setEntryThumbnail,
     setPushEnabled,
     removePush,

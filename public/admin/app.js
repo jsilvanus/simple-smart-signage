@@ -53,6 +53,8 @@ const state = {
   // Server clock minus local clock (ms), from the last screens fetch; used for the now-playing marker.
   clockOffsetMs: 0,
   screens: [],
+  screenFilter: '',
+  viewType: '',
   selectedId: null,
   editingId: null,
   busy: false,
@@ -75,6 +77,12 @@ const els = {
   screensCount: document.getElementById('screens-count'),
   screensList: document.getElementById('screens-list'),
   screensEmpty: document.getElementById('screens-empty'),
+  screensFilter: document.getElementById('screens-filter'),
+  viewsCount: document.getElementById('views-count'),
+  viewsList: document.getElementById('views-list'),
+  viewsEmpty: document.getElementById('views-empty'),
+  viewsType: document.getElementById('views-type'),
+  purgeExpiredBtn: document.getElementById('purge-expired-btn'),
 
   noSelection: document.getElementById('no-selection'),
   screenDetail: document.getElementById('screen-detail'),
@@ -255,12 +263,19 @@ function getSelectedScreen() {
   return state.screens.find((s) => s.id === state.selectedId) ?? null;
 }
 
-function renderScreensList() {
-  els.screensCount.textContent = String(state.screens.length);
-  els.screensEmpty.hidden = state.screens.length > 0;
-  els.screensList.replaceChildren();
+function isViewKind(screen) {
+  const kind = screen.kind ?? 'screen';
+  return kind === 'view' || kind === 'aggregate';
+}
 
-  for (const screen of state.screens) {
+/** Fills one sidebar list (screens or views) with `items`. `total` is the unfiltered size, for the empty note. */
+function renderSidebarList({ listEl, countEl, emptyEl, items, total, filtered }) {
+  countEl.textContent = filtered ? `${items.length}/${total}` : String(total);
+  emptyEl.hidden = items.length > 0;
+  if (items.length === 0 && total > 0) emptyEl.textContent = 'Nothing matches the filter.';
+  listEl.replaceChildren();
+
+  for (const screen of items) {
     const li = document.createElement('li');
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -290,8 +305,37 @@ function renderScreensList() {
 
     btn.append(title, sub);
     li.append(btn);
-    els.screensList.append(li);
+    listEl.append(li);
   }
+}
+
+function renderScreensList() {
+  const query = state.screenFilter.trim().toLowerCase();
+  const all = state.screens.filter((s) => !isViewKind(s));
+  const items = query
+    ? all.filter((s) => `${s.name} ${s.id}`.toLowerCase().includes(query))
+    : all;
+  els.screensEmpty.textContent = 'No screens yet.';
+  renderSidebarList({
+    listEl: els.screensList,
+    countEl: els.screensCount,
+    emptyEl: els.screensEmpty,
+    items,
+    total: all.length,
+    filtered: Boolean(query),
+  });
+
+  const allViews = state.screens.filter(isViewKind);
+  const views = state.viewType ? allViews.filter((s) => s.kind === state.viewType) : allViews;
+  els.viewsEmpty.textContent = 'No views yet.';
+  renderSidebarList({
+    listEl: els.viewsList,
+    countEl: els.viewsCount,
+    emptyEl: els.viewsEmpty,
+    items: views,
+    total: allViews.length,
+    filtered: Boolean(state.viewType),
+  });
 }
 
 function renderDetail() {
@@ -326,7 +370,10 @@ function renderDetail() {
       const origins = embed.allowedOrigins ?? [];
       els.embedSummary.textContent = `${embed.type ?? 'carousel'} · ${opts.aspect ?? '16:9'} · ${opts.fit ?? 'contain'} · ${origins.length} origin(s)`;
       els.embedScriptSnippet.value = `<script src="${origin}${base}/v/${encoded}/embed.js"></script>`;
-      els.embedIframeSnippet.value = `<iframe src="${origin}${base}/v/${encoded}/frame" title="${screen.name}" style="width:100%;aspect-ratio:${String(opts.aspect ?? '16:9').replace(':', '/')};border:0" loading="lazy"></iframe>`;
+      const aspectCss = String(opts.aspect ?? '16:9').replace(':', '/');
+      // The small script hides the frame while the view has nothing to show (the frame page tells its parent).
+      const hideEmpty = `<script>addEventListener('message',function(e){var d=e.data;if(!d||d.sissi!=='empty')return;var f=document.querySelectorAll('iframe[src*="/v/${encoded}/frame"]');for(var i=0;i<f.length;i++)if(f[i].contentWindow===e.source)f[i].style.display=d.empty?'none':'';});</script>`;
+      els.embedIframeSnippet.value = `<iframe src="${origin}${base}/v/${encoded}/frame" title="${screen.name}" style="width:100%;aspect-ratio:${aspectCss};border:0" loading="eager"></iframe>${hideEmpty}`;
       if (kind === 'aggregate') {
         els.aggregateMembersSummary.hidden = false;
         els.aggregateMembersSummary.textContent = `Members: ${(screen.members ?? []).join(', ') || 'none'}`;
@@ -418,13 +465,64 @@ function thumbUrlFor(entry) {
 }
 
 function thumbFor(entry) {
-  const img = document.createElement('img');
-  img.className = 'entry-thumb';
-  img.alt = '';
-  img.loading = 'lazy';
-  img.decoding = 'async';
-  img.src = thumbUrlFor(entry);
-  return img;
+  const fallback = () => createKindIcon(entry.kind);
+  let media;
+  if (entry.kind === 'video' && !entry.thumbMediaId) {
+    // No stored first-frame image: let the browser show the video's first frame.
+    media = document.createElement('video');
+    media.muted = true;
+    media.playsInline = true;
+    media.preload = 'metadata';
+    media.tabIndex = -1;
+    media.src = `${mediaUrlFor(entry)}#t=0.1`;
+  } else {
+    media = document.createElement('img');
+    media.alt = '';
+    media.loading = 'lazy';
+    media.decoding = 'async';
+    media.src = thumbUrlFor(entry);
+  }
+  media.className = 'entry-thumb';
+  media.addEventListener('error', () => media.replaceWith(fallback()));
+  const link = document.createElement('a');
+  link.className = 'entry-thumb-link';
+  link.href = mediaUrlFor(entry);
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.title = 'Open full size';
+  link.setAttribute('aria-label', `Open ${entry.title || entry.entryId} full size`);
+  link.append(media);
+  return link;
+}
+
+/** 'live' | 'scheduled' | 'ended' | 'disabled', by the server clock (the browser clock plus the measured offset). */
+function entryStatus(entry, nowMs = Date.now() + state.clockOffsetMs) {
+  if (entry.enabled === false) return 'disabled';
+  const start = entry.startDatetime ? Date.parse(entry.startDatetime) : null;
+  const end = entry.endDatetime ? Date.parse(entry.endDatetime) : null;
+  if (end !== null && end <= nowMs) return 'ended';
+  if (start !== null && start > nowMs) return 'scheduled';
+  return 'live';
+}
+
+function expiredCount(screen) {
+  const nowMs = Date.now() + state.clockOffsetMs;
+  return (screen?.entries ?? []).filter((e) => e.endDatetime && Date.parse(e.endDatetime) <= nowMs).length;
+}
+
+/** ISO instant to the value format of <input type="datetime-local"> (local time). */
+function toLocalInput(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function fromLocalInput(value) {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
 /**
@@ -494,12 +592,14 @@ async function handleMove(screenId, entries, from, to) {
 
 function renderEntries(screen) {
   const entries = screen.entries ?? [];
+  updatePurgeButton(screen);
   els.playlistEmpty.hidden = entries.length > 0;
   els.entriesList.replaceChildren();
 
   entries.forEach((entry, index) => {
     const li = document.createElement('li');
-    li.className = entry.enabled === false ? 'entry-row entry-disabled' : 'entry-row';
+    const status = entryStatus(entry);
+    li.className = status === 'live' ? 'entry-row' : 'entry-row entry-disabled';
 
     const reorder = document.createElement('div');
     reorder.className = 'reorder-col';
@@ -551,9 +651,7 @@ function renderEntries(screen) {
       handleMove(screen.id, entries, from, index);
     });
 
-    const icon = entry.kind === 'image' || entry.thumbMediaId
-      ? thumbFor(entry)
-      : createKindIcon(entry.kind);
+    const icon = thumbFor(entry);
 
     const info = document.createElement('div');
     info.className = 'entry-info';
@@ -593,6 +691,31 @@ function renderEntries(screen) {
     addedEl.textContent = formatAddedAt(entry.addedAt);
     metaEl.append(pushGroup, addedEl);
     info.append(titleEl, metaEl);
+
+    const schedForm = document.createElement('form');
+    schedForm.className = 'entry-schedule';
+    const mkDate = (labelText, value) => {
+      const label = document.createElement('label');
+      label.append(`${labelText} `);
+      const input = document.createElement('input');
+      input.type = 'datetime-local';
+      input.value = toLocalInput(value);
+      label.append(input);
+      return { label, input };
+    };
+    const from = mkDate('Visible from', entry.startDatetime);
+    const until = mkDate('until', entry.endDatetime);
+    const saveSchedBtn = document.createElement('button');
+    saveSchedBtn.type = 'submit';
+    saveSchedBtn.className = 'btn btn-sm';
+    saveSchedBtn.textContent = 'Save times';
+    saveSchedBtn.disabled = state.busy;
+    schedForm.append(from.label, until.label, saveSchedBtn);
+    schedForm.addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      handleSaveSchedule(screen.id, entry.entryId, fromLocalInput(from.input.value), fromLocalInput(until.input.value));
+    });
+    info.append(schedForm);
 
     if (screen.kind === 'view') {
       const textForm = document.createElement('form');
@@ -688,8 +811,8 @@ function renderEntries(screen) {
 
     const isOn = entry.enabled !== false;
     const liveBadge = document.createElement('span');
-    liveBadge.className = 'badge';
-    liveBadge.textContent = isOn ? 'Live' : 'Disabled';
+    liveBadge.className = `badge status-${status}`;
+    liveBadge.textContent = { live: 'Live', scheduled: 'Scheduled', ended: 'Ended', disabled: 'Disabled' }[status];
     const toggleBtn = document.createElement('button');
     toggleBtn.type = 'button';
     toggleBtn.className = 'btn btn-sm';
@@ -719,7 +842,7 @@ function renderEntries(screen) {
 /** Marks the entry every screen is playing at this moment. Same arithmetic as the player (src/playback/schedule.mjs). */
 function updateNowPlaying() {
   const screen = getSelectedScreen();
-  const entries = (screen?.entries ?? []).filter((e) => e.enabled !== false);
+  const entries = (screen?.entries ?? []).filter((e) => entryStatus(e) === 'live');
   let total = 0;
   for (const e of entries) total += Math.max(0, Number(e.seconds) || 0) * 1000;
   let playingId = null;
@@ -746,18 +869,72 @@ function updateNowPlaying() {
 
 setInterval(updateNowPlaying, 1000);
 
-// Thumbnail/list view. The choice is per browser and is optional, so storage errors are ignored.
-const viewToggle = document.getElementById('view-toggle');
-function applyView(grid) {
-  els.entriesList.classList.toggle('entries-list--grid', grid);
-  if (viewToggle) viewToggle.textContent = grid ? 'List view' : 'Thumbnail view';
+async function handleSaveSchedule(screenId, entryId, startDatetime, endDatetime) {
+  setError('');
+  setStatus('');
+  state.busy = true;
+  render();
+  try {
+    await apiFetch(`/admin/screens/${encodeURIComponent(screenId)}/entries/${encodeURIComponent(entryId)}`, {
+      method: 'PATCH',
+      body: { startDatetime, endDatetime },
+    });
+    await loadScreens();
+    setStatus('Visibility times saved.');
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    state.busy = false;
+    render();
+  }
 }
-applyView((() => { try { return window.localStorage.getItem('sissi:admin:view') === 'grid'; } catch { return false; } })());
-viewToggle?.addEventListener('click', () => {
-  const grid = !els.entriesList.classList.contains('entries-list--grid');
-  try { window.localStorage.setItem('sissi:admin:view', grid ? 'grid' : 'list'); } catch { /* ignore */ }
-  applyView(grid);
+
+async function handlePurgeExpired() {
+  const screen = getSelectedScreen();
+  if (!screen) return;
+  const count = expiredCount(screen);
+  if (count === 0) return;
+  const confirmed = await confirmAction({
+    title: 'Clear expired content?',
+    message: `Remove ${count} ${count === 1 ? 'entry' : 'entries'} whose end time has passed from "${screen.name}"? This cannot be undone.`,
+    okLabel: 'Remove expired',
+  });
+  if (!confirmed) return;
+
+  setError('');
+  setStatus('');
+  state.busy = true;
+  render();
+  try {
+    const data = await apiFetch(`/admin/screens/${encodeURIComponent(screen.id)}/purge-expired`, {
+      method: 'POST',
+      body: {},
+    });
+    await loadScreens();
+    setStatus(`Removed ${data?.removed ?? 0} expired ${data?.removed === 1 ? 'entry' : 'entries'}.`);
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    state.busy = false;
+    render();
+  }
+}
+els.purgeExpiredBtn?.addEventListener('click', handlePurgeExpired);
+els.screensFilter?.addEventListener('input', () => {
+  state.screenFilter = els.screensFilter.value;
+  renderScreensList();
 });
+els.viewsType?.addEventListener('change', () => {
+  state.viewType = els.viewsType.value;
+  renderScreensList();
+});
+
+function updatePurgeButton(screen) {
+  if (!els.purgeExpiredBtn) return;
+  const n = expiredCount(screen);
+  els.purgeExpiredBtn.disabled = state.busy || n === 0;
+  els.purgeExpiredBtn.textContent = n > 0 ? `Clear expired (${n})` : 'Clear expired';
+}
 
 // Poll every 5 s for playlist changes made elsewhere. Only the playlist list is re-rendered,
 // and only when something actually changed. Paused while a drag or another action is running.
@@ -770,7 +947,7 @@ async function pollPlaylist() {
     const next = data?.screens ?? [];
     const cur = next.find((sc) => sc.id === state.selectedId);
     if (!cur) return;
-    const sig = `${cur.playlistVersion}|${JSON.stringify(cur.entries ?? [])}`;
+    const sig = `${cur.playlistVersion}|${JSON.stringify(cur.entries ?? [])}|${(cur.entries ?? []).map((e) => entryStatus(e)).join(',')}`;
     if (sig === lastPlaylistSig) return;
     lastPlaylistSig = sig;
     state.screens = next;
@@ -885,7 +1062,7 @@ function syncKindFields(kind) {
 function openScreenDialog(screen = null) {
   state.editingId = screen ? screen.id : null;
   showBanner(els.screenFormError, '');
-  els.screenDialogTitle.textContent = screen ? `Edit ${screen.kind ?? 'screen'}: ${screen.id}` : 'New screen / view';
+  els.screenDialogTitle.textContent = screen ? `Edit ${screen.kind ?? 'screen'}: ${screen.id}` : 'Create';
 
   if (screen) {
     const kind = screen.kind ?? 'screen';

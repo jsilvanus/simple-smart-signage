@@ -54,6 +54,7 @@ const state = {
   clockOffsetMs: 0,
   screens: [],
   screenFilter: '',
+  viewFilter: '',
   viewType: '',
   selectedId: null,
   editingId: null,
@@ -81,6 +82,7 @@ const els = {
   viewsCount: document.getElementById('views-count'),
   viewsList: document.getElementById('views-list'),
   viewsEmpty: document.getElementById('views-empty'),
+  viewsFilter: document.getElementById('views-filter'),
   viewsType: document.getElementById('views-type'),
   purgeExpiredBtn: document.getElementById('purge-expired-btn'),
 
@@ -326,7 +328,12 @@ function renderScreensList() {
   });
 
   const allViews = state.screens.filter(isViewKind);
-  const views = state.viewType ? allViews.filter((s) => s.kind === state.viewType) : allViews;
+  const viewQuery = state.viewFilter.trim().toLowerCase();
+  const views = allViews.filter((s) => {
+    const matchesText = !viewQuery || `${s.name} ${s.id}`.toLowerCase().includes(viewQuery);
+    const matchesType = !state.viewType || s.kind === state.viewType;
+    return matchesText && matchesType;
+  });
   els.viewsEmpty.textContent = 'No views yet.';
   renderSidebarList({
     listEl: els.viewsList,
@@ -334,7 +341,7 @@ function renderScreensList() {
     emptyEl: els.viewsEmpty,
     items: views,
     total: allViews.length,
-    filtered: Boolean(state.viewType),
+    filtered: Boolean(viewQuery || state.viewType),
   });
 }
 
@@ -922,6 +929,10 @@ async function handlePurgeExpired() {
 els.purgeExpiredBtn?.addEventListener('click', handlePurgeExpired);
 els.screensFilter?.addEventListener('input', () => {
   state.screenFilter = els.screensFilter.value;
+  renderScreensList();
+});
+els.viewsFilter?.addEventListener('input', () => {
+  state.viewFilter = els.viewsFilter.value;
   renderScreensList();
 });
 els.viewsType?.addEventListener('change', () => {

@@ -771,3 +771,58 @@ copy-button .tip {
   gap: 0.4rem;
   margin-top: 1.4rem;
 }
+
+dialog.embed-dialog {
+  width: min(640px, calc(100vw - 2rem));
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+}
+
+dialog.rights-dialog {
+  width: min(520px, calc(100vw - 2rem));
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+}
+
+.embed-guide {
+  margin-block-start: 1.25rem;
+  padding-block-start: 0.75rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.embed-guide h4 {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 0.85rem;
+  color: var(--fg);
+}
+
+.embed-guide p, .embed-guide ul {
+  margin: 0.3rem 0;
+  color: var(--muted);
+}
+
+.embed-guide ul {
+  padding-left: 1.25rem;
+}
+
+.embed-guide code {
+  color: var(--fg);
+  background: var(--bg);
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+}
+
+.entry-meta-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.resolutions-list {
+  font-size: 0.8rem;
+  color: var(--fg);
+}
+

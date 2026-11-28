@@ -17,21 +17,23 @@ if (typeof customElements !== 'undefined' && !customElements.get('copy-button'))
       #timer = 0;
       connectedCallback() {
         this.addEventListener('command', (e) => {
-          if (e.command === '--copy') this.#copy(e.source);
+          if (e.command === '--copy') this.#copy(e.source || e.target);
         });
         this.addEventListener('click', (e) => {
-          const btn = e.target?.closest?.('button[command="--copy"]');
-          if (btn && !('command' in HTMLButtonElement.prototype)) this.#copy(btn);
+          const btn = e.target?.closest?.('button[command="--copy"]') || e.target?.closest?.('button.copy-btn');
+          if (btn) {
+            e.preventDefault();
+            this.#copy(btn);
+          }
         });
       }
       async #copy(source) {
         const targetId = source?.getAttribute?.('commandfor');
         const target = targetId ? document.getElementById(targetId) : null;
         const text = target ? ('value' in target ? target.value : target.textContent) : '';
-        if (!text || !navigator.clipboard?.writeText) return;
-        try {
-          await navigator.clipboard.writeText(text.trim());
-          const tip = this.querySelector('.tip');
+        if (!text) return;
+        const tip = this.querySelector('.tip');
+        const showSuccess = () => {
           if (tip) {
             tip.textContent = 'Copied';
             clearTimeout(this.#timer);
@@ -39,8 +41,24 @@ if (typeof customElements !== 'undefined' && !customElements.get('copy-button'))
               tip.textContent = '';
             }, 1500);
           }
+        };
+        if (navigator.clipboard?.writeText) {
+          try {
+            await navigator.clipboard.writeText(text.trim());
+            showSuccess();
+            return;
+          } catch {
+            // fallback below
+          }
+        }
+        try {
+          if (target && 'select' in target) {
+            target.select();
+            document.execCommand('copy');
+            showSuccess();
+          }
         } catch {
-          // Clipboard permission denied
+          // ignore
         }
       }
     },
@@ -103,12 +121,19 @@ const els = {
   playlistEmpty: document.getElementById('playlist-empty'),
   entriesList: document.getElementById('entries-list'),
 
-  embedSection: document.getElementById('embed-section'),
+  embedBtn: document.getElementById('embed-btn'),
+  embedDialog: document.getElementById('embed-dialog'),
+  embedDialogClose: document.getElementById('embed-dialog-close'),
+  embedDialogOk: document.getElementById('embed-dialog-ok'),
   embedSummary: document.getElementById('embed-summary'),
   aggregateMembersSummary: document.getElementById('aggregate-members-summary'),
   embedScriptSnippet: document.getElementById('embed-script-snippet'),
   embedIframeSnippet: document.getElementById('embed-iframe-snippet'),
-  rightsSection: document.getElementById('rights-section'),
+
+  rightsBtn: document.getElementById('rights-btn'),
+  rightsDialog: document.getElementById('rights-dialog'),
+  rightsDialogClose: document.getElementById('rights-dialog-close'),
+  rightsDialogOk: document.getElementById('rights-dialog-ok'),
   rightsKeysList: document.getElementById('rights-keys-list'),
 
   screenDialog: document.getElementById('screen-dialog'),
@@ -370,31 +395,30 @@ function renderDetail() {
   els.previewLink.textContent = isViewLike ? 'Preview view ↗' : 'Preview screen ↗';
   els.playlistVersion.textContent = `v${screen.playlistVersion ?? 0}`;
 
-  if (els.embedSection) {
-    els.embedSection.hidden = !isViewLike;
-    if (isViewLike) {
-      const origin = location.origin;
-      const encoded = encodeURIComponent(screen.id);
-      const embed = screen.embed ?? {};
-      const opts = embed.options ?? {};
-      const origins = embed.allowedOrigins ?? [];
-      els.embedSummary.textContent = `${embed.type ?? 'carousel'} · ${opts.aspect ?? '16:9'} · ${opts.fit ?? 'contain'} · ${origins.length} origin(s)`;
-      els.embedScriptSnippet.value = `<script src="${origin}${base}/v/${encoded}/embed.js"></script>`;
-      const aspectCss = String(opts.aspect ?? '16:9').replace(':', '/');
-      // The small script hides the frame while the view has nothing to show (the frame page tells its parent).
-      const hideEmpty = `<script>addEventListener('message',function(e){var d=e.data;if(!d||d.sissi!=='empty')return;var f=document.querySelectorAll('iframe[src*="/v/${encoded}/frame"]');for(var i=0;i<f.length;i++)if(f[i].contentWindow===e.source)f[i].style.display=d.empty?'none':'';});</script>`;
-      els.embedIframeSnippet.value = `<iframe src="${origin}${base}/v/${encoded}/frame" title="${screen.name}" style="width:100%;aspect-ratio:${aspectCss};border:0" loading="eager"></iframe>${hideEmpty}`;
-      if (kind === 'aggregate') {
-        els.aggregateMembersSummary.hidden = false;
-        els.aggregateMembersSummary.textContent = `Members: ${(screen.members ?? []).join(', ') || 'none'}`;
-      } else {
-        els.aggregateMembersSummary.hidden = true;
-      }
+  if (els.embedBtn) {
+    els.embedBtn.hidden = !isViewLike;
+  }
+  if (isViewLike && els.embedSummary) {
+    const origin = location.origin;
+    const encoded = encodeURIComponent(screen.id);
+    const embed = screen.embed ?? {};
+    const opts = embed.options ?? {};
+    const origins = embed.allowedOrigins ?? [];
+    els.embedSummary.textContent = `${embed.type ?? 'carousel'} · ${opts.aspect ?? '16:9'} · ${opts.fit ?? 'contain'} · ${origins.length} origin(s)`;
+    els.embedScriptSnippet.value = `<script src="${origin}${base}/v/${encoded}/embed.js"></script>`;
+    const aspectCss = String(opts.aspect ?? '16:9').replace(':', '/');
+    // The small script hides the frame while the view has nothing to show (the frame page tells its parent).
+    const hideEmpty = `<script>addEventListener('message',function(e){var d=e.data;if(!d||d.sissi!=='empty')return;var f=document.querySelectorAll('iframe[src*="/v/${encoded}/frame"]');for(var i=0;i<f.length;i++)if(f[i].contentWindow===e.source)f[i].style.display=d.empty?'none':'';});</script>`;
+    els.embedIframeSnippet.value = `<iframe src="${origin}${base}/v/${encoded}/frame" title="${screen.name}" style="width:100%;aspect-ratio:${aspectCss};border:0" loading="eager"></iframe>${hideEmpty}`;
+    if (kind === 'aggregate') {
+      els.aggregateMembersSummary.hidden = false;
+      els.aggregateMembersSummary.textContent = `Members: ${(screen.members ?? []).join(', ') || 'none'}`;
+    } else {
+      els.aggregateMembersSummary.hidden = true;
     }
   }
 
-  if (els.rightsSection && els.rightsKeysList) {
-    els.rightsSection.hidden = false;
+  if (els.rightsKeysList) {
     els.rightsKeysList.replaceChildren();
     for (const key of rightsKeysFor(screen.id, kind)) {
       const row = document.createElement('div');
@@ -406,7 +430,7 @@ function renderDetail() {
       const cb = document.createElement('copy-button');
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'btn btn-sm';
+      btn.className = 'btn btn-sm copy-btn';
       btn.setAttribute('command', '--copy');
       btn.setAttribute('commandfor', codeId);
       btn.textContent = 'Copy';
@@ -604,9 +628,27 @@ async function handleMove(screenId, entries, from, to) {
 const openEntries = new Set();
 
 function formatWhen(value) {
-  if (!value) return 'â€”';
+  if (!value) return '\u2014';
   const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? 'â€”' : d.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+  return Number.isNaN(d.getTime()) ? '\u2014' : d.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function getStoredResolutions(entry) {
+  const list = [];
+  if (Array.isArray(entry.variants) && entry.variants.length > 0) {
+    for (const v of entry.variants) {
+      list.push(`${v.width}×${v.height} (${v.type || v.ext || 'variant'})`);
+    }
+  }
+  if (entry.width && entry.height) {
+    list.unshift(`${entry.width}×${entry.height} (original)`);
+  } else if (list.length === 0) {
+    list.push(`Original (${(entry.ext || 'file').toUpperCase()})`);
+  }
+  if (entry.thumbMediaId) {
+    list.push(`Video poster (${entry.thumbExt || 'png'})`);
+  }
+  return list;
 }
 
 function entrySection(title, ...nodes) {
@@ -656,7 +698,7 @@ function renderEntries(screen) {
 
     const grip = document.createElement('span');
     grip.className = 'drag-grip';
-    grip.textContent = 'â ¿';
+    grip.textContent = '\u283F';
     grip.title = 'Drag to reorder';
     grip.setAttribute('aria-hidden', 'true');
     // Only the grip starts a drag, so inputs and buttons keep working.
@@ -683,9 +725,19 @@ function renderEntries(screen) {
       handleMove(screen.id, entries, from, index);
     });
 
+    // Enabled toggle: the whole 'is this item on' question in one box. Setting visibility times switches it on.
+    const enabledBox = document.createElement('input');
+    enabledBox.type = 'checkbox';
+    enabledBox.className = 'entry-enabled';
+    enabledBox.checked = entry.enabled !== false;
+    enabledBox.disabled = state.busy;
+    enabledBox.title = { live: 'Enabled and showing', scheduled: 'Enabled, waiting for its start time', ended: 'Enabled, but its end time has passed', disabled: 'Disabled' }[status];
+    enabledBox.setAttribute('aria-label', `Enabled: ${title}`);
+    enabledBox.addEventListener('change', () => handleSetEntryEnabled(screen.id, entry.entryId, enabledBox.checked));
+
     const nowBadge = document.createElement('span');
     nowBadge.className = 'now-badge';
-    nowBadge.textContent = 'â–¶';
+    nowBadge.textContent = '\u25B6';
     nowBadge.title = 'Now playing';
     nowBadge.setAttribute('role', 'img');
     nowBadge.setAttribute('aria-label', 'Now playing');
@@ -720,17 +772,7 @@ function renderEntries(screen) {
     toggle.setAttribute('aria-controls', detailsId);
     toggle.setAttribute('aria-label', `Settings for ${title}`);
     toggle.title = 'Show settings';
-    toggle.textContent = 'â–¸';
-
-    // Enabled toggle: the whole 'is this item on' question in one box. Setting visibility times switches it on.
-    const enabledBox = document.createElement('input');
-    enabledBox.type = 'checkbox';
-    enabledBox.className = 'entry-enabled';
-    enabledBox.checked = entry.enabled !== false;
-    enabledBox.disabled = state.busy;
-    enabledBox.title = { live: 'Enabled and showing', scheduled: 'Enabled, waiting for its start time', ended: 'Enabled, but its end time has passed', disabled: 'Disabled' }[status];
-    enabledBox.setAttribute('aria-label', `Enabled: ${title}`);
-    enabledBox.addEventListener('change', () => handleSetEntryEnabled(screen.id, entry.entryId, enabledBox.checked));
+    toggle.textContent = '\u25B8';
 
     summary.append(grip, enabledBox, nowSlot, num, titleEl, whenFrom, whenUntil, toggle);
 
@@ -748,7 +790,7 @@ function renderEntries(screen) {
       if (open) openEntries.add(entry.entryId); else openEntries.delete(entry.entryId);
     });
 
-    // Overview: preview, kind, status, added
+    // 1. Overview: preview, kind, status, added
     const preview = document.createElement('div');
     preview.className = 'entry-preview';
     const liveBadge = document.createElement('span');
@@ -765,7 +807,59 @@ function renderEntries(screen) {
     previewMeta.append(liveBadge, kindEl, addedEl);
     preview.append(thumbFor(entry), previewMeta);
 
-    // Playback: duration (on/off is the checkbox in the summary row)
+    // 2. Upload & Media information: upload id, media file, list of stored resolutions
+    const uploadInfo = document.createElement('div');
+    uploadInfo.className = 'entry-upload-info';
+    const mkMetaItem = (label, valueNode) => {
+      const div = document.createElement('div');
+      div.className = 'entry-meta-item';
+      const lbl = document.createElement('span');
+      lbl.className = 'muted';
+      lbl.textContent = `${label}: `;
+      div.append(lbl, valueNode);
+      return div;
+    };
+    const pushCode = document.createElement('code');
+    pushCode.className = 'code-pill';
+    pushCode.textContent = entry.pushId;
+    const mediaCode = document.createElement('code');
+    mediaCode.className = 'code-pill';
+    mediaCode.textContent = `${entry.mediaId}.${entry.ext || 'bin'}`;
+    const resSpan = document.createElement('span');
+    resSpan.className = 'resolutions-list';
+    resSpan.textContent = getStoredResolutions(entry).join(', ');
+    uploadInfo.append(
+      mkMetaItem('Upload ID', pushCode),
+      mkMetaItem('Media file', mediaCode),
+      mkMetaItem('Stored resolutions', resSpan),
+    );
+
+    // 3. Schedule: enable on / disable on
+    const schedForm = document.createElement('form');
+    schedForm.className = 'entry-schedule';
+    const mkDate = (labelText, value) => {
+      const input = document.createElement('input');
+      input.type = 'datetime-local';
+      input.value = toLocalInput(value);
+      return { field: entryField(labelText, input), input };
+    };
+    const from = mkDate('Enable on', entry.startDatetime);
+    const until = mkDate('Disable on', entry.endDatetime);
+    const saveSchedBtn = document.createElement('button');
+    saveSchedBtn.type = 'submit';
+    saveSchedBtn.className = 'btn btn-sm';
+    saveSchedBtn.textContent = 'Save times';
+    saveSchedBtn.disabled = state.busy;
+    schedForm.append(from.field, until.field, saveSchedBtn);
+    schedForm.addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const startVal = fromLocalInput(from.input.value);
+      const endVal = fromLocalInput(until.input.value);
+      // Giving the item a visibility window switches it on (the window then decides when it shows).
+      handleSaveSchedule(screen.id, entry.entryId, startVal, endVal, entry.enabled === false && Boolean(startVal || endVal));
+    });
+
+    // 4. Playback: duration
     const playbackNodes = [];
     if (entry.kind === 'image') {
       const secForm = document.createElement('form');
@@ -799,38 +893,14 @@ function renderEntries(screen) {
       playbackNodes.push(dur);
     }
 
-    // Schedule: enable on / disable on
-    const schedForm = document.createElement('form');
-    schedForm.className = 'entry-schedule';
-    const mkDate = (labelText, value) => {
-      const input = document.createElement('input');
-      input.type = 'datetime-local';
-      input.value = toLocalInput(value);
-      return { field: entryField(labelText, input), input };
-    };
-    const from = mkDate('Enable on', entry.startDatetime);
-    const until = mkDate('Disable on', entry.endDatetime);
-    const saveSchedBtn = document.createElement('button');
-    saveSchedBtn.type = 'submit';
-    saveSchedBtn.className = 'btn btn-sm';
-    saveSchedBtn.textContent = 'Save times';
-    saveSchedBtn.disabled = state.busy;
-    schedForm.append(from.field, until.field, saveSchedBtn);
-    schedForm.addEventListener('submit', (ev) => {
-      ev.preventDefault();
-      const startVal = fromLocalInput(from.input.value);
-      const endVal = fromLocalInput(until.input.value);
-      // Giving the item a visibility window switches it on (the window then decides when it shows).
-      handleSaveSchedule(screen.id, entry.entryId, startVal, endVal, entry.enabled === false && Boolean(startVal || endVal));
-    });
-
     const sections = [
       entrySection('Overview', preview),
-      entrySection('Playback', ...playbackNodes),
+      entrySection('Upload & Media', uploadInfo),
       entrySection('Schedule', schedForm),
+      entrySection('Playback', ...playbackNodes),
     ];
 
-    // Text (views only)
+    // 5. Text (views only)
     if (screen.kind === 'view') {
       const textForm = document.createElement('form');
       textForm.className = 'entry-text-form';
@@ -845,7 +915,7 @@ function renderEntries(screen) {
       const captionInput = mkText('text', 500, entry.caption);
       const altInput = mkText('text', 300, entry.alt);
       const linkInput = mkText('url', 2048, entry.link);
-      linkInput.placeholder = 'https://â€¦';
+      linkInput.placeholder = 'https://...';
       const saveTextBtn = document.createElement('button');
       saveTextBtn.type = 'submit';
       saveTextBtn.className = 'btn btn-sm';
@@ -886,33 +956,10 @@ function renderEntries(screen) {
       sections.push(entrySection('Text', textForm));
     }
 
-    // Push group: one upload can add several items; this switches all of them together.
-    const pushItems = entries.filter((e) => e.pushId === entry.pushId);
-    const pushAllOn = pushItems.every((e) => e.enabled !== false);
-    const pushBox = document.createElement('input');
-    pushBox.type = 'checkbox';
-    pushBox.checked = pushAllOn;
-    pushBox.disabled = state.busy;
-    pushBox.addEventListener('change', () => handleSetPushEnabled(screen.id, entry.pushId, pushBox.checked));
-    const pushLabel = document.createElement('label');
-    pushLabel.className = 'checkbox-inline';
-    pushLabel.append(pushBox, pushItems.length > 1 ? ` Enabled (all ${pushItems.length} items from this upload)` : ' Enabled');
-    const pushBadge = document.createElement('code');
-    pushBadge.className = 'code-pill';
-    pushBadge.textContent = entry.pushId;
-    const pushGroup = document.createElement('div');
-    pushGroup.className = 'push-group';
-    pushGroup.append(
-      pushLabel,
-      pushBadge,
-      entryButton(pushItems.length > 1 ? `Remove all ${pushItems.length} items` : 'Remove', 'btn btn-sm btn-danger', () => handleRemovePush(screen.id, entry.pushId), state.busy),
-    );
-    sections.push(entrySection('Upload', pushGroup));
-
-    // Order and delete
-    const upBtn = entryButton('â†‘ Up', 'btn btn-sm', () => handleReorder(screen.id, entries, index, -1), index === 0 || state.busy);
+    // 6. Order and removal: Up, Down, and Delete (single unified removal button)
+    const upBtn = entryButton('\u2191 Up', 'btn btn-sm', () => handleReorder(screen.id, entries, index, -1), index === 0 || state.busy);
     upBtn.setAttribute('aria-label', `Move ${title} up`);
-    const downBtn = entryButton('â†“ Down', 'btn btn-sm', () => handleReorder(screen.id, entries, index, 1), index === entries.length - 1 || state.busy);
+    const downBtn = entryButton('\u2193 Down', 'btn btn-sm', () => handleReorder(screen.id, entries, index, 1), index === entries.length - 1 || state.busy);
     downBtn.setAttribute('aria-label', `Move ${title} down`);
     const actions = document.createElement('div');
     actions.className = 'entry-actions';
@@ -1406,6 +1453,12 @@ els.editScreenBtn.addEventListener('click', () => {
   const screen = getSelectedScreen();
   if (screen) openScreenDialog(screen);
 });
+els.embedBtn?.addEventListener('click', () => els.embedDialog?.showModal());
+els.embedDialogClose?.addEventListener('click', () => els.embedDialog?.close());
+els.embedDialogOk?.addEventListener('click', () => els.embedDialog?.close());
+els.rightsBtn?.addEventListener('click', () => els.rightsDialog?.showModal());
+els.rightsDialogClose?.addEventListener('click', () => els.rightsDialog?.close());
+els.rightsDialogOk?.addEventListener('click', () => els.rightsDialog?.close());
 
 els.powerOverrideGroup.addEventListener('click', async (e) => {
   const btn = e.target.closest('[data-power-override]');

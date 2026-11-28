@@ -103,48 +103,13 @@
                 <button type="button" class="btn btn-sm" data-power-override="on">On</button>
                 <button type="button" class="btn btn-sm" data-power-override="off">Off</button>
               </div>
-              <a id="preview-link" class="btn" target="_blank" rel="noopener noreferrer">Preview screen ↗</a>
+              <button id="embed-btn" type="button" class="btn" hidden>Embeds</button>
+              <button id="rights-btn" type="button" class="btn">Rights</button>
+              <a id="preview-link" class="btn" target="_blank" rel="noopener noreferrer">Preview screen &#x2197;</a>
               <button id="edit-screen-btn" type="button" class="btn">Edit screen</button>
               <button id="delete-screen-btn" type="button" class="btn btn-danger">Delete</button>
             </div>
           </div>
-
-          <section id="embed-section" class="embed-section" aria-labelledby="embed-heading" hidden>
-            <div class="panel-header">
-              <h3 id="embed-heading">Web Embed</h3>
-              <span id="embed-summary" class="muted"></span>
-            </div>
-            <p id="aggregate-members-summary" class="muted" hidden></p>
-            <div class="snippet-grid">
-              <div class="snippet-row">
-                <label for="embed-script-snippet">Script embed</label>
-                <div class="copy-row">
-                  <input id="embed-script-snippet" type="text" readonly>
-                  <copy-button>
-                    <button type="button" class="btn btn-sm" command="--copy" commandfor="embed-script-snippet">Copy</button>
-                    <span class="tip muted" role="status" aria-live="polite"></span>
-                  </copy-button>
-                </div>
-              </div>
-              <div class="snippet-row">
-                <label for="embed-iframe-snippet">Iframe embed</label>
-                <div class="copy-row">
-                  <input id="embed-iframe-snippet" type="text" readonly>
-                  <copy-button>
-                    <button type="button" class="btn btn-sm" command="--copy" commandfor="embed-iframe-snippet">Copy</button>
-                    <span class="tip muted" role="status" aria-live="polite"></span>
-                  </copy-button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section id="rights-section" class="rights-section" aria-labelledby="rights-heading" hidden>
-            <div class="panel-header">
-              <h3 id="rights-heading">Tunnus Rights Keys</h3>
-            </div>
-            <div id="rights-keys-list" class="rights-keys-list"></div>
-          </section>
 
           <section id="playlist-section" class="playlist-section" aria-labelledby="playlist-heading">
             <div class="panel-header">
@@ -343,6 +308,76 @@
         <button value="confirm" id="confirm-ok-btn" class="btn btn-danger">Delete</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="rights-dialog" class="rights-dialog" aria-labelledby="rights-dialog-title">
+    <div class="dialog-header">
+      <h2 id="rights-dialog-title">Tunnus Rights Keys</h2>
+      <button type="button" id="rights-dialog-close" class="btn-icon" aria-label="Close">&#x2715;</button>
+    </div>
+    <div class="dialog-body">
+      <p class="muted">Access rights required in Tunnus to read, write, or operate this screen or view.</p>
+      <div id="rights-keys-list" class="rights-keys-list"></div>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" id="rights-dialog-ok" class="btn">Close</button>
+    </div>
+  </dialog>
+
+  <dialog id="embed-dialog" class="embed-dialog" aria-labelledby="embed-dialog-title">
+    <div class="dialog-header">
+      <h2 id="embed-dialog-title">Web Embed</h2>
+      <button type="button" id="embed-dialog-close" class="btn-icon" aria-label="Close">&#x2715;</button>
+    </div>
+    <div class="dialog-body">
+      <div class="panel-header">
+        <span id="embed-summary" class="muted"></span>
+      </div>
+      <p id="aggregate-members-summary" class="muted" hidden></p>
+      <div class="snippet-grid">
+        <div class="snippet-row">
+          <label for="embed-script-snippet">Script embed</label>
+          <div class="copy-row">
+            <input id="embed-script-snippet" type="text" readonly>
+            <copy-button>
+              <button type="button" class="btn btn-sm copy-btn" command="--copy" commandfor="embed-script-snippet">Copy</button>
+              <span class="tip muted" role="status" aria-live="polite"></span>
+            </copy-button>
+          </div>
+        </div>
+        <div class="snippet-row">
+          <label for="embed-iframe-snippet">Iframe embed</label>
+          <div class="copy-row">
+            <input id="embed-iframe-snippet" type="text" readonly>
+            <copy-button>
+              <button type="button" class="btn btn-sm copy-btn" command="--copy" commandfor="embed-iframe-snippet">Copy</button>
+              <span class="tip muted" role="status" aria-live="polite"></span>
+            </copy-button>
+          </div>
+        </div>
+      </div>
+      <div class="embed-guide">
+        <h4>Placement &amp; Container</h4>
+        <p><strong>Default:</strong> Put the <code>&lt;script&gt;</code> tag where you want the view to appear. It creates a container directly after itself.</p>
+        <p><strong>Custom container:</strong> Place <code>&lt;div data-sissi-embed data-sissi-view="&lt;view-id&gt;"&gt;&lt;/div&gt;</code> anywhere on the page, and the script will mount inside it.</p>
+        <h4>Width Management</h4>
+        <p>Define the max-width on your embedding page using either:</p>
+        <ul>
+          <li>Attribute: <code>data-sissi-max-width="600px"</code> (accepts <code>px</code>, <code>rem</code>, <code>%</code>, <code>vw</code>, or plain number for pixels)</li>
+          <li>CSS variable: <code>--sissi-max-width: 600px;</code> on the container or host element</li>
+          <li>Iframe: Query parameter <code>?maxWidth=600px</code> or CSS <code>max-width</code> on the <code>&lt;iframe&gt;</code></li>
+        </ul>
+        <h4>Background Color</h4>
+        <p>Defaults to <code>transparent</code> so your site background shows through even with forced aspect ratios. Customize via:</p>
+        <ul>
+          <li>Attribute: <code>data-sissi-background="#ffffff"</code> (or CSS variable <code>--sissi-bg: #ffffff;</code>)</li>
+          <li>Iframe: Query parameter <code>?background=%23ffffff</code></li>
+        </ul>
+      </div>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" id="embed-dialog-ok" class="btn">Close</button>
+    </div>
   </dialog>
 </body>
 </html>

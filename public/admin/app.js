@@ -89,6 +89,7 @@ const els = {
   noSelection: document.getElementById('no-selection'),
   screenDetail: document.getElementById('screen-detail'),
   detailName: document.getElementById('detail-name'),
+  detailThumb: document.getElementById('detail-thumb'),
   detailId: document.getElementById('detail-id'),
   detailMeta: document.getElementById('detail-meta'),
   powerBadge: document.getElementById('power-badge'),
@@ -599,6 +600,43 @@ async function handleMove(screenId, entries, from, to) {
   }
 }
 
+// Entry ids whose details are open. Kept outside renderEntries so polling and re-renders do not collapse them.
+const openEntries = new Set();
+
+function formatWhen(value) {
+  if (!value) return 'â€”';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? 'â€”' : d.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function entrySection(title, ...nodes) {
+  const section = document.createElement('section');
+  section.className = 'entry-section';
+  const heading = document.createElement('h4');
+  heading.textContent = title;
+  section.append(heading, ...nodes);
+  return section;
+}
+
+function entryField(labelText, input) {
+  const label = document.createElement('label');
+  label.className = 'entry-field';
+  const text = document.createElement('span');
+  text.textContent = labelText;
+  label.append(text, input);
+  return label;
+}
+
+function entryButton(text, className, handler, disabled) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = className;
+  btn.textContent = text;
+  btn.disabled = Boolean(disabled);
+  btn.addEventListener('click', handler);
+  return btn;
+}
+
 function renderEntries(screen) {
   const entries = screen.entries ?? [];
   updatePurgeButton(screen);
@@ -608,34 +646,19 @@ function renderEntries(screen) {
   entries.forEach((entry, index) => {
     const li = document.createElement('li');
     const status = entryStatus(entry);
-    li.className = status === 'live' ? 'entry-row' : 'entry-row entry-disabled';
+    const isOpen = openEntries.has(entry.entryId);
+    li.className = `entry-row${status === 'live' ? '' : ' entry-disabled'}${isOpen ? ' is-open' : ''}`;
+    const title = entry.title || entry.entryId;
 
-    const reorder = document.createElement('div');
-    reorder.className = 'reorder-col';
-    const upBtn = document.createElement('button');
-    upBtn.type = 'button';
-    upBtn.className = 'btn btn-sm';
-    upBtn.textContent = '↑';
-    upBtn.title = 'Move up';
-    upBtn.setAttribute('aria-label', `Move ${entry.title} up`);
-    upBtn.disabled = index === 0 || state.busy;
-    upBtn.addEventListener('click', () => handleReorder(screen.id, entries, index, -1));
+    // ---- Summary row (always visible): drag handle, now marker, number, name, enable on, disable on ----
+    const summary = document.createElement('div');
+    summary.className = 'entry-summary';
 
-    const downBtn = document.createElement('button');
-    downBtn.type = 'button';
-    downBtn.className = 'btn btn-sm';
-    downBtn.textContent = '↓';
-    downBtn.title = 'Move down';
-    downBtn.setAttribute('aria-label', `Move ${entry.title} down`);
-    downBtn.disabled = index === entries.length - 1 || state.busy;
-    downBtn.addEventListener('click', () => handleReorder(screen.id, entries, index, 1));
-    reorder.append(upBtn, downBtn);
     const grip = document.createElement('span');
     grip.className = 'drag-grip';
-    grip.textContent = '⠿';
+    grip.textContent = 'â ¿';
     grip.title = 'Drag to reorder';
     grip.setAttribute('aria-hidden', 'true');
-    reorder.append(grip);
     // Only the grip starts a drag, so inputs and buttons keep working.
     grip.addEventListener('pointerdown', () => { li.draggable = true; });
     li.addEventListener('dragend', () => { li.draggable = false; li.classList.remove('dragging'); clearDropMarks(); dragFromIndex = null; });
@@ -660,101 +683,181 @@ function renderEntries(screen) {
       handleMove(screen.id, entries, from, index);
     });
 
-    const icon = thumbFor(entry);
-
-    const info = document.createElement('div');
-    info.className = 'entry-info';
     const nowBadge = document.createElement('span');
     nowBadge.className = 'now-badge';
-    nowBadge.textContent = '▶ Now playing';
+    nowBadge.textContent = 'â–¶';
+    nowBadge.title = 'Now playing';
+    nowBadge.setAttribute('role', 'img');
+    nowBadge.setAttribute('aria-label', 'Now playing');
     nowBadge.hidden = true;
-    info.append(nowBadge);
-    const titleEl = document.createElement('div');
+    const nowSlot = document.createElement('span');
+    nowSlot.className = 'now-slot';
+    nowSlot.append(nowBadge);
+
+    const num = document.createElement('span');
+    num.className = 'entry-num';
+    num.textContent = String(index + 1);
+
+    const titleEl = document.createElement('span');
     titleEl.className = 'entry-title';
-    titleEl.textContent = entry.title || entry.entryId;
+    titleEl.textContent = title;
+    titleEl.title = title;
 
-    const metaEl = document.createElement('div');
-    metaEl.className = 'entry-meta';
+    const whenFrom = document.createElement('span');
+    whenFrom.className = 'entry-when';
+    whenFrom.title = 'Enable on';
+    whenFrom.textContent = `On: ${formatWhen(entry.startDatetime)}`;
+    const whenUntil = document.createElement('span');
+    whenUntil.className = 'entry-when';
+    whenUntil.title = 'Disable on';
+    whenUntil.textContent = `Off: ${formatWhen(entry.endDatetime)}`;
 
-    const pushGroup = document.createElement('span');
-    pushGroup.className = 'push-group';
-    const pushBadge = document.createElement('code');
-    pushBadge.className = 'code-pill';
-    pushBadge.textContent = entry.pushId;
-    const removePushBtn = document.createElement('button');
-    removePushBtn.type = 'button';
-    removePushBtn.className = 'btn btn-sm btn-danger';
-    removePushBtn.textContent = 'Remove push';
-    removePushBtn.disabled = state.busy;
-    removePushBtn.addEventListener('click', () => handleRemovePush(screen.id, entry.pushId));
-    const pushEnabledBtn = document.createElement('button');
-    pushEnabledBtn.type = 'button';
-    pushEnabledBtn.className = 'btn btn-sm';
-    const pushAllOn = entries.filter((e) => e.pushId === entry.pushId).every((e) => e.enabled !== false);
-    pushEnabledBtn.textContent = pushAllOn ? 'Disable push' : 'Enable push';
-    pushEnabledBtn.disabled = state.busy;
-    pushEnabledBtn.addEventListener('click', () => handleSetPushEnabled(screen.id, entry.pushId, !pushAllOn));
-    pushGroup.append(pushBadge, pushEnabledBtn, removePushBtn);
+    const detailsId = `entry-details-${entry.entryId}`;
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'entry-toggle';
+    toggle.setAttribute('aria-expanded', String(isOpen));
+    toggle.setAttribute('aria-controls', detailsId);
+    toggle.setAttribute('aria-label', `Settings for ${title}`);
+    toggle.title = 'Show settings';
+    toggle.textContent = 'â–¸';
 
+    // Enabled toggle: the whole 'is this item on' question in one box. Setting visibility times switches it on.
+    const enabledBox = document.createElement('input');
+    enabledBox.type = 'checkbox';
+    enabledBox.className = 'entry-enabled';
+    enabledBox.checked = entry.enabled !== false;
+    enabledBox.disabled = state.busy;
+    enabledBox.title = { live: 'Enabled and showing', scheduled: 'Enabled, waiting for its start time', ended: 'Enabled, but its end time has passed', disabled: 'Disabled' }[status];
+    enabledBox.setAttribute('aria-label', `Enabled: ${title}`);
+    enabledBox.addEventListener('change', () => handleSetEntryEnabled(screen.id, entry.entryId, enabledBox.checked));
+
+    summary.append(grip, enabledBox, nowSlot, num, titleEl, whenFrom, whenUntil, toggle);
+
+    // ---- Details (collapsed by default): every per-item setting, grouped ----
+    const details = document.createElement('div');
+    details.className = 'entry-details';
+    details.id = detailsId;
+    details.hidden = !isOpen;
+
+    toggle.addEventListener('click', () => {
+      const open = details.hidden;
+      details.hidden = !open;
+      li.classList.toggle('is-open', open);
+      toggle.setAttribute('aria-expanded', String(open));
+      if (open) openEntries.add(entry.entryId); else openEntries.delete(entry.entryId);
+    });
+
+    // Overview: preview, kind, status, added
+    const preview = document.createElement('div');
+    preview.className = 'entry-preview';
+    const liveBadge = document.createElement('span');
+    liveBadge.className = `badge status-${status}`;
+    liveBadge.textContent = { live: 'Live', scheduled: 'Scheduled', ended: 'Ended', disabled: 'Disabled' }[status];
+    const kindEl = document.createElement('span');
+    kindEl.className = 'muted';
+    kindEl.textContent = entry.kind === 'video' ? 'Video' : 'Image';
     const addedEl = document.createElement('span');
+    addedEl.className = 'muted';
     addedEl.textContent = formatAddedAt(entry.addedAt);
-    metaEl.append(pushGroup, addedEl);
-    info.append(titleEl, metaEl);
+    const previewMeta = document.createElement('div');
+    previewMeta.className = 'entry-preview-meta';
+    previewMeta.append(liveBadge, kindEl, addedEl);
+    preview.append(thumbFor(entry), previewMeta);
 
+    // Playback: duration (on/off is the checkbox in the summary row)
+    const playbackNodes = [];
+    if (entry.kind === 'image') {
+      const secForm = document.createElement('form');
+      secForm.className = 'seconds-form';
+      const secInput = document.createElement('input');
+      secInput.type = 'number';
+      secInput.min = '1';
+      secInput.max = '3600';
+      secInput.required = true;
+      secInput.className = 'seconds-input';
+      secInput.value = String(entry.seconds);
+      secInput.setAttribute('aria-label', `Seconds for ${title}`);
+      const unit = document.createElement('span');
+      unit.className = 'muted';
+      unit.textContent = 's';
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'submit';
+      saveBtn.className = 'btn btn-sm';
+      saveBtn.textContent = 'Save';
+      saveBtn.disabled = state.busy;
+      secForm.append(entryField('Show for', secInput), unit, saveBtn);
+      secForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleUpdateSeconds(screen.id, entry.entryId, secInput.value);
+      });
+      playbackNodes.push(secForm);
+    } else {
+      const dur = document.createElement('span');
+      dur.className = 'badge';
+      dur.textContent = `${entry.seconds}s (video)`;
+      playbackNodes.push(dur);
+    }
+
+    // Schedule: enable on / disable on
     const schedForm = document.createElement('form');
     schedForm.className = 'entry-schedule';
     const mkDate = (labelText, value) => {
-      const label = document.createElement('label');
-      label.append(`${labelText} `);
       const input = document.createElement('input');
       input.type = 'datetime-local';
       input.value = toLocalInput(value);
-      label.append(input);
-      return { label, input };
+      return { field: entryField(labelText, input), input };
     };
-    const from = mkDate('Visible from', entry.startDatetime);
-    const until = mkDate('until', entry.endDatetime);
+    const from = mkDate('Enable on', entry.startDatetime);
+    const until = mkDate('Disable on', entry.endDatetime);
     const saveSchedBtn = document.createElement('button');
     saveSchedBtn.type = 'submit';
     saveSchedBtn.className = 'btn btn-sm';
     saveSchedBtn.textContent = 'Save times';
     saveSchedBtn.disabled = state.busy;
-    schedForm.append(from.label, until.label, saveSchedBtn);
+    schedForm.append(from.field, until.field, saveSchedBtn);
     schedForm.addEventListener('submit', (ev) => {
       ev.preventDefault();
-      handleSaveSchedule(screen.id, entry.entryId, fromLocalInput(from.input.value), fromLocalInput(until.input.value));
+      const startVal = fromLocalInput(from.input.value);
+      const endVal = fromLocalInput(until.input.value);
+      // Giving the item a visibility window switches it on (the window then decides when it shows).
+      handleSaveSchedule(screen.id, entry.entryId, startVal, endVal, entry.enabled === false && Boolean(startVal || endVal));
     });
-    info.append(schedForm);
 
+    const sections = [
+      entrySection('Overview', preview),
+      entrySection('Playback', ...playbackNodes),
+      entrySection('Schedule', schedForm),
+    ];
+
+    // Text (views only)
     if (screen.kind === 'view') {
       const textForm = document.createElement('form');
       textForm.className = 'entry-text-form';
-      const headlineInput = document.createElement('input');
-      headlineInput.type = 'text';
-      headlineInput.maxLength = 120;
-      headlineInput.placeholder = 'Headline';
-      headlineInput.value = entry.headline ?? '';
-      const altInput = document.createElement('input');
-      altInput.type = 'text';
-      altInput.maxLength = 300;
-      altInput.placeholder = 'Alt text';
-      altInput.value = entry.alt ?? '';
-      const captionInput = document.createElement('input');
-      captionInput.type = 'text';
-      captionInput.maxLength = 500;
-      captionInput.placeholder = 'Caption';
-      captionInput.value = entry.caption ?? '';
-      const linkInput = document.createElement('input');
-      linkInput.type = 'url';
-      linkInput.maxLength = 2048;
-      linkInput.placeholder = 'https://... link';
-      linkInput.value = entry.link ?? '';
+      const mkText = (type, max, value) => {
+        const input = document.createElement('input');
+        input.type = type;
+        input.maxLength = max;
+        input.value = value ?? '';
+        return input;
+      };
+      const headlineInput = mkText('text', 120, entry.headline);
+      const captionInput = mkText('text', 500, entry.caption);
+      const altInput = mkText('text', 300, entry.alt);
+      const linkInput = mkText('url', 2048, entry.link);
+      linkInput.placeholder = 'https://â€¦';
       const saveTextBtn = document.createElement('button');
       saveTextBtn.type = 'submit';
       saveTextBtn.className = 'btn btn-sm';
       saveTextBtn.textContent = 'Save text';
       saveTextBtn.disabled = state.busy;
-      textForm.append(headlineInput, altInput, captionInput, linkInput, saveTextBtn);
+      textForm.append(
+        entryField('Heading', headlineInput),
+        entryField('Caption', captionInput),
+        entryField('Alt text', altInput),
+        entryField('Link', linkInput),
+        saveTextBtn,
+      );
       textForm.addEventListener('submit', async (ev) => {
         ev.preventDefault();
         setError('');
@@ -780,66 +883,44 @@ function renderEntries(screen) {
           render();
         }
       });
-      info.append(textForm);
+      sections.push(entrySection('Text', textForm));
     }
 
-    const controls = document.createElement('div');
-    controls.className = 'entry-controls';
+    // Push group: one upload can add several items; this switches all of them together.
+    const pushItems = entries.filter((e) => e.pushId === entry.pushId);
+    const pushAllOn = pushItems.every((e) => e.enabled !== false);
+    const pushBox = document.createElement('input');
+    pushBox.type = 'checkbox';
+    pushBox.checked = pushAllOn;
+    pushBox.disabled = state.busy;
+    pushBox.addEventListener('change', () => handleSetPushEnabled(screen.id, entry.pushId, pushBox.checked));
+    const pushLabel = document.createElement('label');
+    pushLabel.className = 'checkbox-inline';
+    pushLabel.append(pushBox, pushItems.length > 1 ? ` Enabled (all ${pushItems.length} items from this upload)` : ' Enabled');
+    const pushBadge = document.createElement('code');
+    pushBadge.className = 'code-pill';
+    pushBadge.textContent = entry.pushId;
+    const pushGroup = document.createElement('div');
+    pushGroup.className = 'push-group';
+    pushGroup.append(
+      pushLabel,
+      pushBadge,
+      entryButton(pushItems.length > 1 ? `Remove all ${pushItems.length} items` : 'Remove', 'btn btn-sm btn-danger', () => handleRemovePush(screen.id, entry.pushId), state.busy),
+    );
+    sections.push(entrySection('Upload', pushGroup));
 
-    if (entry.kind === 'image') {
-      const secForm = document.createElement('form');
-      secForm.className = 'seconds-form';
-      const secInput = document.createElement('input');
-      secInput.type = 'number';
-      secInput.min = '1';
-      secInput.max = '3600';
-      secInput.required = true;
-      secInput.className = 'seconds-input';
-      secInput.value = String(entry.seconds);
-      secInput.setAttribute('aria-label', `Seconds for ${entry.title}`);
-      const unit = document.createElement('span');
-      unit.className = 'muted';
-      unit.textContent = 's';
-      const saveBtn = document.createElement('button');
-      saveBtn.type = 'submit';
-      saveBtn.className = 'btn btn-sm';
-      saveBtn.textContent = 'Save';
-      saveBtn.disabled = state.busy;
-      secForm.append(secInput, unit, saveBtn);
-      secForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        handleUpdateSeconds(screen.id, entry.entryId, secInput.value);
-      });
-      controls.append(secForm);
-    } else {
-      const dur = document.createElement('span');
-      dur.className = 'badge';
-      dur.textContent = `${entry.seconds}s (video)`;
-      controls.append(dur);
-    }
+    // Order and delete
+    const upBtn = entryButton('â†‘ Up', 'btn btn-sm', () => handleReorder(screen.id, entries, index, -1), index === 0 || state.busy);
+    upBtn.setAttribute('aria-label', `Move ${title} up`);
+    const downBtn = entryButton('â†“ Down', 'btn btn-sm', () => handleReorder(screen.id, entries, index, 1), index === entries.length - 1 || state.busy);
+    downBtn.setAttribute('aria-label', `Move ${title} down`);
+    const actions = document.createElement('div');
+    actions.className = 'entry-actions';
+    actions.append(upBtn, downBtn, entryButton('Delete', 'btn btn-sm btn-danger', () => handleDeleteEntry(screen.id, entry.entryId), state.busy));
+    sections.push(entrySection('Order and removal', actions));
 
-    const isOn = entry.enabled !== false;
-    const liveBadge = document.createElement('span');
-    liveBadge.className = `badge status-${status}`;
-    liveBadge.textContent = { live: 'Live', scheduled: 'Scheduled', ended: 'Ended', disabled: 'Disabled' }[status];
-    const toggleBtn = document.createElement('button');
-    toggleBtn.type = 'button';
-    toggleBtn.className = 'btn btn-sm';
-    toggleBtn.textContent = isOn ? 'Disable' : 'Enable';
-    toggleBtn.setAttribute('aria-label', `${isOn ? 'Disable' : 'Enable'} ${entry.title}`);
-    toggleBtn.disabled = state.busy;
-    toggleBtn.addEventListener('click', () => handleSetEntryEnabled(screen.id, entry.entryId, !isOn));
-    controls.append(liveBadge, toggleBtn);
-
-    const delBtn = document.createElement('button');
-    delBtn.type = 'button';
-    delBtn.className = 'btn btn-sm btn-danger';
-    delBtn.textContent = 'Delete';
-    delBtn.disabled = state.busy;
-    delBtn.addEventListener('click', () => handleDeleteEntry(screen.id, entry.entryId));
-    controls.append(delBtn);
-
-    li.append(reorder, icon, info, controls);
+    details.append(...sections);
+    li.append(summary, details);
     li.dataset.entryId = entry.entryId;
     li.dataset.index = String(index);
     els.entriesList.append(li);
@@ -874,11 +955,24 @@ function updateNowPlaying() {
     const badge = li.querySelector('.now-badge');
     if (badge) badge.hidden = !isNow;
   }
+  updateDetailThumb(screen, (screen?.entries ?? []).find((e) => e.entryId === playingId) ?? entries[0] ?? null);
+}
+
+/** Small preview next to the screen heading: what is showing now (or the first live item). */
+function updateDetailThumb(screen, entry) {
+  const box = els.detailThumb;
+  if (!box) return;
+  const key = screen && entry ? `${screen.id}/${entry.entryId}` : '';
+  if (box.dataset.key === key) return;
+  box.dataset.key = key;
+  box.replaceChildren();
+  box.hidden = !key;
+  if (key) box.append(thumbFor(entry));
 }
 
 setInterval(updateNowPlaying, 1000);
 
-async function handleSaveSchedule(screenId, entryId, startDatetime, endDatetime) {
+async function handleSaveSchedule(screenId, entryId, startDatetime, endDatetime, enable = false) {
   setError('');
   setStatus('');
   state.busy = true;
@@ -886,10 +980,10 @@ async function handleSaveSchedule(screenId, entryId, startDatetime, endDatetime)
   try {
     await apiFetch(`/admin/screens/${encodeURIComponent(screenId)}/entries/${encodeURIComponent(entryId)}`, {
       method: 'PATCH',
-      body: { startDatetime, endDatetime },
+      body: enable ? { startDatetime, endDatetime, enabled: true } : { startDatetime, endDatetime },
     });
     await loadScreens();
-    setStatus('Visibility times saved.');
+    setStatus(enable ? 'Visibility times saved and the item enabled.' : 'Visibility times saved.');
   } catch (err) {
     setError(err.message);
   } finally {

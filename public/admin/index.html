@@ -41,7 +41,6 @@
         <h1>SiSSi Admin</h1>
       </div>
       <div class="topbar-actions">
-        <button id="refresh-btn" type="button" class="btn">Refresh</button>
         <button id="logout-btn" type="button" class="btn">Log out</button>
       </div>
     </header>
@@ -51,7 +50,10 @@
 
     <main class="workspace container">
       <aside class="screens-panel" aria-label="Screens and views">
-        <button id="new-screen-btn" type="button" class="btn btn-primary create-btn">Create</button>
+        <div class="create-row">
+          <button id="new-screen-btn" type="button" class="btn btn-primary create-btn">Create</button>
+          <button id="refresh-btn" type="button" class="btn">Refresh</button>
+        </div>
 
         <section class="list-section" aria-labelledby="screens-heading">
           <div class="panel-header">
@@ -86,7 +88,7 @@
 
         <div id="screen-detail" hidden>
           <div class="detail-header">
-            <div>
+            <div class="detail-heading">
               <div class="title-row">
                 <h2 id="detail-name"></h2>
                 <code id="detail-id" class="code-pill"></code>
@@ -94,6 +96,7 @@
               </div>
               <p id="detail-meta" class="muted meta-line"></p>
             </div>
+            <div id="detail-thumb" class="detail-thumb" aria-label="Currently showing" hidden></div>
             <div class="detail-actions">
               <div id="power-override-group" class="power-override-group" role="group" aria-label="Power override" hidden>
                 <button type="button" class="btn btn-sm" data-power-override="auto">Auto</button>

@@ -103,6 +103,8 @@ function validatePushBody(body, config) {
         throw new HttpError('INVALID_SCHEDULE', `${field} must be an ISO 8601 datetime`, 422);
       }
     }
+    const did = page.canvaDesignId ?? page.designId ?? body.canvaDesignId ?? body.designId ?? null;
+    if (did) page.canvaDesignId = String(did).trim();
   }
 
   return {

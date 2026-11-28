@@ -77,6 +77,7 @@ const state = {
   selectedId: null,
   editingId: null,
   busy: false,
+  motionPaused: false,
 };
 
 const els = {
@@ -107,7 +108,9 @@ const els = {
   noSelection: document.getElementById('no-selection'),
   screenDetail: document.getElementById('screen-detail'),
   detailName: document.getElementById('detail-name'),
+  detailThumbContainer: document.getElementById('detail-thumb-container'),
   detailThumb: document.getElementById('detail-thumb'),
+  motionToggleBtn: document.getElementById('motion-toggle-btn'),
   detailId: document.getElementById('detail-id'),
   detailMeta: document.getElementById('detail-meta'),
   powerBadge: document.getElementById('power-badge'),
@@ -119,6 +122,7 @@ const els = {
   playlistSection: document.getElementById('playlist-section'),
   playlistVersion: document.getElementById('playlist-version'),
   playlistEmpty: document.getElementById('playlist-empty'),
+  showCompactThumbsToggle: document.getElementById('show-compact-thumbs-toggle'),
   entriesList: document.getElementById('entries-list'),
 
   embedBtn: document.getElementById('embed-btn'),
@@ -684,6 +688,7 @@ function renderEntries(screen) {
   updatePurgeButton(screen);
   els.playlistEmpty.hidden = entries.length > 0;
   els.entriesList.replaceChildren();
+  els.entriesList.classList.toggle('show-compact-thumbs', Boolean(els.showCompactThumbsToggle?.checked));
 
   entries.forEach((entry, index) => {
     const li = document.createElement('li');
@@ -750,6 +755,10 @@ function renderEntries(screen) {
     num.className = 'entry-num';
     num.textContent = String(index + 1);
 
+    const sumThumb = document.createElement('div');
+    sumThumb.className = 'entry-summary-thumb';
+    sumThumb.append(thumbFor(entry));
+
     const titleEl = document.createElement('span');
     titleEl.className = 'entry-title';
     titleEl.textContent = title;
@@ -774,7 +783,7 @@ function renderEntries(screen) {
     toggle.title = 'Show settings';
     toggle.textContent = '\u25B8';
 
-    summary.append(grip, enabledBox, nowSlot, num, titleEl, whenFrom, whenUntil, toggle);
+    summary.append(grip, enabledBox, nowSlot, num, sumThumb, titleEl, whenFrom, whenUntil, toggle);
 
     // ---- Details (collapsed by default): every per-item setting, grouped ----
     const details = document.createElement('div');
@@ -782,17 +791,25 @@ function renderEntries(screen) {
     details.id = detailsId;
     details.hidden = !isOpen;
 
-    toggle.addEventListener('click', () => {
+    const toggleDetails = (ev) => {
+      if (ev && ev.target.closest('input, button, a, label, .drag-grip')) return;
       const open = details.hidden;
       details.hidden = !open;
       li.classList.toggle('is-open', open);
       toggle.setAttribute('aria-expanded', String(open));
       if (open) openEntries.add(entry.entryId); else openEntries.delete(entry.entryId);
+    };
+    summary.addEventListener('click', toggleDetails);
+    toggle.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      toggleDetails();
     });
 
-    // 1. Overview: preview, kind, status, added
+    // 1. Overview: preview, kind, status, added, and rename form
     const preview = document.createElement('div');
     preview.className = 'entry-preview';
+    const previewTop = document.createElement('div');
+    previewTop.className = 'entry-preview-top';
     const liveBadge = document.createElement('span');
     liveBadge.className = `badge status-${status}`;
     liveBadge.textContent = { live: 'Live', scheduled: 'Scheduled', ended: 'Ended', disabled: 'Disabled' }[status];
@@ -805,9 +822,49 @@ function renderEntries(screen) {
     const previewMeta = document.createElement('div');
     previewMeta.className = 'entry-preview-meta';
     previewMeta.append(liveBadge, kindEl, addedEl);
-    preview.append(thumbFor(entry), previewMeta);
+    previewTop.append(thumbFor(entry), previewMeta);
 
-    // 2. Upload & Media information: upload id, media file, list of stored resolutions
+    const renameForm = document.createElement('form');
+    renameForm.className = 'entry-title-form';
+    const titleInput = document.createElement('input');
+    titleInput.type = 'text';
+    titleInput.maxLength = 200;
+    titleInput.required = true;
+    titleInput.className = 'entry-title-input';
+    titleInput.value = entry.title || '';
+    titleInput.placeholder = 'Item name';
+    titleInput.setAttribute('aria-label', `Item name for ${title}`);
+    const renameBtn = document.createElement('button');
+    renameBtn.type = 'submit';
+    renameBtn.className = 'btn btn-sm';
+    renameBtn.textContent = 'Rename';
+    renameBtn.disabled = state.busy;
+    renameForm.append(titleInput, renameBtn);
+    renameForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const val = titleInput.value.trim();
+      if (!val || val === entry.title) return;
+      setError('');
+      setStatus('');
+      state.busy = true;
+      render();
+      try {
+        await apiFetch(`/admin/screens/${encodeURIComponent(screen.id)}/entries/${encodeURIComponent(entry.entryId)}`, {
+          method: 'PATCH',
+          body: { title: val },
+        });
+        await loadScreens();
+        setStatus('Entry renamed.');
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        state.busy = false;
+        render();
+      }
+    });
+    preview.append(previewTop, renameForm);
+
+    // 2. Upload & Media information: Canva design id, upload id, media file, list of stored resolutions
     const uploadInfo = document.createElement('div');
     uploadInfo.className = 'entry-upload-info';
     const mkMetaItem = (label, valueNode) => {
@@ -819,6 +876,21 @@ function renderEntries(screen) {
       div.append(lbl, valueNode);
       return div;
     };
+    let canvaNode;
+    if (entry.canvaDesignId) {
+      const link = document.createElement('a');
+      link.href = `https://www.canva.com/design/${encodeURIComponent(entry.canvaDesignId)}/edit`;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.className = 'canva-link';
+      link.textContent = `${entry.canvaDesignId} \u2197`;
+      canvaNode = link;
+    } else {
+      const span = document.createElement('span');
+      span.className = 'muted';
+      span.textContent = '(no Canva integration)';
+      canvaNode = span;
+    }
     const pushCode = document.createElement('code');
     pushCode.className = 'code-pill';
     pushCode.textContent = entry.pushId;
@@ -829,6 +901,7 @@ function renderEntries(screen) {
     resSpan.className = 'resolutions-list';
     resSpan.textContent = getStoredResolutions(entry).join(', ');
     uploadInfo.append(
+      mkMetaItem('Canva Design ID', canvaNode),
       mkMetaItem('Upload ID', pushCode),
       mkMetaItem('Media file', mediaCode),
       mkMetaItem('Stored resolutions', resSpan),
@@ -1008,16 +1081,30 @@ function updateNowPlaying() {
 /** Small preview next to the screen heading: what is showing now (or the first live item). */
 function updateDetailThumb(screen, entry) {
   const box = els.detailThumb;
+  const container = els.detailThumbContainer;
   if (!box) return;
   const key = screen && entry ? `${screen.id}/${entry.entryId}` : '';
-  if (box.dataset.key === key) return;
+  if (container) container.hidden = !key;
+  if (box.dataset.key === key) {
+    if (state.motionPaused) {
+      box.querySelectorAll('video').forEach((v) => { try { v.pause(); } catch {} });
+    }
+    return;
+  }
   box.dataset.key = key;
   box.replaceChildren();
   box.hidden = !key;
-  if (key) box.append(thumbFor(entry));
+  if (key) {
+    box.append(thumbFor(entry));
+    if (state.motionPaused) {
+      box.querySelectorAll('video').forEach((v) => { try { v.pause(); } catch {} });
+    }
+  }
 }
 
-setInterval(updateNowPlaying, 1000);
+setInterval(() => {
+  if (!state.motionPaused) updateNowPlaying();
+}, 1000);
 
 async function handleSaveSchedule(screenId, entryId, startDatetime, endDatetime, enable = false) {
   setError('');
@@ -1459,6 +1546,32 @@ els.embedDialogOk?.addEventListener('click', () => els.embedDialog?.close());
 els.rightsBtn?.addEventListener('click', () => els.rightsDialog?.showModal());
 els.rightsDialogClose?.addEventListener('click', () => els.rightsDialog?.close());
 els.rightsDialogOk?.addEventListener('click', () => els.rightsDialog?.close());
+
+if (els.showCompactThumbsToggle) {
+  const saved = localStorage.getItem('sissi_show_compact_thumbs') === '1';
+  els.showCompactThumbsToggle.checked = saved;
+  els.entriesList?.classList.toggle('show-compact-thumbs', saved);
+  els.showCompactThumbsToggle.addEventListener('change', () => {
+    const checked = els.showCompactThumbsToggle.checked;
+    localStorage.setItem('sissi_show_compact_thumbs', checked ? '1' : '0');
+    els.entriesList?.classList.toggle('show-compact-thumbs', checked);
+  });
+}
+
+if (els.motionToggleBtn) {
+  els.motionToggleBtn.addEventListener('click', () => {
+    state.motionPaused = !state.motionPaused;
+    els.motionToggleBtn.classList.toggle('is-paused', state.motionPaused);
+    els.motionToggleBtn.textContent = state.motionPaused ? '\u25B6' : '\u23F8';
+    els.motionToggleBtn.title = state.motionPaused ? 'Resume preview motion' : 'Pause preview motion';
+    els.motionToggleBtn.setAttribute('aria-label', els.motionToggleBtn.title);
+    if (state.motionPaused) {
+      els.detailThumb?.querySelectorAll('video').forEach((v) => { try { v.pause(); } catch {} });
+    } else {
+      updateNowPlaying();
+    }
+  });
+}
 
 els.powerOverrideGroup.addEventListener('click', async (e) => {
   const btn = e.target.closest('[data-power-override]');

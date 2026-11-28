@@ -639,3 +639,27 @@ test('PATCH entry supports updating view text fields (headline, alt, caption, li
   assert.equal(patch.json.caption, 'Cap');
   assert.equal(patch.json.link, 'https://example.org/info');
 });
+
+test('PATCH entry supports renaming item (title)', async (t) => {
+  const srv = await setupAdminServer();
+  t.after(srv.close);
+  await srv.state.createScreen({ id: 'lobby', name: 'Lobby', kind: 'screen' });
+  await srv.state.applyPush('lobby', {
+    pushId: 'p1',
+    title: 'Initial Title',
+    items: [{ mediaId: PNG_SHA, ext: 'png', kind: 'image', seconds: 8 }],
+  });
+  const entryId = (await srv.state.getScreen('lobby')).entries[0].entryId;
+  const { cookie } = await loginCookie(srv.base);
+
+  const patch = await http(srv.base, `/signage/api/v1/admin/screens/lobby/entries/${entryId}`, {
+    method: 'PATCH',
+    headers: { cookie, 'x-sissi-admin': '1' },
+    body: { title: 'Renamed Banner' },
+  });
+  assert.equal(patch.status, 200);
+  assert.equal(patch.json.title, 'Renamed Banner');
+
+  const screen = await srv.state.getScreen('lobby');
+  assert.equal(screen.entries[0].title, 'Renamed Banner');
+});

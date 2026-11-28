@@ -97,6 +97,7 @@ export function createPushRunner({ config, storage, state, download, metrics } =
             ext: dl.ext,
             kind: dl.kind,
             seconds: dl.kind === 'image' ? page.seconds : dl.durationSeconds,
+            canvaDesignId: page.canvaDesignId ?? page.designId ?? null,
             alt: page.alt,
             headline: page.headline,
             caption: page.caption,

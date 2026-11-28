@@ -555,6 +555,7 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
             : Math.max(1, Math.round(item.seconds ?? 1)),
         title,
         pushId,
+        canvaDesignId: item.canvaDesignId ?? item.designId ?? null,
         addedAt,
         enabled,
       }));
@@ -590,6 +591,19 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
         reordered.push(byId.get(id));
       }
       doc.entries = reordered;
+    });
+  }
+
+  async function setEntryTitle(screenId, entryId, title) {
+    if (typeof title !== 'string' || title.trim().length < 1 || title.length > 200) {
+      throw new StateError('INVALID_TITLE', 'Entry title must be 1-200 characters');
+    }
+    return mutateScreen(screenId, (doc) => {
+      const entry = doc.entries.find((e) => e.entryId === entryId);
+      if (!entry) {
+        throw new StateError('ENTRY_NOT_FOUND', `Unknown entry: ${entryId}`);
+      }
+      entry.title = title.trim();
     });
   }
 
@@ -944,6 +958,7 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     applyPush,
     removeEntry,
     reorderEntries,
+    setEntryTitle,
     setEntrySeconds,
     setEntryText,
     setEntryEnabled,

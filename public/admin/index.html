@@ -96,7 +96,10 @@
               </div>
               <p id="detail-meta" class="muted meta-line"></p>
             </div>
-            <div id="detail-thumb" class="detail-thumb" aria-label="Currently showing" hidden></div>
+            <div id="detail-thumb-container" class="detail-thumb-container" hidden>
+              <div id="detail-thumb" class="detail-thumb" aria-label="Currently showing"></div>
+              <button type="button" id="motion-toggle-btn" class="btn btn-sm motion-toggle-btn" title="Pause preview motion" aria-label="Pause preview motion">&#x23F8;</button>
+            </div>
             <div class="detail-actions">
               <div id="power-override-group" class="power-override-group" role="group" aria-label="Power override" hidden>
                 <button type="button" class="btn btn-sm" data-power-override="auto">Auto</button>
@@ -115,6 +118,10 @@
             <div class="panel-header">
               <h3 id="playlist-heading">Playlist</h3>
               <span id="playlist-version" class="badge">v0</span>
+              <label class="checkbox-inline playlist-thumbs-toggle" title="Show thumbnails in the compact list rows">
+                <input type="checkbox" id="show-compact-thumbs-toggle">
+                Thumbnails
+              </label>
               <button type="button" id="purge-expired-btn" class="btn btn-sm" title="Remove entries whose end time has passed">Clear expired</button>
               <label class="btn btn-sm upload-btn">Upload PNG/MP4
                 <input type="file" id="upload-input" accept="image/png,video/mp4" hidden>

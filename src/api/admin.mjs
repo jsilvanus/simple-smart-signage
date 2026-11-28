@@ -225,19 +225,23 @@ export function registerAdminRoutes(router, ctx) {
       body?.caption !== undefined ||
       body?.link !== undefined;
     const hasSchedule = body?.startDatetime !== undefined || body?.endDatetime !== undefined;
-    // seconds, text metadata and the schedule window are content (sissi:write); enabled is the live change (sissi:operate).
+    const hasTitle = body?.title !== undefined;
+    // seconds, title, text metadata and the schedule window are content (sissi:write); enabled is the live change (sissi:operate).
     await adminAuth.authorize(
       req,
       [
-        ...(body?.seconds !== undefined || hasText || hasSchedule ? ['write'] : []),
+        ...(body?.seconds !== undefined || hasText || hasSchedule || hasTitle ? ['write'] : []),
         ...(body?.enabled !== undefined ? ['operate'] : []),
       ],
       target,
     );
-    if (body?.seconds === undefined && body?.enabled === undefined && !hasText && !hasSchedule) {
-      throw new HttpError('INVALID_SECONDS', 'Provide seconds, enabled, schedule, or text fields');
+    if (body?.seconds === undefined && body?.enabled === undefined && !hasText && !hasSchedule && !hasTitle) {
+      throw new HttpError('INVALID_SECONDS', 'Provide seconds, enabled, schedule, text, or title fields');
     }
     let screen;
+    if (body.title !== undefined) {
+      screen = await runState(() => state.setEntryTitle(params.screenId, params.entryId, body.title));
+    }
     if (body.seconds !== undefined) {
       screen = await runState(() => state.setEntrySeconds(params.screenId, params.entryId, body.seconds));
     }

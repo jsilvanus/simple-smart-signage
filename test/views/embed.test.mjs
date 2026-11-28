@@ -49,7 +49,7 @@ test('frame CSP: frame-ancestors is none without origins, else the list', () => 
 });
 
 test('CORS: only the allowed origin is echoed', () => {
-  assert.deepEqual(corsHeaders('https://a.example', ['https://a.example']), { 'access-control-allow-origin': 'https://a.example', vary: 'Origin' });
+  assert.deepEqual(corsHeaders('https://a.example', ['https://a.example']), { 'access-control-allow-origin': 'https://a.example', 'access-control-expose-headers': 'Date', vary: 'Origin' });
   assert.deepEqual(corsHeaders('https://evil.example', ['https://a.example']), {});
   assert.deepEqual(corsHeaders(undefined, ['https://a.example']), {});
 });
@@ -64,4 +64,11 @@ test('aspect ratio rejects zero components and link rejects non-string or >2048 
   assert.equal(validateEmbed({ options: { aspect: '4:5' } }).options.aspect, '4:5');
   assert.throws(() => validateItemText({ link: 123 }), (e) => e.status === 422);
   assert.throws(() => validateItemText({ link: `https://example.org/${'a'.repeat(2040)}` }), (e) => e.status === 422);
+});
+
+test('embed options: fitContent is opt-in, autoplay is opt-out', () => {
+  assert.deepEqual(validateEmbed({}).options, { fit: 'contain', aspect: '16:9', dots: true, fitContent: false, autoplay: true });
+  const o = validateEmbed({ options: { fitContent: true, autoplay: false } }).options;
+  assert.equal(o.fitContent, true);
+  assert.equal(o.autoplay, false);
 });

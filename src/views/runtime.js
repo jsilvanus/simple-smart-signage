@@ -120,7 +120,28 @@
     function stop() { if (timer) { clearTimeout(timer); timer = null; } }
     function isPaused() { return hoverPaused || focusPaused; }
 
-    function show(i, keepTime) {
+    // Clock: every visitor (and the admin "now playing" marker) derives the slide from the server clock and the
+    // entries' seconds. Autoplay follows it until the visitor navigates by hand; after that the carousel drifts on its own timer.
+    var ms = entries.map(function (e) { return Math.max(0, Number(e.seconds) || 0) * 1000; });
+    var cycle = ms.reduce(function (a, b) { return a + b; }, 0);
+    var onClock = autoplay && cycle > 0 && slides.length > 1;
+    function clockPos() {
+      var pos = (((Date.now() + (options.clockOffsetMs || 0)) % cycle) + cycle) % cycle;
+      var start = 0;
+      for (var i = 0; i < ms.length; i++) {
+        if (ms[i] <= 0) continue;
+        if (pos < start + ms[i]) return { index: i, remaining: start + ms[i] - pos };
+        start += ms[i];
+      }
+      return { index: 0, remaining: 1000 };
+    }
+    function sync() {
+      var c = clockPos();
+      show(c.index, c.index === index, c.remaining);
+    }
+    function go(i) { onClock = false; show(i, false); }
+
+    function show(i, keepTime, remaining) {
       stop();
       index = (i + slides.length) % slides.length;
       if (options.fitContent) fitStage(stage, slides[index]);
@@ -128,6 +149,7 @@
         s.classList.toggle('is-on', n === index);
         var v = s.querySelector('video');
         if (v) {
+          v.loop = onClock || !autoplay || slides.length < 2;
           if (n === index) {
             if (!keepTime) v.currentTime = 0;
             v.play().catch(function () {});
@@ -138,20 +160,25 @@
       });
       dots.forEach(function (d, n) { d.classList.toggle('is-on', n === index); d.setAttribute('aria-current', n === index ? 'true' : 'false'); });
       var entry = entries[index];
-      if (autoplay && !isPaused() && !reduced() && slides.length > 1 && entry.kind !== 'video') {
-        timer = setTimeout(function () { show(index + 1, false); }, Math.max(1, entry.seconds || 10) * 1000);
+      if (autoplay && !isPaused() && !reduced() && slides.length > 1) {
+        if (onClock) {
+          timer = setTimeout(sync, (remaining == null ? clockPos().remaining : remaining) + 30);
+        } else if (entry.kind !== 'video') {
+          timer = setTimeout(function () { show(index + 1, false); }, Math.max(1, entry.seconds || 10) * 1000);
+        }
       }
     }
+    function resume() { if (onClock) sync(); else show(index, true); }
 
-    prev.addEventListener('click', function () { show(index - 1, false); });
-    next.addEventListener('click', function () { show(index + 1, false); });
+    prev.addEventListener('click', function () { go(index - 1); });
+    next.addEventListener('click', function () { go(index + 1); });
     if (controls) {
       stage.appendChild(prev);
       stage.appendChild(next);
       if (options.dots) {
         entries.forEach(function (_e, n) {
           var d = el('button', { type: 'button', class: 'sv-dot', 'aria-label': String(n + 1) });
-          d.addEventListener('click', function () { show(n, false); });
+          d.addEventListener('click', function () { go(n); });
           dots.push(d);
           nav.appendChild(d);
         });
@@ -159,9 +186,9 @@
     }
 
     stage.addEventListener('mouseenter', function () { hoverPaused = true; stop(); });
-    stage.addEventListener('mouseleave', function () { hoverPaused = false; if (!isPaused()) show(index, true); });
+    stage.addEventListener('mouseleave', function () { hoverPaused = false; if (!isPaused()) resume(); });
     stage.addEventListener('focusin', function () { focusPaused = true; stop(); });
-    stage.addEventListener('focusout', function () { focusPaused = false; if (!isPaused()) show(index, true); });
+    stage.addEventListener('focusout', function () { focusPaused = false; if (!isPaused()) resume(); });
     var startX = null;
     stage.addEventListener('pointerdown', function (ev) { startX = ev.clientX; });
     stage.addEventListener('pointercancel', function () { startX = null; });
@@ -169,7 +196,7 @@
       if (startX === null || !controls) return;
       var dx = ev.clientX - startX;
       startX = null;
-      if (Math.abs(dx) > 40) show(index + (dx < 0 ? 1 : -1), false);
+      if (Math.abs(dx) > 40) go(index + (dx < 0 ? 1 : -1));
     });
 
     root.appendChild(stage);
@@ -177,10 +204,9 @@
     slides.forEach(function (s, n) {
       var v = s.querySelector('video');
       if (!v) return;
-      if (!autoplay || slides.length < 2) v.loop = true;
-      v.addEventListener('ended', function () { if (autoplay && n === index && slides.length > 1) show(index + 1, false); });
+      v.addEventListener('ended', function () { if (!onClock && autoplay && n === index && slides.length > 1) show(index + 1, false); });
     });
-    show(0, false);
+    if (onClock) sync(); else show(0, false);
   }
 
   /** Fit to content: sizes the stage to the natural ratio of the slide's media, now and once it has loaded. */
@@ -221,7 +247,7 @@
   function render(root, playlist, embed, ext) {
     while (root.firstChild) root.removeChild(root.firstChild);
     var cfg = embed || {};
-    var options = cfg.options || {};
+    var options = Object.assign({}, cfg.options || {}, { clockOffsetMs: (ext && ext.clockOffsetMs) || 0 });
     var host = root.host || root;
     var entries = (playlist.entries || []).filter(function (e) { return e && e.url; });
     // Nothing live: render nothing at all (no box, no text) so the host page shows no gap.
@@ -290,7 +316,13 @@
     }
     function load() {
       return fetch(opts.playlistUrl, { cache: 'no-cache', credentials: 'omit' })
-        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          // Server clock (Date header, exposed by CORS) so every visitor shows the same slide as the screens do.
+          var serverNow = Date.parse(r.headers.get('date') || '');
+          if (!isNaN(serverNow)) opts.clockOffsetMs = serverNow - Date.now();
+          return r.text();
+        })
         .then(function (body) {
           if (stopped) return;
           var parsed = JSON.parse(body);

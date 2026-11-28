@@ -163,6 +163,7 @@ export function corsHeaders(requestOrigin, allowedOrigins) {
   if (!requestOrigin || !allowedOrigins.includes(requestOrigin)) return {};
   return {
     'access-control-allow-origin': requestOrigin,
+    'access-control-expose-headers': 'Date',
     vary: 'Origin',
   };
 }

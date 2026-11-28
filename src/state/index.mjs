@@ -49,7 +49,14 @@ function isEnabled(entry) {
 }
 
 function withEnabled(entry) {
-  return { ...entry, background: entry.background ?? null, enabled: isEnabled(entry) };
+  return {
+    ...entry,
+    background: entry.background ?? null,
+    width: entry.width ?? null,
+    height: entry.height ?? null,
+    variants: Array.isArray(entry.variants) ? entry.variants : [],
+    enabled: isEnabled(entry),
+  };
 }
 
 const DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
@@ -598,6 +605,9 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
         pushId,
         canvaDesignId: item.canvaDesignId ?? item.designId ?? null,
         background: null,
+        width: item.width ?? null,
+        height: item.height ?? null,
+        variants: Array.isArray(item.variants) ? item.variants : [],
         addedAt,
         enabled,
       }));
@@ -928,6 +938,11 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
         if (entry.thumbMediaId && entry.thumbExt) {
           refs.add(`${entry.thumbMediaId}.${entry.thumbExt}`);
         }
+        if (Array.isArray(entry.variants)) {
+          for (const v of entry.variants) {
+            if (v.mediaId && v.ext) refs.add(`${v.mediaId}.${v.ext}`);
+          }
+        }
       }
     }
     return refs;
@@ -954,6 +969,10 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     for await (const obj of targetStorage.listMedia()) {
       const refKey = `${obj.sha256}.${obj.ext}`;
       if (referenced.has(refKey)) continue;
+      const baseSha = obj.sha256.replace(/-\d+w$/, '');
+      if (baseSha !== obj.sha256 && [...referenced].some((r) => r.startsWith(baseSha + '.'))) {
+        continue;
+      }
       const modifiedMs = toMs(obj.lastModified);
       if (modifiedMs > cutoffMs) continue;
       await targetStorage.deleteMedia(obj.sha256, obj.ext);

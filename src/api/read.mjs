@@ -1,9 +1,10 @@
 import { pipeline } from 'node:stream/promises';
 import { HttpError, sendJson } from '../router.mjs';
 import { hasRight, rightsForTarget } from '../auth/tunnus.mjs';
+import { getOrGenerateVariant } from '../media/variants.mjs';
 
 const SCREEN_ID_RE = /^[a-z0-9-]{1,40}$/;
-const MEDIA_FILE_RE = /^([0-9a-f]{64})\.([a-z0-9]+)$/;
+const MEDIA_FILE_RE = /^([0-9a-f]{64})(?:-(\d+w))?\.([a-z0-9]+)$/;
 const CACHE_IMMUTABLE = 'public, max-age=31536000, immutable';
 
 function toHttpError(err) {
@@ -192,11 +193,15 @@ export function registerReadRoutes(router, ctx) {
     if (!match) {
       throw new HttpError('NOT_FOUND', 'Not found');
     }
-    const [, sha256, ext] = match;
+    const [, sha256, variantTag, ext] = match;
+    const mediaId = variantTag ? `${sha256}-${variantTag}` : sha256;
     const rangeHeader = req.headers.range;
 
     if (!rangeHeader) {
-      const media = await storage.getMedia(sha256, ext);
+      let media = await storage.getMedia(mediaId, ext);
+      if (!media && variantTag) {
+        media = await getOrGenerateVariant(storage, sha256, variantTag, ext);
+      }
       if (!media) {
         throw new HttpError('NOT_FOUND', 'Not found');
       }
@@ -217,7 +222,13 @@ export function registerReadRoutes(router, ctx) {
       return;
     }
 
-    const stat = await storage.statMedia(sha256, ext);
+    let stat = await storage.statMedia(mediaId, ext);
+    if (!stat && variantTag) {
+      const generated = await getOrGenerateVariant(storage, sha256, variantTag, ext);
+      if (generated) {
+        stat = await storage.statMedia(mediaId, ext);
+      }
+    }
     if (!stat) {
       throw new HttpError('NOT_FOUND', 'Not found');
     }
@@ -230,7 +241,7 @@ export function registerReadRoutes(router, ctx) {
 
     let media;
     try {
-      media = await storage.getMedia(sha256, ext, parsed);
+      media = await storage.getMedia(mediaId, ext, parsed);
     } catch (err) {
       if (isRangeUnsatisfiableError(err)) {
         sendRangeNotSatisfiable(res, stat.size);

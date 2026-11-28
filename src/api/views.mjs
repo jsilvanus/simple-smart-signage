@@ -71,18 +71,46 @@ export function registerViewRoutes(router, ctx) {
   }
 
   function toPublicEntries(entries) {
-    return entries.map((e) => ({
-      entryId: e.entryId,
-      sourceView: e.sourceView ?? undefined,
-      kind: e.kind,
-      url: router.url(`/media/${e.mediaId}.${e.ext || 'bin'}`),
-      seconds: e.seconds,
-      alt: e.alt ?? null,
-      headline: e.headline ?? null,
-      caption: e.caption ?? null,
-      link: e.link ?? null,
-      background: e.background ?? null,
-    }));
+    return entries.map((e) => {
+      const origUrl = router.url(`/media/${e.mediaId}.${e.ext || 'bin'}`);
+      const pub = {
+        entryId: e.entryId,
+        sourceView: e.sourceView ?? undefined,
+        kind: e.kind,
+        url: origUrl,
+        seconds: e.seconds,
+        alt: e.alt ?? null,
+        headline: e.headline ?? null,
+        caption: e.caption ?? null,
+        link: e.link ?? null,
+        background: e.background ?? null,
+        width: e.width ?? null,
+        height: e.height ?? null,
+      };
+      if (e.kind === 'image') {
+        const variants = Array.isArray(e.variants) && e.variants.length > 0
+          ? e.variants.map((v) => ({
+              width: v.width,
+              height: v.height,
+              url: router.url(`/media/${v.mediaId}.${v.ext || 'webp'}`),
+            }))
+          : [
+              { width: 480, url: router.url(`/media/${e.mediaId}-480w.webp`) },
+              { width: 720, url: router.url(`/media/${e.mediaId}-720w.webp`) },
+              { width: 1080, url: router.url(`/media/${e.mediaId}-1080w.webp`) },
+            ];
+        const srcsets = variants.map((v) => `${v.url} ${v.width}w`);
+        if (e.width) {
+          srcsets.push(`${origUrl} ${e.width}w`);
+        } else {
+          srcsets.push(`${origUrl} 1920w`);
+        }
+        pub.variants = variants;
+        pub.srcset = srcsets.join(', ');
+        pub.sizes = '(max-width: 600px) 480px, (max-width: 900px) 720px, 1080px';
+      }
+      return pub;
+    });
   }
 
   // Martti, the parish font, for the view runtime. Public, cross-origin readable (embeds load it from other sites).

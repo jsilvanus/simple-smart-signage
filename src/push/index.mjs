@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { HttpError, ERROR_STATUS } from '../router.mjs';
 import { scrubUrl } from '../download/index.mjs';
+import { generateVariants } from '../media/variants.mjs';
 
 function scrubErrorMessage(message) {
   return String(message || 'Push failed').replace(/https?:\/\/[^\s)]+/gi, (match) => scrubUrl(match));
@@ -91,11 +92,24 @@ export function createPushRunner({ config, storage, state, download, metrics } =
             );
           }
 
+          let variants = [];
+          let width = null;
+          let height = null;
+          if (dl.kind === 'image') {
+            const varRes = await generateVariants(dl.tmpPath, dl.sha256, storage);
+            variants = varRes.variants;
+            width = varRes.width;
+            height = varRes.height;
+          }
+
           await storage.putMediaFromFile(dl.sha256, dl.ext, dl.tmpPath, dl.contentType);
           items.push({
             mediaId: dl.sha256,
             ext: dl.ext,
             kind: dl.kind,
+            width,
+            height,
+            variants,
             seconds: dl.kind === 'image' ? page.seconds : dl.durationSeconds,
             canvaDesignId: page.canvaDesignId ?? page.designId ?? null,
             alt: page.alt,

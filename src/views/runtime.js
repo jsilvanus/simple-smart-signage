@@ -62,7 +62,12 @@
       v.muted = true;
       box.appendChild(v);
     } else {
-      box.appendChild(el('img', { src: entry.url, alt: entry.alt || '', loading: 'eager', decoding: 'async' }));
+      var imgAttrs = { src: entry.url, alt: entry.alt || '', loading: 'eager', decoding: 'async' };
+      if (entry.srcset) {
+        imgAttrs.srcset = entry.srcset;
+        imgAttrs.sizes = entry.sizes || '(max-width: 600px) 480px, (max-width: 900px) 720px, 1080px';
+      }
+      box.appendChild(el('img', imgAttrs));
     }
     return box;
   }
@@ -165,11 +170,19 @@
       if (slides.length > 1) {
         var nextEntry = entries[(index + 1) % entries.length];
         if (nextEntry && nextEntry.url && nextEntry.kind === 'image' && !nextEntry._aspect) {
-          var nImg = new Image();
-          nImg.onload = function () {
-            if (nImg.naturalWidth > 0 && nImg.naturalHeight > 0) nextEntry._aspect = nImg.naturalWidth + ' / ' + nImg.naturalHeight;
-          };
-          nImg.src = nextEntry.url;
+          if (nextEntry.width && nextEntry.height) {
+            nextEntry._aspect = nextEntry.width + ' / ' + nextEntry.height;
+          } else {
+            var nImg = new Image();
+            if (nextEntry.srcset) {
+              nImg.srcset = nextEntry.srcset;
+              if (nextEntry.sizes) nImg.sizes = nextEntry.sizes;
+            }
+            nImg.onload = function () {
+              if (nImg.naturalWidth > 0 && nImg.naturalHeight > 0) nextEntry._aspect = nImg.naturalWidth + ' / ' + nImg.naturalHeight;
+            };
+            nImg.src = nextEntry.url;
+          }
         }
       }
       dots.forEach(function (d, n) { d.classList.toggle('is-on', n === index); d.setAttribute('aria-current', n === index ? 'true' : 'false'); });
@@ -228,8 +241,15 @@
     if (!entries || !entries.length) return;
     entries.forEach(function (e) {
       if (!e || !e.url) return;
+      if (e.width && e.height && !e._aspect) {
+        e._aspect = e.width + ' / ' + e.height;
+      }
       if (e.kind === 'image') {
         var img = new Image();
+        if (e.srcset) {
+          img.srcset = e.srcset;
+          if (e.sizes) img.sizes = e.sizes;
+        }
         img.onload = function () {
           if (img.naturalWidth > 0 && img.naturalHeight > 0) {
             e._aspect = img.naturalWidth + ' / ' + img.naturalHeight;

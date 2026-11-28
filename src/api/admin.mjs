@@ -9,6 +9,7 @@ import { ERROR_STATUS, HttpError, sendJson } from '../router.mjs';
 import { StateError } from '../state/index.mjs';
 import { hasRight, rightsForTarget } from '../auth/tunnus.mjs';
 import { rightsKeysForTarget } from '../views/embed.mjs';
+import { generateVariants } from '../media/variants.mjs';
 
 const SCREEN_ID_RE = /^[a-z0-9-]{1,40}$/;
 const OPAQUE_ID_RE = /^[A-Za-z0-9_.-]{1,100}$/;
@@ -335,7 +336,15 @@ export function registerAdminRoutes(router, ctx) {
         item = { mediaId: sha256, ext: 'mp4', kind: 'video', seconds };
         defaultTitle = 'Uploaded video';
       } else {
-        item = { mediaId: sha256, ext: 'png', kind: 'image' };
+        const varRes = await generateVariants(buf, sha256, storage);
+        item = {
+          mediaId: sha256,
+          ext: 'png',
+          kind: 'image',
+          width: varRes.width,
+          height: varRes.height,
+          variants: varRes.variants,
+        };
         defaultTitle = 'Uploaded PNG';
       }
       await storage.putMediaFromFile(sha256, sniffed.ext, tmpPath, sniffed.contentType);

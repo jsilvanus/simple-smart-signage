@@ -1113,6 +1113,70 @@ function renderEntries(screen) {
       endFieldWrap.className = 'video-input-with-action';
       endFieldWrap.append(endInput, setEndBtn);
 
+      // 4. Repeat rule: Play once, Play N times, Play for X seconds
+      const repeatSelect = document.createElement('select');
+      repeatSelect.className = 'video-repeat-select';
+      const repOptions = [
+        { label: 'Play 1 time', val: 'once' },
+        { label: 'Play N times', val: 'times' },
+        { label: 'Play for X seconds', val: 'seconds' },
+      ];
+      const initialMode = entry.playForSeconds ? 'seconds' : ((entry.playCount && entry.playCount > 1) ? 'times' : 'once');
+      repOptions.forEach((ro) => {
+        const opt = document.createElement('option');
+        opt.value = ro.val;
+        opt.textContent = ro.label;
+        if (ro.val === initialMode) opt.selected = true;
+        repeatSelect.appendChild(opt);
+      });
+
+      const countInput = document.createElement('input');
+      countInput.type = 'number';
+      countInput.min = '1';
+      countInput.max = '100';
+      countInput.step = '1';
+      countInput.className = 'video-count-input';
+      countInput.value = String(entry.playCount || 2);
+      countInput.placeholder = 'Times';
+
+      const secInput = document.createElement('input');
+      secInput.type = 'number';
+      secInput.min = '1';
+      secInput.max = '3600';
+      secInput.step = '1';
+      secInput.className = 'video-for-seconds-input';
+      secInput.value = String(entry.playForSeconds || Math.max(1, entry.seconds || 30));
+      secInput.placeholder = 'Seconds';
+
+      const countSuffix = document.createElement('span');
+      countSuffix.className = 'muted';
+      countSuffix.textContent = 'times';
+
+      const secSuffix = document.createElement('span');
+      secSuffix.className = 'muted';
+      secSuffix.textContent = 's';
+
+      const repParamWrap = document.createElement('div');
+      repParamWrap.className = 'video-repeat-param-wrap';
+
+      const updateRepeatVisibility = () => {
+        const mode = repeatSelect.value;
+        repParamWrap.replaceChildren();
+        if (mode === 'times') {
+          repParamWrap.append(countInput, countSuffix);
+        } else if (mode === 'seconds') {
+          repParamWrap.append(secInput, secSuffix);
+        }
+        updateEffectiveDuration();
+      };
+      repeatSelect.addEventListener('change', updateRepeatVisibility);
+      countInput.addEventListener('input', updateEffectiveDuration);
+      secInput.addEventListener('input', updateEffectiveDuration);
+
+      const repeatFieldWrap = document.createElement('div');
+      repeatFieldWrap.className = 'video-input-with-action';
+      repeatFieldWrap.append(repeatSelect, repParamWrap);
+
       // Effective duration indicator
       const effBadge = document.createElement('span');
       effBadge.className = 'badge video-eff-badge';
@@ -1123,9 +1187,21 @@ function renderEntries(screen) {
           ? previewVid.duration
           : (entry.rawSeconds ?? entry.seconds);
         const e = endInput.value ? parseFloat(endInput.value) : total;
-        const dur = Math.max(1, Math.round(Math.max(0, e - s) / rate));
+        const clipDur = Math.max(0.1, (e - s) / rate);
+        const mode = repeatSelect.value;
+        let dur;
+        if (mode === 'seconds') {
+          dur = parseInt(secInput.value, 10) || 1;
+        } else if (mode === 'times') {
+          const times = parseInt(countInput.value, 10) || 1;
+          dur = Math.max(1, Math.round(clipDur * times));
+        } else {
+          dur = Math.max(1, Math.round(clipDur));
+        }
         effBadge.textContent = `Schedule slot: ~${dur}s`;
       };
+
+      updateRepeatVisibility();
 
       // Events on preview player
       previewVid.addEventListener('loadedmetadata', () => {
@@ -1205,6 +1281,10 @@ function renderEntries(screen) {
         startInput.value = '';
         endInput.value = '';
         rateSelect.value = '1';
+        repeatSelect.value = 'once';
+        countInput.value = '2';
+        secInput.value = '30';
+        updateRepeatVisibility();
         previewVid.playbackRate = 1.0;
         updateEffectiveDuration();
       });
@@ -1220,6 +1300,7 @@ function renderEntries(screen) {
         entryField('Playback speed', rateSelect),
         entryField('Start time (s)', startFieldWrap),
         entryField('End time (s)', endFieldWrap),
+        entryField('Repeat rule', repeatFieldWrap),
         effBadge,
         testLoopBtn,
         clearBtn,
@@ -1236,10 +1317,22 @@ function renderEntries(screen) {
           setError('End time must be greater than start time.');
           return;
         }
+        const mode = repeatSelect.value;
+        let pCount = null;
+        let pForSeconds = null;
+        if (mode === 'times') {
+          pCount = parseInt(countInput.value, 10) || 1;
+        } else if (mode === 'seconds') {
+          pForSeconds = parseInt(secInput.value, 10) || 1;
+        } else {
+          pCount = 1;
+        }
         handleSaveVideoControls(screen.id, entry.entryId, {
           playbackRate: pRate,
           clipStart: cStart,
           clipEnd: cEnd,
+          playCount: pCount,
+          playForSeconds: pForSeconds,
         });
       });
 

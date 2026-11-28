@@ -680,19 +680,34 @@ test('PATCH entry supports video controls (playbackRate, clipStart, clipEnd)', a
   const patch = await http(srv.base, `/signage/api/v1/admin/screens/lobby/entries/${entryId}`, {
     method: 'PATCH',
     headers: { cookie, 'x-sissi-admin': '1' },
-    body: { playbackRate: 2.0, clipStart: 2, clipEnd: 12 },
+    body: { playbackRate: 2.0, clipStart: 2, clipEnd: 12, playCount: 3 },
   });
   assert.equal(patch.status, 200);
-  assert.equal(patch.json.seconds, 5);
+  assert.equal(patch.json.seconds, 15);
   assert.equal(patch.json.playbackRate, 2.0);
   assert.equal(patch.json.clipStart, 2);
   assert.equal(patch.json.clipEnd, 12);
+  assert.equal(patch.json.playCount, 3);
+  assert.equal(patch.json.playForSeconds, null);
 
   const pl = await srv.state.getPlaylist('lobby');
-  assert.equal(pl.entries[0].seconds, 5);
+  assert.equal(pl.entries[0].seconds, 15);
   assert.equal(pl.entries[0].playbackRate, 2.0);
   assert.equal(pl.entries[0].clipStart, 2);
   assert.equal(pl.entries[0].clipEnd, 12);
+  assert.equal(pl.entries[0].playCount, 3);
+  assert.equal(pl.entries[0].playForSeconds, null);
+
+  // Now set playForSeconds
+  const patchSec = await http(srv.base, `/signage/api/v1/admin/screens/lobby/entries/${entryId}`, {
+    method: 'PATCH',
+    headers: { cookie, 'x-sissi-admin': '1' },
+    body: { playForSeconds: 40 },
+  });
+  assert.equal(patchSec.status, 200);
+  assert.equal(patchSec.json.seconds, 40);
+  assert.equal(patchSec.json.playForSeconds, 40);
+  assert.equal(patchSec.json.playCount, null);
 });
 
 test('screen and view background colors: defaults, transparent rejection on screens, per-item override and reset', async (t) => {

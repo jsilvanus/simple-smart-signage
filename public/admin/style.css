@@ -556,6 +556,28 @@ select:user-invalid {
   color: var(--text);
 }
 
+.video-repeat-select {
+  min-height: 36px;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.video-repeat-param-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.video-count-input,
+.video-for-seconds-input {
+  width: 5.5rem;
+  min-height: 36px;
+  padding: 0.25rem 0.45rem;
+}
+
 .video-eff-badge {
   align-self: center;
   font-size: 0.82rem;

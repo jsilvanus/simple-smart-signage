@@ -58,6 +58,8 @@ function withEnabled(entry) {
     playbackRate: entry.playbackRate ?? 1.0,
     clipStart: entry.clipStart ?? null,
     clipEnd: entry.clipEnd ?? null,
+    playCount: entry.playCount ?? (entry.playForSeconds ? null : 1),
+    playForSeconds: entry.playForSeconds ?? null,
     rawSeconds: entry.rawSeconds ?? (entry.kind === 'video' ? entry.seconds : null),
     enabled: isEnabled(entry),
   };
@@ -615,6 +617,8 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
         playbackRate: item.playbackRate ?? 1.0,
         clipStart: item.clipStart ?? null,
         clipEnd: item.clipEnd ?? null,
+        playCount: item.playCount ?? (item.playForSeconds ? null : 1),
+        playForSeconds: item.playForSeconds ?? null,
         rawSeconds: item.kind === 'video' ? Math.max(1, Math.round(item.seconds ?? 1)) : null,
         addedAt,
         enabled,
@@ -717,7 +721,29 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     return Math.round(num * 100) / 100;
   }
 
-  async function setEntryVideoControls(screenId, entryId, { playbackRate, clipStart, clipEnd } = {}) {
+  function validatePlayCount(val) {
+    if (val === undefined || val === null || val === '') return null;
+    const num = Number(val);
+    if (!Number.isInteger(num) || num < 1 || num > 100) {
+      throw new StateError('INVALID_SECONDS', 'playCount must be an integer between 1 and 100');
+    }
+    return num;
+  }
+
+  function validatePlayForSeconds(val) {
+    if (val === undefined || val === null || val === '') return null;
+    const num = Number(val);
+    if (!Number.isInteger(num) || num < 1 || num > 3600) {
+      throw new StateError('INVALID_SECONDS', 'playForSeconds must be an integer between 1 and 3600');
+    }
+    return num;
+  }
+
+  async function setEntryVideoControls(
+    screenId,
+    entryId,
+    { playbackRate, clipStart, clipEnd, playCount, playForSeconds } = {},
+  ) {
     return mutateScreen(screenId, (doc) => {
       const entry = doc.entries.find((e) => e.entryId === entryId);
       if (!entry) {
@@ -740,9 +766,30 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
       entry.clipStart = nextStart;
       entry.clipEnd = nextEnd;
 
+      let nextPlayForSeconds =
+        playForSeconds !== undefined ? validatePlayForSeconds(playForSeconds) : (entry.playForSeconds ?? null);
+      let nextPlayCount =
+        playCount !== undefined ? validatePlayCount(playCount) : (entry.playCount ?? (nextPlayForSeconds ? null : 1));
+
+      if (playForSeconds !== undefined && playForSeconds !== null && playForSeconds !== '') {
+        nextPlayCount = null;
+      } else if (playCount !== undefined && playCount !== null && playCount !== '') {
+        nextPlayForSeconds = null;
+      }
+
+      entry.playForSeconds = nextPlayForSeconds;
+      entry.playCount = nextPlayCount;
+
       const baseSec = entry.rawSeconds ?? (entry.seconds || 10);
-      const effDuration = ((nextEnd ?? baseSec) - (nextStart ?? 0)) / nextRate;
-      entry.seconds = Math.max(1, Math.round(effDuration));
+      const clipLength = Math.max(0.1, ((nextEnd ?? baseSec) - (nextStart ?? 0)) / nextRate);
+
+      if (nextPlayForSeconds !== null) {
+        entry.seconds = nextPlayForSeconds;
+      } else if (nextPlayCount !== null) {
+        entry.seconds = Math.max(1, Math.round(clipLength * nextPlayCount));
+      } else {
+        entry.seconds = Math.max(1, Math.round(clipLength));
+      }
     });
   }
 

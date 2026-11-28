@@ -128,6 +128,7 @@
     var prev = arrowButton('prev', 'Edellinen');
     var next = arrowButton('next', 'Seuraava');
     var dots = [];
+    var videoLoops = {};
 
     function stop() { if (timer) { clearTimeout(timer); timer = null; } }
     function isPaused() { return hoverPaused || focusPaused; }
@@ -196,10 +197,11 @@
       }
       dots.forEach(function (d, n) { d.classList.toggle('is-on', n === index); d.setAttribute('aria-current', n === index ? 'true' : 'false'); });
       var entry = entries[index];
+      if (!keepTime) videoLoops[index] = 0;
       if (autoplay && !isPaused() && !reduced() && slides.length > 1) {
         if (onClock) {
           timer = setTimeout(sync, (remaining == null ? clockPos().remaining : remaining) + 30);
-        } else if (entry.kind !== 'video') {
+        } else if (entry.kind !== 'video' || entry.playForSeconds) {
           timer = setTimeout(function () { show(index + 1, false); }, Math.max(1, entry.seconds || 10) * 1000);
         }
       }
@@ -245,22 +247,36 @@
       var end = entry.clipEnd != null ? Number(entry.clipEnd) : null;
       var isLoop = function () { return onClock || !autoplay || slides.length < 2; };
 
+      var onIterationEnd = function () {
+        if (isLoop() || n !== index) {
+          v.currentTime = start;
+          v.play().catch(function () {});
+          return;
+        }
+        if (entry.playForSeconds) {
+          v.currentTime = start;
+          v.play().catch(function () {});
+          return;
+        }
+        var count = Math.max(1, Number(entry.playCount) || 1);
+        videoLoops[n] = (videoLoops[n] || 0) + 1;
+        if (videoLoops[n] < count) {
+          v.currentTime = start;
+          v.play().catch(function () {});
+          return;
+        }
+        if (!onClock && autoplay && n === index && slides.length > 1) {
+          show(index + 1, false);
+        }
+      };
+
       v.addEventListener('timeupdate', function () {
         if (end != null && v.currentTime >= end) {
-          if (isLoop() || n !== index) {
-            v.currentTime = start;
-            v.play().catch(function () {});
-          } else if (!onClock && autoplay && n === index && slides.length > 1) {
-            show(index + 1, false);
-          }
+          onIterationEnd();
         }
       });
       v.addEventListener('ended', function () {
-        if (start > 0) {
-          v.currentTime = start;
-          if (isLoop()) v.play().catch(function () {});
-        }
-        if (!onClock && autoplay && n === index && slides.length > 1) show(index + 1, false);
+        onIterationEnd();
       });
     });
     if (onClock) sync(); else show(0, false);

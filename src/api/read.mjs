@@ -170,6 +170,8 @@ export function registerReadRoutes(router, ctx) {
         playbackRate: e.playbackRate ?? 1.0,
         clipStart: e.clipStart ?? null,
         clipEnd: e.clipEnd ?? null,
+        playCount: e.playCount ?? (e.playForSeconds ? null : 1),
+        playForSeconds: e.playForSeconds ?? null,
       };
     });
 

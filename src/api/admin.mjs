@@ -231,7 +231,9 @@ export function registerAdminRoutes(router, ctx) {
     const hasVideo =
       body?.playbackRate !== undefined ||
       body?.clipStart !== undefined ||
-      body?.clipEnd !== undefined;
+      body?.clipEnd !== undefined ||
+      body?.playCount !== undefined ||
+      body?.playForSeconds !== undefined;
     // seconds, title, background, video controls, text metadata and the schedule window are content (sissi:write); enabled is the live change (sissi:operate).
     await adminAuth.authorize(
       req,
@@ -260,6 +262,8 @@ export function registerAdminRoutes(router, ctx) {
           playbackRate: body.playbackRate,
           clipStart: body.clipStart,
           clipEnd: body.clipEnd,
+          playCount: body.playCount,
+          playForSeconds: body.playForSeconds,
         }),
       );
     }

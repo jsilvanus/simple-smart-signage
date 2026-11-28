@@ -270,7 +270,7 @@ test('removeEntry, reorderEntries, setEntrySeconds, removePush', async () => {
   await state.setEntrySeconds('lobby', e1, 20);
   assert.equal((await state.getPlaylist('lobby')).entries.find((e) => e.entryId === e1).seconds, 20);
 
-  // setEntryVideoControls: videos only, rate 0.2-4.0, clipStart/clipEnd
+  // setEntryVideoControls: videos only, rate 0.2-4.0, clipStart/clipEnd, playCount, playForSeconds
   await state.setEntryVideoControls('lobby', e2, { playbackRate: 2.0, clipStart: 5, clipEnd: 25 });
   const videoEntry = (await state.getPlaylist('lobby')).entries.find((e) => e.entryId === e2);
   assert.equal(videoEntry.seconds, 10);
@@ -278,6 +278,31 @@ test('removeEntry, reorderEntries, setEntrySeconds, removePush', async () => {
   assert.equal(videoEntry.clipStart, 5);
   assert.equal(videoEntry.clipEnd, 25);
   assert.equal(videoEntry.rawSeconds, 30);
+  assert.equal(videoEntry.playCount, 1);
+  assert.equal(videoEntry.playForSeconds, null);
+
+  // Play 3 times: 10s clip * 3 = 30s
+  await state.setEntryVideoControls('lobby', e2, { playCount: 3 });
+  const vid3 = (await state.getPlaylist('lobby')).entries.find((e) => e.entryId === e2);
+  assert.equal(vid3.seconds, 30);
+  assert.equal(vid3.playCount, 3);
+  assert.equal(vid3.playForSeconds, null);
+
+  // Play for 45 seconds: overrides playCount
+  await state.setEntryVideoControls('lobby', e2, { playForSeconds: 45 });
+  const vid45 = (await state.getPlaylist('lobby')).entries.find((e) => e.entryId === e2);
+  assert.equal(vid45.seconds, 45);
+  assert.equal(vid45.playForSeconds, 45);
+  assert.equal(vid45.playCount, null);
+
+  await assert.rejects(
+    () => state.setEntryVideoControls('lobby', e2, { playCount: 0 }),
+    (err) => err instanceof StateError && err.code === 'INVALID_SECONDS',
+  );
+  await assert.rejects(
+    () => state.setEntryVideoControls('lobby', e2, { playForSeconds: 4000 }),
+    (err) => err instanceof StateError && err.code === 'INVALID_SECONDS',
+  );
 
   await assert.rejects(
     () => state.setEntryVideoControls('lobby', e1, { playbackRate: 1.5 }),

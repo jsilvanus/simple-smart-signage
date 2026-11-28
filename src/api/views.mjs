@@ -98,6 +98,8 @@ export function registerViewRoutes(router, ctx) {
         playbackRate: e.playbackRate ?? 1.0,
         clipStart: e.clipStart ?? null,
         clipEnd: e.clipEnd ?? null,
+        playCount: e.playCount ?? (e.playForSeconds ? null : 1),
+        playForSeconds: e.playForSeconds ?? null,
       };
       if (e.kind === 'image') {
         const variants = Array.isArray(e.variants) && e.variants.length > 0

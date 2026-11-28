@@ -218,7 +218,7 @@
         existingVideo.playbackRate = rate;
         existingVideo.defaultPlaybackRate = rate;
         existingVideo.currentTime = Number(entry.clipStart) || 0;
-        slideTimer = setTimeout(onSlideComplete, (entry.seconds + 5) * 1000);
+        slideTimer = setTimeout(onSlideComplete, (entry.playForSeconds ? entry.seconds : (entry.seconds + 5)) * 1000);
         existingVideo.play().catch((err) => {
           if (err?.name !== 'AbortError') onSlideError();
         });
@@ -254,6 +254,9 @@
       }
 
       let settled = false;
+      let loopsDone = 0;
+      const playCount = entry.playForSeconds ? null : Math.max(1, Number(entry.playCount) || 1);
+
       const done = () => {
         if (settled || token !== transitionToken) return;
         settled = true;
@@ -266,14 +269,30 @@
         onSlideError();
       };
 
-      video.addEventListener('ended', done, { once: true });
+      const loopOrDone = () => {
+        if (settled || token !== transitionToken) return;
+        loopsDone += 1;
+        if (entry.playForSeconds) {
+          // Play for X seconds: loop continuously until slotTimer / schedule timer ends slot
+          video.currentTime = clipStart;
+          video.play().catch(() => {});
+          return;
+        }
+        if (loopsDone < playCount) {
+          video.currentTime = clipStart;
+          video.play().catch(() => {});
+          return;
+        }
+        done();
+      };
+
+      video.addEventListener('ended', loopOrDone);
       video.addEventListener('error', fail, { once: true });
 
       if (clipEnd !== null) {
         const onTimeUpdate = () => {
           if (video.currentTime >= clipEnd) {
-            video.removeEventListener('timeupdate', onTimeUpdate);
-            done();
+            loopOrDone();
           }
         };
         video.addEventListener('timeupdate', onTimeUpdate);
@@ -282,7 +301,7 @@
       slideEl.appendChild(video);
       crossFadeTo(slideEl);
 
-      slideTimer = setTimeout(done, (entry.seconds + 5) * 1000);
+      slideTimer = setTimeout(done, (entry.playForSeconds ? entry.seconds : (entry.seconds + 5)) * 1000);
       video.play().catch((err) => {
         if (err?.name !== 'AbortError') fail();
       });

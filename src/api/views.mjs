@@ -41,7 +41,16 @@ function sendPublic(req, res, status, body, headers) {
  * - GET /v/:viewId/embed.js       script embed: renders into every [data-sissi-embed] before it
  */
 export function registerViewRoutes(router, ctx) {
-  const { state } = ctx;
+  const { state, config } = ctx;
+
+  function publicOrigin(req) {
+    const host = req?.headers?.['x-forwarded-host'] || req?.headers?.host;
+    if (host) {
+      const proto = req?.headers?.['x-forwarded-proto'] || (req?.socket?.encrypted ? 'https' : 'http');
+      return `${proto}://${host}`;
+    }
+    return config?.baseUrl ? new URL(config.baseUrl).origin : '';
+  }
 
   async function loadView(viewId) {
     if (!VIEW_ID_RE.test(viewId)) throw new HttpError('SCREEN_NOT_FOUND', `Unknown view: ${viewId}`);
@@ -70,9 +79,9 @@ export function registerViewRoutes(router, ctx) {
     return { entries, version, nextChangeAt: changes[0] ?? null };
   }
 
-  function toPublicEntries(entries) {
+  function toPublicEntries(entries, origin = '') {
     return entries.map((e) => {
-      const origUrl = router.url(`/media/${e.mediaId}.${e.ext || 'bin'}`);
+      const origUrl = `${origin}${router.url(`/media/${e.mediaId}.${e.ext || 'bin'}`)}`;
       const pub = {
         entryId: e.entryId,
         sourceView: e.sourceView ?? undefined,
@@ -92,12 +101,12 @@ export function registerViewRoutes(router, ctx) {
           ? e.variants.map((v) => ({
               width: v.width,
               height: v.height,
-              url: router.url(`/media/${v.mediaId}.${v.ext || 'webp'}`),
+              url: `${origin}${router.url(`/media/${v.mediaId}.${v.ext || 'webp'}`)}`,
             }))
           : [
-              { width: 480, url: router.url(`/media/${e.mediaId}-480w.webp`) },
-              { width: 720, url: router.url(`/media/${e.mediaId}-720w.webp`) },
-              { width: 1080, url: router.url(`/media/${e.mediaId}-1080w.webp`) },
+              { width: 480, url: `${origin}${router.url(`/media/${e.mediaId}-480w.webp`)}` },
+              { width: 720, url: `${origin}${router.url(`/media/${e.mediaId}-720w.webp`)}` },
+              { width: 1080, url: `${origin}${router.url(`/media/${e.mediaId}-1080w.webp`)}` },
             ];
         const srcsets = variants.map((v) => `${v.url} ${v.width}w`);
         if (e.width) {
@@ -140,7 +149,7 @@ export function registerViewRoutes(router, ctx) {
   router.get('/v/:viewId/playlist.json', async (req, res, { params }) => {
     const view = await loadView(params.viewId);
     const pl = await playlistOf(view);
-    const entries = toPublicEntries(pl.entries);
+    const entries = toPublicEntries(pl.entries, publicOrigin(req));
     const body = {
       viewId: view.id,
       name: view.name,

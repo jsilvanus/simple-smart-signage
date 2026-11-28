@@ -402,10 +402,28 @@
           if (stopped) return;
           var parsed = JSON.parse(body);
           // Entry URLs are root-relative (/sissi/media/...). On a host page that would resolve against the
-          // host's origin, so resolve them against the playlist URL (Sissi's origin) instead.
+          // host's origin, so resolve them (and their srcset/variants) against the playlist URL (Sissi's origin) instead.
           try {
             var base = new URL(opts.playlistUrl, location.href);
-            (parsed.entries || []).forEach(function (e) { if (e && e.url) e.url = new URL(e.url, base).href; });
+            (parsed.entries || []).forEach(function (e) {
+              if (!e) return;
+              if (e.url) e.url = new URL(e.url, base).href;
+              if (e.srcset) {
+                e.srcset = e.srcset.split(',').map(function (part) {
+                  var trimmed = part.trim();
+                  var space = trimmed.lastIndexOf(' ');
+                  if (space === -1) return new URL(trimmed, base).href;
+                  var u = trimmed.slice(0, space);
+                  var desc = trimmed.slice(space);
+                  return new URL(u, base).href + desc;
+                }).join(', ');
+              }
+              if (Array.isArray(e.variants)) {
+                e.variants.forEach(function (v) {
+                  if (v && v.url) v.url = new URL(v.url, base).href;
+                });
+              }
+            });
           } catch (e) { /* keep URLs as served */ }
           scheduleChange(parsed.nextChangeAt);
           if (body === last) return;

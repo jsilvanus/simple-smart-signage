@@ -382,6 +382,53 @@ function renderScreensList() {
   });
 }
 
+function makeCopyPill(text, titleHint = 'Click to copy') {
+  const code = document.createElement('code');
+  code.className = 'code-pill copyable-pill';
+  code.textContent = text;
+  code.title = titleHint;
+  code.setAttribute('role', 'button');
+  code.setAttribute('tabindex', '0');
+  code.setAttribute('aria-label', `${titleHint}: ${text}`);
+
+  let timer = null;
+  const copy = async (e) => {
+    e.stopPropagation();
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+      code.classList.add('is-copied');
+      const orig = text;
+      code.textContent = 'Copied!';
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        code.classList.remove('is-copied');
+        code.textContent = orig;
+      }, 1200);
+    } catch {}
+  };
+
+  code.addEventListener('click', copy);
+  code.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      copy(e);
+    }
+  });
+
+  return code;
+}
+
 function renderDetail() {
   const screen = getSelectedScreen();
   if (!screen) {
@@ -395,6 +442,8 @@ function renderDetail() {
 
   els.detailName.textContent = screen.name;
   els.detailId.textContent = screen.id;
+  els.detailId.title = 'Click to copy ID';
+  els.detailId.classList.add('copyable-pill');
   const kind = screen.kind ?? 'screen';
   const isViewLike = kind === 'view' || kind === 'aggregate';
   const dims = screen.width && screen.height ? `${screen.width}×${screen.height}px` : 'auto size';
@@ -896,12 +945,8 @@ function renderEntries(screen) {
       span.textContent = '(no Canva integration)';
       canvaNode = span;
     }
-    const pushCode = document.createElement('code');
-    pushCode.className = 'code-pill';
-    pushCode.textContent = entry.pushId;
-    const mediaCode = document.createElement('code');
-    mediaCode.className = 'code-pill';
-    mediaCode.textContent = `${entry.mediaId}.${entry.ext || 'bin'}`;
+    const pushCode = makeCopyPill(entry.pushId, 'Click to copy Upload ID');
+    const mediaCode = makeCopyPill(`${entry.mediaId}.${entry.ext || 'bin'}`, 'Click to copy media filename');
     const resSpan = document.createElement('span');
     resSpan.className = 'resolutions-list';
     resSpan.textContent = getStoredResolutions(entry).join(', ');
@@ -1699,6 +1744,24 @@ els.screenBackgroundReset?.addEventListener('click', () => {
 });
 els.screenKind?.addEventListener('change', () => {
   syncKindFields(els.screenKind.value);
+});
+
+els.detailId?.addEventListener('click', async (e) => {
+  e.stopPropagation();
+  const text = els.detailId.textContent;
+  if (!text || text === 'Copied!') return;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    }
+    const orig = text;
+    els.detailId.classList.add('is-copied');
+    els.detailId.textContent = 'Copied!';
+    setTimeout(() => {
+      els.detailId.classList.remove('is-copied');
+      els.detailId.textContent = orig;
+    }, 1200);
+  } catch {}
 });
 
 els.powerOverrideGroup.addEventListener('click', async (e) => {

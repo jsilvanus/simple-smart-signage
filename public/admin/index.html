@@ -389,17 +389,20 @@
         <h4>Placement &amp; Container</h4>
         <p><strong>Default:</strong> Put the <code>&lt;script&gt;</code> tag where you want the view to appear. It creates a container directly after itself.</p>
         <p><strong>Custom container:</strong> Place <code>&lt;div data-sissi-embed data-sissi-view="&lt;view-id&gt;"&gt;&lt;/div&gt;</code> anywhere on the page, and the script will mount inside it.</p>
-        <h4>Width Management</h4>
-        <p>Define the max-width on your embedding page using either:</p>
+        <h4>Sizing (Width, Height, Min &amp; Max)</h4>
+        <p>Control view dimensions on your embedding page using HTML attributes, CSS variables, or iframe query parameters (accepts <code>px</code>, <code>rem</code>, <code>%</code>, <code>vw</code>, <code>vh</code>, or bare numbers for pixels):</p>
         <ul>
-          <li>Attribute: <code>data-sissi-max-width="600px"</code> (accepts <code>px</code>, <code>rem</code>, <code>%</code>, <code>vw</code>, or plain number for pixels)</li>
-          <li>CSS variable: <code>--sissi-max-width: 600px;</code> on the container or host element</li>
-          <li>Iframe: Query parameter <code>?maxWidth=600px</code> or CSS <code>max-width</code> on the <code>&lt;iframe&gt;</code></li>
+          <li><strong>Width:</strong> <code>data-sissi-width="100%"</code> (or <code>data-width</code>), CSS <code>--sissi-width: 100%;</code>, iframe <code>?width=100%</code></li>
+          <li><strong>Max Width:</strong> <code>data-sissi-max-width="600px"</code> (or <code>data-max-width</code>), CSS <code>--sissi-max-width: 600px;</code>, iframe <code>?maxWidth=600px</code></li>
+          <li><strong>Min Width:</strong> <code>data-sissi-min-width="300px"</code> (or <code>data-min-width</code>), CSS <code>--sissi-min-width: 300px;</code>, iframe <code>?minWidth=300px</code></li>
+          <li><strong>Height:</strong> <code>data-sissi-height="400px"</code> (or <code>data-height</code>), CSS <code>--sissi-height: 400px;</code>, iframe <code>?height=400px</code></li>
+          <li><strong>Max Height:</strong> <code>data-sissi-max-height="80vh"</code> (or <code>data-max-height</code>), CSS <code>--sissi-max-height: 80vh;</code>, iframe <code>?maxHeight=80vh</code></li>
+          <li><strong>Min Height:</strong> <code>data-sissi-min-height="250px"</code> (or <code>data-min-height</code>), CSS <code>--sissi-min-height: 250px;</code>, iframe <code>?minHeight=250px</code></li>
         </ul>
         <h4>Background Color</h4>
-        <p>Defaults to <code>transparent</code> so your site background shows through even with forced aspect ratios. Customize via:</p>
+        <p>Defaults to the view's configured background (or <code>transparent</code>) so your site background shows through even with forced aspect ratios. Customize via:</p>
         <ul>
-          <li>Attribute: <code>data-sissi-background="#ffffff"</code> (or CSS variable <code>--sissi-bg: #ffffff;</code>)</li>
+          <li>Attribute: <code>data-sissi-background="#ffffff"</code> (or <code>data-background</code>, CSS variable <code>--sissi-bg: #ffffff;</code>)</li>
           <li>Iframe: Query parameter <code>?background=%23ffffff</code></li>
         </ul>
       </div>

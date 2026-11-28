@@ -172,6 +172,28 @@ select:user-invalid {
   border-radius: 6px;
   padding: 0.1rem 0.45rem;
   font-size: 0.8rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.code-pill.copyable-pill {
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.code-pill.copyable-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #3b82f6;
+}
+
+.code-pill.copyable-pill.is-copied {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: #22c55e;
+  color: #22c55e;
 }
 
 /* Screens list */
@@ -850,12 +872,37 @@ dialog.rights-dialog {
   border-radius: 4px;
 }
 
+.entry-upload-info {
+  display: grid;
+  gap: 0.4rem;
+  max-width: 100%;
+  overflow: hidden;
+}
+
 .entry-meta-item {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
   font-size: 0.85rem;
+  max-width: 100%;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.entry-meta-item .muted {
+  flex-shrink: 0;
+}
+
+.entry-meta-item .code-pill,
+.entry-meta-item .copyable-pill,
+.entry-meta-item .canva-link,
+.entry-meta-item .resolutions-list {
+  flex: 0 1 auto;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .resolutions-list {

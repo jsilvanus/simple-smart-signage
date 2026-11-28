@@ -150,7 +150,12 @@ export function registerViewRoutes(router, ctx) {
 (function () {
   var cfg = ${scriptJson(config)};
   var q = new URLSearchParams(location.search);
-  cfg.maxWidth = q.get('maxWidth');
+  cfg.width = q.get('width');
+  cfg.height = q.get('height');
+  cfg.minWidth = q.get('minWidth') || q.get('min-width');
+  cfg.maxWidth = q.get('maxWidth') || q.get('max-width');
+  cfg.minHeight = q.get('minHeight') || q.get('min-height');
+  cfg.maxHeight = q.get('maxHeight') || q.get('max-height');
   cfg.background = q.get('background');
   window.SissiViews.mount(document.getElementById('root'), cfg);
 })();
@@ -190,10 +195,15 @@ export function registerViewRoutes(router, ctx) {
   function mountEl(h) {
     h.setAttribute('data-sissi-mounted', '1');
     var root = h.attachShadow ? h.attachShadow({ mode: 'open' }) : h;
-    // Per-embed settings from the host page: data-sissi-max-width, data-sissi-background.
+    // Per-embed settings from the host page: width, height, min/max dimensions, background.
     var own = Object.assign({}, cfg, {
-      maxWidth: h.getAttribute('data-sissi-max-width'),
-      background: h.getAttribute('data-sissi-background')
+      width: h.getAttribute('data-sissi-width') || h.getAttribute('data-width'),
+      height: h.getAttribute('data-sissi-height') || h.getAttribute('data-height'),
+      minWidth: h.getAttribute('data-sissi-min-width') || h.getAttribute('data-min-width'),
+      maxWidth: h.getAttribute('data-sissi-max-width') || h.getAttribute('data-max-width'),
+      minHeight: h.getAttribute('data-sissi-min-height') || h.getAttribute('data-min-height'),
+      maxHeight: h.getAttribute('data-sissi-max-height') || h.getAttribute('data-max-height'),
+      background: h.getAttribute('data-sissi-background') || h.getAttribute('data-background')
     });
     window.SissiViews.mount(root, own);
   }

@@ -5,7 +5,7 @@
   'use strict';
   var TIMERS = typeof WeakMap === 'function' ? new WeakMap() : null;
   var STYLE = [
-    ':host, .sissi-view { display: block; position: relative; width: 100%; font-family: system-ui, sans-serif; color: #111; max-width: var(--sissi-max-width, none); }',
+    ':host, .sissi-view { display: block; position: relative; width: var(--sissi-width, 100%); height: var(--sissi-height, auto); min-width: var(--sissi-min-width, none); max-width: var(--sissi-max-width, none); min-height: var(--sissi-min-height, none); max-height: var(--sissi-max-height, none); font-family: system-ui, sans-serif; color: #111; }',
     '.sissi-view .sv-stage { position: relative; width: 100%; aspect-ratio: var(--sv-aspect, 16 / 9); overflow: hidden; background: var(--sv-bg, var(--sissi-bg, transparent)); }',
     '.sissi-view .sv-slide { position: absolute; inset: 0; display: none; }',
     '.sissi-view .sv-slide.is-on { display: block; }',
@@ -62,7 +62,7 @@
       v.muted = true;
       box.appendChild(v);
     } else {
-      box.appendChild(el('img', { src: entry.url, alt: entry.alt || '', loading: 'lazy' }));
+      box.appendChild(el('img', { src: entry.url, alt: entry.alt || '', loading: 'eager', decoding: 'async' }));
     }
     return box;
   }
@@ -148,7 +148,7 @@
     function show(i, keepTime, remaining) {
       stop();
       index = (i + slides.length) % slides.length;
-      if (options.fitContent) fitStage(stage, slides[index]);
+      if (options.fitContent) fitStage(stage, slides[index], entries[index]);
       slides.forEach(function (s, n) {
         s.classList.toggle('is-on', n === index);
         var v = s.querySelector('video');
@@ -162,6 +162,16 @@
           }
         }
       });
+      if (slides.length > 1) {
+        var nextEntry = entries[(index + 1) % entries.length];
+        if (nextEntry && nextEntry.url && nextEntry.kind === 'image' && !nextEntry._aspect) {
+          var nImg = new Image();
+          nImg.onload = function () {
+            if (nImg.naturalWidth > 0 && nImg.naturalHeight > 0) nextEntry._aspect = nImg.naturalWidth + ' / ' + nImg.naturalHeight;
+          };
+          nImg.src = nextEntry.url;
+        }
+      }
       dots.forEach(function (d, n) { d.classList.toggle('is-on', n === index); d.setAttribute('aria-current', n === index ? 'true' : 'false'); });
       var entry = entries[index];
       if (autoplay && !isPaused() && !reduced() && slides.length > 1) {
@@ -213,14 +223,37 @@
     if (onClock) sync(); else show(0, false);
   }
 
+  /** Preloads all image entries so slide transitions and fit-to-content resizing are instant. */
+  function preloadEntries(entries) {
+    if (!entries || !entries.length) return;
+    entries.forEach(function (e) {
+      if (!e || !e.url) return;
+      if (e.kind === 'image') {
+        var img = new Image();
+        img.onload = function () {
+          if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+            e._aspect = img.naturalWidth + ' / ' + img.naturalHeight;
+          }
+        };
+        img.src = e.url;
+      }
+    });
+  }
+
   /** Fit to content: sizes the stage to the natural ratio of the slide's media, now and once it has loaded. */
-  function fitStage(stage, slide) {
+  function fitStage(stage, slide, entry) {
     var m = slide.querySelector('img, video');
     if (!m) return;
     function apply() {
       var w = m.naturalWidth || m.videoWidth;
       var h = m.naturalHeight || m.videoHeight;
-      if (w > 0 && h > 0 && slide.classList.contains('is-on')) stage.style.setProperty('--sv-aspect', w + ' / ' + h);
+      if (w > 0 && h > 0) {
+        if (entry) entry._aspect = w + ' / ' + h;
+        if (slide.classList.contains('is-on')) stage.style.setProperty('--sv-aspect', w + ' / ' + h);
+      }
+    }
+    if (entry && entry._aspect && slide.classList.contains('is-on')) {
+      stage.style.setProperty('--sv-aspect', entry._aspect);
     }
     apply();
     if (!m.getAttribute('data-sv-fit')) {
@@ -247,7 +280,7 @@
   function cssLength(v) {
     var s = String(v == null ? '' : v).trim();
     if (/^\d+(\.\d+)?$/.test(s)) return s + 'px';
-    return /^\d+(\.\d+)?(px|rem|em|%|vw|ch)$/.test(s) ? s : null;
+    return /^\d+(\.\d+)?(px|rem|em|%|vw|vh|ch)$/.test(s) ? s : null;
   }
   function cssColor(v) {
     var s = String(v == null ? '' : v).trim();
@@ -268,8 +301,19 @@
       return;
     }
     host.style.display = '';
+    preloadEntries(entries);
+    var w = cssLength(ext && ext.width);
+    if (w) host.style.width = w;
+    var h = cssLength(ext && ext.height);
+    if (h) host.style.height = h;
+    var minW = cssLength(ext && ext.minWidth);
+    if (minW) host.style.minWidth = minW;
     var maxW = cssLength(ext && ext.maxWidth);
     if (maxW) host.style.maxWidth = maxW;
+    var minH = cssLength(ext && ext.minHeight);
+    if (minH) host.style.minHeight = minH;
+    var maxH = cssLength(ext && ext.maxHeight);
+    if (maxH) host.style.maxHeight = maxH;
     notifyEmpty(false);
     var style = el('style');
     style.textContent = STYLE;

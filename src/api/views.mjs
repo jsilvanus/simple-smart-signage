@@ -95,6 +95,9 @@ export function registerViewRoutes(router, ctx) {
         background: e.background ?? null,
         width: e.width ?? null,
         height: e.height ?? null,
+        playbackRate: e.playbackRate ?? 1.0,
+        clipStart: e.clipStart ?? null,
+        clipEnd: e.clipEnd ?? null,
       };
       if (e.kind === 'image') {
         const variants = Array.isArray(e.variants) && e.variants.length > 0

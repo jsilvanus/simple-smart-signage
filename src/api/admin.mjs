@@ -228,17 +228,21 @@ export function registerAdminRoutes(router, ctx) {
     const hasSchedule = body?.startDatetime !== undefined || body?.endDatetime !== undefined;
     const hasTitle = body?.title !== undefined;
     const hasBg = body?.background !== undefined;
-    // seconds, title, background, text metadata and the schedule window are content (sissi:write); enabled is the live change (sissi:operate).
+    const hasVideo =
+      body?.playbackRate !== undefined ||
+      body?.clipStart !== undefined ||
+      body?.clipEnd !== undefined;
+    // seconds, title, background, video controls, text metadata and the schedule window are content (sissi:write); enabled is the live change (sissi:operate).
     await adminAuth.authorize(
       req,
       [
-        ...(body?.seconds !== undefined || hasText || hasSchedule || hasTitle || hasBg ? ['write'] : []),
+        ...(body?.seconds !== undefined || hasText || hasSchedule || hasTitle || hasBg || hasVideo ? ['write'] : []),
         ...(body?.enabled !== undefined ? ['operate'] : []),
       ],
       target,
     );
-    if (body?.seconds === undefined && body?.enabled === undefined && !hasText && !hasSchedule && !hasTitle && !hasBg) {
-      throw new HttpError('INVALID_SECONDS', 'Provide seconds, enabled, schedule, text, title, or background fields');
+    if (body?.seconds === undefined && body?.enabled === undefined && !hasText && !hasSchedule && !hasTitle && !hasBg && !hasVideo) {
+      throw new HttpError('INVALID_SECONDS', 'Provide seconds, enabled, schedule, text, title, background, or video controls fields');
     }
     let screen;
     if (body.title !== undefined) {
@@ -249,6 +253,15 @@ export function registerAdminRoutes(router, ctx) {
     }
     if (body.seconds !== undefined) {
       screen = await runState(() => state.setEntrySeconds(params.screenId, params.entryId, body.seconds));
+    }
+    if (hasVideo) {
+      screen = await runState(() =>
+        state.setEntryVideoControls(params.screenId, params.entryId, {
+          playbackRate: body.playbackRate,
+          clipStart: body.clipStart,
+          clipEnd: body.clipEnd,
+        }),
+      );
     }
     if (hasSchedule) {
       screen = await runState(() =>

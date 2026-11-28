@@ -60,6 +60,9 @@
     if (entry.kind === 'video') {
       var v = el('video', { src: entry.url, muted: '', playsinline: '', preload: 'auto', 'aria-label': entry.alt || '' });
       v.muted = true;
+      var rate = Number(entry.playbackRate) || 1.0;
+      v.playbackRate = rate;
+      v.defaultPlaybackRate = rate;
       box.appendChild(v);
     } else {
       var imgAttrs = { src: entry.url, alt: entry.alt || '', loading: 'eager', decoding: 'async' };
@@ -158,9 +161,15 @@
         s.classList.toggle('is-on', n === index);
         var v = s.querySelector('video');
         if (v) {
-          v.loop = onClock || !autoplay || slides.length < 2;
+          var entry = entries[n];
+          var rate = Number(entry.playbackRate) || 1.0;
+          v.playbackRate = rate;
+          v.defaultPlaybackRate = rate;
+          var start = Number(entry.clipStart) || 0;
+          var end = entry.clipEnd != null ? Number(entry.clipEnd) : null;
+          v.loop = (onClock || !autoplay || slides.length < 2) && end === null && start === 0;
           if (n === index) {
-            if (!keepTime) v.currentTime = 0;
+            if (!keepTime) v.currentTime = start;
             v.play().catch(function () {});
           } else {
             v.pause();
@@ -231,7 +240,28 @@
     slides.forEach(function (s, n) {
       var v = s.querySelector('video');
       if (!v) return;
-      v.addEventListener('ended', function () { if (!onClock && autoplay && n === index && slides.length > 1) show(index + 1, false); });
+      var entry = entries[n];
+      var start = Number(entry.clipStart) || 0;
+      var end = entry.clipEnd != null ? Number(entry.clipEnd) : null;
+      var isLoop = function () { return onClock || !autoplay || slides.length < 2; };
+
+      v.addEventListener('timeupdate', function () {
+        if (end != null && v.currentTime >= end) {
+          if (isLoop() || n !== index) {
+            v.currentTime = start;
+            v.play().catch(function () {});
+          } else if (!onClock && autoplay && n === index && slides.length > 1) {
+            show(index + 1, false);
+          }
+        }
+      });
+      v.addEventListener('ended', function () {
+        if (start > 0) {
+          v.currentTime = start;
+          if (isLoop()) v.play().catch(function () {});
+        }
+        if (!onClock && autoplay && n === index && slides.length > 1) show(index + 1, false);
+      });
     });
     if (onClock) sync(); else show(0, false);
   }

@@ -664,6 +664,37 @@ test('PATCH entry supports renaming item (title)', async (t) => {
   assert.equal(screen.entries[0].title, 'Renamed Banner');
 });
 
+test('PATCH entry supports video controls (playbackRate, clipStart, clipEnd)', async (t) => {
+  const srv = await setupAdminServer();
+  t.after(srv.close);
+  await srv.state.createScreen({ id: 'lobby', name: 'Lobby', kind: 'screen' });
+  await srv.state.applyPush('lobby', {
+    pushId: 'p_vid',
+    title: 'Video Push',
+    enabled: true,
+    items: [{ mediaId: MP4_SHA, ext: 'mp4', kind: 'video', seconds: 20 }],
+  });
+  const entryId = (await srv.state.getScreen('lobby')).entries[0].entryId;
+  const { cookie } = await loginCookie(srv.base);
+
+  const patch = await http(srv.base, `/signage/api/v1/admin/screens/lobby/entries/${entryId}`, {
+    method: 'PATCH',
+    headers: { cookie, 'x-sissi-admin': '1' },
+    body: { playbackRate: 2.0, clipStart: 2, clipEnd: 12 },
+  });
+  assert.equal(patch.status, 200);
+  assert.equal(patch.json.seconds, 5);
+  assert.equal(patch.json.playbackRate, 2.0);
+  assert.equal(patch.json.clipStart, 2);
+  assert.equal(patch.json.clipEnd, 12);
+
+  const pl = await srv.state.getPlaylist('lobby');
+  assert.equal(pl.entries[0].seconds, 5);
+  assert.equal(pl.entries[0].playbackRate, 2.0);
+  assert.equal(pl.entries[0].clipStart, 2);
+  assert.equal(pl.entries[0].clipEnd, 12);
+});
+
 test('screen and view background colors: defaults, transparent rejection on screens, per-item override and reset', async (t) => {
   const srv = await setupAdminServer();
   t.after(srv.close);

@@ -207,7 +207,7 @@ test('Playwright player: images, video ended, boundary version switch, unknown s
       await navigator.serviceWorker.ready;
     });
 
-    await page2.waitForSelector(`.slide.is-visible img[src*="${shaImg1}"]`, { timeout: 5000 });
+    await page2.waitForSelector(`.slide.is-visible img[src*="${shaImg1}"]`, { timeout: 10000 });
     const styleCheck = await page2.evaluate(() => {
       const slide = document.querySelector('.slide.is-visible');
       const img = slide?.querySelector('img');

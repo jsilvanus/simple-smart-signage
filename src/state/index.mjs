@@ -55,6 +55,10 @@ function withEnabled(entry) {
     width: entry.width ?? null,
     height: entry.height ?? null,
     variants: Array.isArray(entry.variants) ? entry.variants : [],
+    playbackRate: entry.playbackRate ?? 1.0,
+    clipStart: entry.clipStart ?? null,
+    clipEnd: entry.clipEnd ?? null,
+    rawSeconds: entry.rawSeconds ?? (entry.kind === 'video' ? entry.seconds : null),
     enabled: isEnabled(entry),
   };
 }
@@ -608,6 +612,10 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
         width: item.width ?? null,
         height: item.height ?? null,
         variants: Array.isArray(item.variants) ? item.variants : [],
+        playbackRate: item.playbackRate ?? 1.0,
+        clipStart: item.clipStart ?? null,
+        clipEnd: item.clipEnd ?? null,
+        rawSeconds: item.kind === 'video' ? Math.max(1, Math.round(item.seconds ?? 1)) : null,
         addedAt,
         enabled,
       }));
@@ -688,6 +696,53 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
         throw new StateError('INVALID_KIND', 'seconds can only be set on image entries');
       }
       entry.seconds = seconds;
+    });
+  }
+
+  function validatePlaybackRate(val) {
+    if (val === undefined || val === null) return 1.0;
+    const num = Number(val);
+    if (!Number.isFinite(num) || num < 0.2 || num > 4.0) {
+      throw new StateError('INVALID_SECONDS', 'playbackRate must be a number between 0.2 and 4.0');
+    }
+    return Math.round(num * 100) / 100;
+  }
+
+  function validateClipTime(val, field) {
+    if (val === undefined || val === null || val === '') return null;
+    const num = Number(val);
+    if (!Number.isFinite(num) || num < 0) {
+      throw new StateError('INVALID_SECONDS', `${field} must be a non-negative number`);
+    }
+    return Math.round(num * 100) / 100;
+  }
+
+  async function setEntryVideoControls(screenId, entryId, { playbackRate, clipStart, clipEnd } = {}) {
+    return mutateScreen(screenId, (doc) => {
+      const entry = doc.entries.find((e) => e.entryId === entryId);
+      if (!entry) {
+        throw new StateError('ENTRY_NOT_FOUND', `Unknown entry: ${entryId}`);
+      }
+      if (entry.kind !== 'video') {
+        throw new StateError('INVALID_KIND', 'Video controls can only be set on video entries');
+      }
+      entry.rawSeconds ??= entry.seconds;
+
+      const nextRate = playbackRate !== undefined ? validatePlaybackRate(playbackRate) : (entry.playbackRate ?? 1.0);
+      const nextStart = clipStart !== undefined ? validateClipTime(clipStart, 'clipStart') : (entry.clipStart ?? null);
+      const nextEnd = clipEnd !== undefined ? validateClipTime(clipEnd, 'clipEnd') : (entry.clipEnd ?? null);
+
+      if (nextStart !== null && nextEnd !== null && nextEnd <= nextStart) {
+        throw new StateError('INVALID_SECONDS', 'clipEnd must be greater than clipStart');
+      }
+
+      entry.playbackRate = nextRate;
+      entry.clipStart = nextStart;
+      entry.clipEnd = nextEnd;
+
+      const baseSec = entry.rawSeconds ?? (entry.seconds || 10);
+      const effDuration = ((nextEnd ?? baseSec) - (nextStart ?? 0)) / nextRate;
+      entry.seconds = Math.max(1, Math.round(effDuration));
     });
   }
 
@@ -1041,6 +1096,7 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     setEntryTitle,
     setEntryBackground,
     setEntrySeconds,
+    setEntryVideoControls,
     setEntryText,
     setEntryEnabled,
     setEntrySchedule,

@@ -1010,10 +1010,241 @@ function renderEntries(screen) {
       });
       playbackNodes.push(secForm);
     } else {
-      const dur = document.createElement('span');
-      dur.className = 'badge';
-      dur.textContent = `${entry.seconds}s (video)`;
-      playbackNodes.push(dur);
+      // Video Playback Controls & Preview Loop Tester
+      const videoCard = document.createElement('div');
+      videoCard.className = 'video-controls-card';
+
+      // Video Preview element
+      const previewWrap = document.createElement('div');
+      previewWrap.className = 'video-preview-wrap';
+
+      const previewVid = document.createElement('video');
+      previewVid.className = 'video-preview-player';
+      previewVid.src = mediaUrlFor(entry);
+      previewVid.controls = true;
+      previewVid.preload = 'metadata';
+      previewVid.muted = true;
+      previewVid.playsInline = true;
+
+      const timeTrack = document.createElement('div');
+      timeTrack.className = 'video-time-track';
+      const curTimeSpan = document.createElement('span');
+      curTimeSpan.className = 'video-cur-time';
+      curTimeSpan.textContent = '0.00s';
+      const sepSpan = document.createElement('span');
+      sepSpan.className = 'muted';
+      sepSpan.textContent = ' / ';
+      const durTimeSpan = document.createElement('span');
+      durTimeSpan.className = 'video-total-time';
+      durTimeSpan.textContent = `${entry.rawSeconds ?? entry.seconds}s`;
+
+      timeTrack.append(curTimeSpan, sepSpan, durTimeSpan);
+      previewWrap.append(previewVid, timeTrack);
+
+      const vForm = document.createElement('form');
+      vForm.className = 'video-controls-form';
+
+      // 1. Playback rate selector
+      const rateSelect = document.createElement('select');
+      rateSelect.className = 'video-rate-select';
+      const rates = [
+        { label: '0.25x (Very slow)', val: 0.25 },
+        { label: '0.5x (Half speed)', val: 0.5 },
+        { label: '0.75x (Slower)', val: 0.75 },
+        { label: '1.0x (Normal speed)', val: 1.0 },
+        { label: '1.25x (Faster)', val: 1.25 },
+        { label: '1.5x (1.5x speed)', val: 1.5 },
+        { label: '2.0x (Double speed)', val: 2.0 },
+        { label: '3.0x (3x speed)', val: 3.0 },
+        { label: '4.0x (4x speed)', val: 4.0 },
+      ];
+      const curRate = entry.playbackRate ?? 1.0;
+      rates.forEach((r) => {
+        const opt = document.createElement('option');
+        opt.value = String(r.val);
+        opt.textContent = r.label;
+        if (Math.abs(r.val - curRate) < 0.01) opt.selected = true;
+        rateSelect.appendChild(opt);
+      });
+
+      // 2. Start time (clipStart)
+      const startInput = document.createElement('input');
+      startInput.type = 'number';
+      startInput.step = '0.01';
+      startInput.min = '0';
+      startInput.placeholder = '0.00 (Start)';
+      startInput.className = 'video-clip-input';
+      if (entry.clipStart != null) startInput.value = String(entry.clipStart);
+
+      const setStartBtn = document.createElement('button');
+      setStartBtn.type = 'button';
+      setStartBtn.className = 'btn btn-sm btn-ghost';
+      setStartBtn.textContent = 'Use current';
+      setStartBtn.title = 'Set start to current playback position';
+      setStartBtn.addEventListener('click', () => {
+        startInput.value = previewVid.currentTime.toFixed(2);
+        updateEffectiveDuration();
+      });
+
+      const startFieldWrap = document.createElement('div');
+      startFieldWrap.className = 'video-input-with-action';
+      startFieldWrap.append(startInput, setStartBtn);
+
+      // 3. End time (clipEnd)
+      const endInput = document.createElement('input');
+      endInput.type = 'number';
+      endInput.step = '0.01';
+      endInput.min = '0';
+      endInput.placeholder = 'End of video';
+      endInput.className = 'video-clip-input';
+      if (entry.clipEnd != null) endInput.value = String(entry.clipEnd);
+
+      const setEndBtn = document.createElement('button');
+      setEndBtn.type = 'button';
+      setEndBtn.className = 'btn btn-sm btn-ghost';
+      setEndBtn.textContent = 'Use current';
+      setEndBtn.title = 'Set end to current playback position';
+      setEndBtn.addEventListener('click', () => {
+        endInput.value = previewVid.currentTime.toFixed(2);
+        updateEffectiveDuration();
+      });
+
+      const endFieldWrap = document.createElement('div');
+      endFieldWrap.className = 'video-input-with-action';
+      endFieldWrap.append(endInput, setEndBtn);
+
+      // Effective duration indicator
+      const effBadge = document.createElement('span');
+      effBadge.className = 'badge video-eff-badge';
+      const updateEffectiveDuration = () => {
+        const rate = parseFloat(rateSelect.value) || 1.0;
+        const s = startInput.value ? parseFloat(startInput.value) : 0;
+        const total = previewVid.duration && Number.isFinite(previewVid.duration)
+          ? previewVid.duration
+          : (entry.rawSeconds ?? entry.seconds);
+        const e = endInput.value ? parseFloat(endInput.value) : total;
+        const dur = Math.max(1, Math.round(Math.max(0, e - s) / rate));
+        effBadge.textContent = `Schedule slot: ~${dur}s`;
+      };
+
+      // Events on preview player
+      previewVid.addEventListener('loadedmetadata', () => {
+        if (previewVid.duration && Number.isFinite(previewVid.duration)) {
+          durTimeSpan.textContent = `${previewVid.duration.toFixed(2)}s`;
+          updateEffectiveDuration();
+        }
+      });
+      previewVid.addEventListener('timeupdate', () => {
+        curTimeSpan.textContent = `${previewVid.currentTime.toFixed(2)}s`;
+      });
+
+      rateSelect.addEventListener('change', () => {
+        previewVid.playbackRate = parseFloat(rateSelect.value) || 1.0;
+        updateEffectiveDuration();
+      });
+      startInput.addEventListener('input', updateEffectiveDuration);
+      endInput.addEventListener('input', updateEffectiveDuration);
+      updateEffectiveDuration();
+
+      // Loop Test button
+      let loopTestActive = false;
+      let loopHandler = null;
+      const testLoopBtn = document.createElement('button');
+      testLoopBtn.type = 'button';
+      testLoopBtn.className = 'btn btn-sm btn-loop-test';
+      testLoopBtn.textContent = '▶ Test Loop';
+      testLoopBtn.title = 'Loop preview between start and end time at chosen playback rate';
+
+      const stopLoopTest = () => {
+        if (!loopTestActive) return;
+        loopTestActive = false;
+        testLoopBtn.textContent = '▶ Test Loop';
+        testLoopBtn.classList.remove('active');
+        if (loopHandler) {
+          previewVid.removeEventListener('timeupdate', loopHandler);
+          loopHandler = null;
+        }
+      };
+
+      testLoopBtn.addEventListener('click', () => {
+        if (loopTestActive) {
+          stopLoopTest();
+          previewVid.pause();
+          return;
+        }
+        loopTestActive = true;
+        testLoopBtn.textContent = '⏹ Stop Loop Test';
+        testLoopBtn.classList.add('active');
+
+        const rate = parseFloat(rateSelect.value) || 1.0;
+        const s = startInput.value ? Math.max(0, parseFloat(startInput.value)) : 0;
+        const e = endInput.value ? parseFloat(endInput.value) : (previewVid.duration || entry.seconds);
+
+        previewVid.playbackRate = rate;
+        previewVid.currentTime = s;
+        previewVid.play().catch(() => {});
+
+        loopHandler = () => {
+          if (!loopTestActive) return;
+          if (previewVid.currentTime >= e || previewVid.currentTime < s - 0.5) {
+            previewVid.currentTime = s;
+            previewVid.play().catch(() => {});
+          }
+        };
+        previewVid.addEventListener('timeupdate', loopHandler);
+      });
+
+      // Reset / Clear loop limits button
+      const clearBtn = document.createElement('button');
+      clearBtn.type = 'button';
+      clearBtn.className = 'btn btn-sm btn-ghost';
+      clearBtn.textContent = 'Reset limits';
+      clearBtn.title = 'Reset clip start, end, and speed to defaults';
+      clearBtn.addEventListener('click', () => {
+        stopLoopTest();
+        startInput.value = '';
+        endInput.value = '';
+        rateSelect.value = '1';
+        previewVid.playbackRate = 1.0;
+        updateEffectiveDuration();
+      });
+
+      // Save video controls button
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'submit';
+      saveBtn.className = 'btn btn-sm';
+      saveBtn.textContent = 'Save video controls';
+      saveBtn.disabled = state.busy;
+
+      vForm.append(
+        entryField('Playback speed', rateSelect),
+        entryField('Start time (s)', startFieldWrap),
+        entryField('End time (s)', endFieldWrap),
+        effBadge,
+        testLoopBtn,
+        clearBtn,
+        saveBtn,
+      );
+
+      vForm.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        stopLoopTest();
+        const pRate = parseFloat(rateSelect.value) || 1.0;
+        const cStart = startInput.value ? parseFloat(startInput.value) : null;
+        const cEnd = endInput.value ? parseFloat(endInput.value) : null;
+        if (cStart !== null && cEnd !== null && cEnd <= cStart) {
+          setError('End time must be greater than start time.');
+          return;
+        }
+        handleSaveVideoControls(screen.id, entry.entryId, {
+          playbackRate: pRate,
+          clipStart: cStart,
+          clipEnd: cEnd,
+        });
+      });
+
+      videoCard.append(previewWrap, vForm);
+      playbackNodes.push(videoCard);
     }
 
     const sections = [
@@ -1559,6 +1790,26 @@ async function handleUpdateSeconds(screenId, entryId, rawSeconds) {
     });
     await loadScreens();
     setStatus('Slide duration updated.');
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    state.busy = false;
+    render();
+  }
+}
+
+async function handleSaveVideoControls(screenId, entryId, controls) {
+  setError('');
+  setStatus('');
+  state.busy = true;
+  render();
+  try {
+    await apiFetch(`/admin/screens/${encodeURIComponent(screenId)}/entries/${encodeURIComponent(entryId)}`, {
+      method: 'PATCH',
+      body: controls,
+    });
+    await loadScreens();
+    setStatus('Video controls saved.');
   } catch (err) {
     setError(err.message);
   } finally {

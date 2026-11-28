@@ -270,6 +270,28 @@ test('removeEntry, reorderEntries, setEntrySeconds, removePush', async () => {
   await state.setEntrySeconds('lobby', e1, 20);
   assert.equal((await state.getPlaylist('lobby')).entries.find((e) => e.entryId === e1).seconds, 20);
 
+  // setEntryVideoControls: videos only, rate 0.2-4.0, clipStart/clipEnd
+  await state.setEntryVideoControls('lobby', e2, { playbackRate: 2.0, clipStart: 5, clipEnd: 25 });
+  const videoEntry = (await state.getPlaylist('lobby')).entries.find((e) => e.entryId === e2);
+  assert.equal(videoEntry.seconds, 10);
+  assert.equal(videoEntry.playbackRate, 2.0);
+  assert.equal(videoEntry.clipStart, 5);
+  assert.equal(videoEntry.clipEnd, 25);
+  assert.equal(videoEntry.rawSeconds, 30);
+
+  await assert.rejects(
+    () => state.setEntryVideoControls('lobby', e1, { playbackRate: 1.5 }),
+    (err) => err instanceof StateError && err.code === 'INVALID_KIND',
+  );
+  await assert.rejects(
+    () => state.setEntryVideoControls('lobby', e2, { clipStart: 10, clipEnd: 5 }),
+    (err) => err instanceof StateError && err.code === 'INVALID_SECONDS',
+  );
+  await assert.rejects(
+    () => state.setEntryVideoControls('lobby', e2, { playbackRate: 5.0 }),
+    (err) => err instanceof StateError && err.code === 'INVALID_SECONDS',
+  );
+
   await assert.rejects(
     () => state.setEntrySeconds('lobby', e2, 10),
     (err) => err instanceof StateError && err.code === 'INVALID_KIND',

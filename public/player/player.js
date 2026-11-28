@@ -214,7 +214,10 @@
       }
       const existingVideo = currentSlideEl.querySelector('video');
       if (existingVideo) {
-        existingVideo.currentTime = 0;
+        const rate = Number(entry.playbackRate) || 1.0;
+        existingVideo.playbackRate = rate;
+        existingVideo.defaultPlaybackRate = rate;
+        existingVideo.currentTime = Number(entry.clipStart) || 0;
         slideTimer = setTimeout(onSlideComplete, (entry.seconds + 5) * 1000);
         existingVideo.play().catch((err) => {
           if (err?.name !== 'AbortError') onSlideError();
@@ -239,7 +242,16 @@
       video.autoplay = true;
       video.playsInline = true;
       video.preload = 'auto';
+      const rate = Number(entry.playbackRate) || 1.0;
+      video.playbackRate = rate;
+      video.defaultPlaybackRate = rate;
       video.src = entry.url;
+
+      const clipStart = Number(entry.clipStart) || 0;
+      const clipEnd = entry.clipEnd != null ? Number(entry.clipEnd) : null;
+      if (clipStart > 0) {
+        video.currentTime = clipStart;
+      }
 
       let settled = false;
       const done = () => {
@@ -256,6 +268,16 @@
 
       video.addEventListener('ended', done, { once: true });
       video.addEventListener('error', fail, { once: true });
+
+      if (clipEnd !== null) {
+        const onTimeUpdate = () => {
+          if (video.currentTime >= clipEnd) {
+            video.removeEventListener('timeupdate', onTimeUpdate);
+            done();
+          }
+        };
+        video.addEventListener('timeupdate', onTimeUpdate);
+      }
 
       slideEl.appendChild(video);
       crossFadeTo(slideEl);

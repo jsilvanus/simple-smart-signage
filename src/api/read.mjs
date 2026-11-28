@@ -167,6 +167,9 @@ export function registerReadRoutes(router, ctx) {
         sha256: e.mediaId,
         seconds: e.seconds,
         background: e.background ?? null,
+        playbackRate: e.playbackRate ?? 1.0,
+        clipStart: e.clipStart ?? null,
+        clipEnd: e.clipEnd ?? null,
       };
     });
 

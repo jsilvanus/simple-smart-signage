@@ -84,6 +84,22 @@ export function registerViewRoutes(router, ctx) {
     }));
   }
 
+  // Martti, the parish font, for the view runtime. Public, cross-origin readable (embeds load it from other sites).
+  const FONT_FILES = { 'Martti-Regular.ttf': null, 'Martti-Bold.ttf': null };
+  router.get('/v/fonts/:file', async (req, res, { params }) => {
+    if (!Object.hasOwn(FONT_FILES, params.file)) throw new HttpError('SCREEN_NOT_FOUND', `Unknown font: ${params.file}`);
+    FONT_FILES[params.file] ??= await readFile(fileURLToPath(new URL(`../../public/fonts/martti/${params.file}`, import.meta.url)));
+    const data = FONT_FILES[params.file];
+    res.writeHead(200, {
+      'content-type': 'font/ttf',
+      'content-length': data.length,
+      'cache-control': 'public, max-age=31536000, immutable',
+      'access-control-allow-origin': '*',
+      'x-content-type-options': 'nosniff',
+    });
+    res.end(req.method === 'HEAD' ? undefined : data);
+  });
+
   router.options('/v/:viewId/playlist.json', async (req, res, { params }) => {
     const view = await loadView(params.viewId);
     const cors = corsHeaders(req.headers.origin, view.embed?.allowedOrigins ?? []);
@@ -123,7 +139,7 @@ export function registerViewRoutes(router, ctx) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>${escapeHtml(view.name)}</title>
-<style>html,body{margin:0;height:100%;background:#fff}body{display:flex;align-items:center;justify-content:center}#root{width:100%;max-height:100%}</style>
+<style>html,body{margin:0;height:100%;background:transparent}body{display:flex;align-items:center;justify-content:center}#root{width:100%;max-height:100%}</style>
 </head>
 <body>
 <div id="root"></div>
@@ -131,6 +147,9 @@ export function registerViewRoutes(router, ctx) {
 <script>
 (function () {
   var cfg = ${scriptJson(config)};
+  var q = new URLSearchParams(location.search);
+  cfg.maxWidth = q.get('maxWidth');
+  cfg.background = q.get('background');
   window.SissiViews.mount(document.getElementById('root'), cfg);
 })();
 </script>
@@ -169,7 +188,12 @@ export function registerViewRoutes(router, ctx) {
   function mountEl(h) {
     h.setAttribute('data-sissi-mounted', '1');
     var root = h.attachShadow ? h.attachShadow({ mode: 'open' }) : h;
-    window.SissiViews.mount(root, cfg);
+    // Per-embed settings from the host page: data-sissi-max-width, data-sissi-background.
+    var own = Object.assign({}, cfg, {
+      maxWidth: h.getAttribute('data-sissi-max-width'),
+      background: h.getAttribute('data-sissi-background')
+    });
+    window.SissiViews.mount(root, own);
   }
   function mountAll() {
     var holders = document.querySelectorAll('[data-sissi-embed]');

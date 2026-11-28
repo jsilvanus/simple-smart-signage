@@ -5,20 +5,32 @@
   'use strict';
   var TIMERS = typeof WeakMap === 'function' ? new WeakMap() : null;
   var STYLE = [
-    ':host, .sissi-view { display: block; position: relative; width: 100%; font-family: system-ui, sans-serif; color: #111; }',
-    '.sissi-view .sv-stage { position: relative; width: 100%; aspect-ratio: var(--sv-aspect, 16 / 9); overflow: hidden; background: #f3f3f3; }',
+    ':host, .sissi-view { display: block; position: relative; width: 100%; font-family: system-ui, sans-serif; color: #111; max-width: var(--sissi-max-width, none); }',
+    '.sissi-view .sv-stage { position: relative; width: 100%; aspect-ratio: var(--sv-aspect, 16 / 9); overflow: hidden; background: var(--sv-bg, var(--sissi-bg, transparent)); }',
     '.sissi-view .sv-slide { position: absolute; inset: 0; display: none; }',
     '.sissi-view .sv-slide.is-on { display: block; }',
     '.sissi-view figure { margin: 0; height: 100%; display: flex; flex-direction: column; }',
     '.sissi-view .sv-media { position: relative; flex: 1 1 auto; min-height: 0; }',
     '.sissi-view .sv-media img, .sissi-view .sv-media video { width: 100%; height: 100%; object-fit: var(--sv-fit, contain); display: block; }',
-    '.sissi-view .sv-headline { position: absolute; left: 0; right: 0; bottom: 12%; padding: .4em .8em; color: #fff; background: rgba(0,0,0,.45); font-size: clamp(1rem, 3.2vw, 2.4rem); font-weight: 700; text-align: center; text-shadow: 0 1px 2px rgba(0,0,0,.6); }',
-    '.sissi-view .sv-caption { margin: 0; padding: .5em .8em; font-size: clamp(.85rem, 1.8vw, 1.2rem); }',
+    '.sissi-view .sv-text { padding: .6em .9em; font-family: "Martti Sissi", system-ui, sans-serif; }',
+    '.sissi-view .sv-stage .sv-text { position: absolute; left: 0; right: 0; bottom: 0; padding: 1.6em .9em .7em; color: #fff; background: linear-gradient(to top, rgba(0,0,0,.75), rgba(0,0,0,0)); text-shadow: 0 1px 2px rgba(0,0,0,.5); }',
+    '.sissi-view .sv-headline { margin: 0; font-size: clamp(1.1rem, 2.6vw, 1.9rem); font-weight: 700; line-height: 1.2; }',
+    '.sissi-view .sv-caption { margin: .25em 0 0; font-size: clamp(.85rem, 1.7vw, 1.15rem); font-weight: 400; line-height: 1.35; }',
+    '.sissi-view.is-fit .sv-stage { transition: aspect-ratio .3s ease; }',
+    '@media (prefers-reduced-motion: reduce) { .sissi-view.is-fit .sv-stage { transition: none; } }',
+    '.sissi-view.is-fit .sv-grid .sv-media { aspect-ratio: auto; }',
+    '.sissi-view.is-fit .sv-grid .sv-media img, .sissi-view.is-fit .sv-grid .sv-media video { height: auto; }',
     '.sissi-view a { color: inherit; text-decoration: none; }',
-    '.sissi-view .sv-nav { display: flex; align-items: center; justify-content: center; gap: .5em; padding: .4em; }',
-    '.sissi-view .sv-nav button { font: inherit; min-width: 2.4em; min-height: 2.4em; border: 1px solid #888; background: #fff; border-radius: 4px; cursor: pointer; }',
-    '.sissi-view .sv-nav button.sv-dot { width: .9em; height: .9em; min-width: .9em; min-height: .9em; border-radius: 50%; border: 1px solid #555; background: #fff; padding: 0; }',
-    '.sissi-view .sv-nav button.sv-dot.is-on { background: #222; }',
+    '.sissi-view .sv-arrow { position: absolute; top: 50%; z-index: 2; width: 2.75rem; height: 2.75rem; margin: 0; padding: 0; transform: translateY(-50%); display: grid; place-items: center; border: 0; border-radius: 50%; color: #fff; background: rgba(20,20,20,.5); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: 0 2px 8px rgba(0,0,0,.3); cursor: pointer; opacity: .85; transition: background .15s, opacity .15s, transform .15s; }',
+    '.sissi-view .sv-arrow.sv-prev { left: .6rem; } .sissi-view .sv-arrow.sv-next { right: .6rem; }',
+    '.sissi-view .sv-arrow svg { width: 1.4rem; height: 1.4rem; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }',
+    '.sissi-view .sv-arrow:hover { background: rgba(20,20,20,.75); opacity: 1; transform: translateY(-50%) scale(1.06); }',
+    '.sissi-view .sv-arrow:active { transform: translateY(-50%) scale(.96); }',
+    '@media (hover: hover) { .sissi-view .sv-arrow { opacity: 0; } .sissi-view .sv-stage:hover .sv-arrow, .sissi-view .sv-arrow:focus-visible { opacity: .9; } }',
+    '@media (prefers-reduced-motion: reduce) { .sissi-view .sv-arrow { transition: none; } }',
+    '.sissi-view .sv-nav button.sv-dot { width: .6rem; height: .6rem; min-width: .6rem; min-height: .6rem; border-radius: 999px; border: 0; background: rgba(0,0,0,.25); padding: 0; transition: width .2s, background .2s; }',
+    '.sissi-view .sv-nav button.sv-dot.is-on { width: 1.5rem; background: #222; }',
+    '.sissi-view .sv-nav { display: flex; align-items: center; justify-content: center; gap: .4rem; padding: .6rem; }',
     '.sissi-view .sv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: .6em; padding: .6em; }',
     '.sissi-view .sv-grid figure { height: auto; }',
     '.sissi-view .sv-grid .sv-media { aspect-ratio: var(--sv-aspect, 16 / 9); }',
@@ -52,12 +64,15 @@
     } else {
       box.appendChild(el('img', { src: entry.url, alt: entry.alt || '', loading: 'lazy' }));
     }
-    if (entry.headline) box.appendChild(text('div', 'sv-headline', entry.headline));
     return box;
   }
 
   function figure(entry) {
-    var fig = el('figure', null, [media(entry), entry.caption ? text('p', 'sv-caption', entry.caption) : null]);
+    var block = null;
+    if (entry.headline || entry.caption) {
+      block = el('div', { class: 'sv-text' }, [entry.headline ? text('div', 'sv-headline', entry.headline) : null, entry.caption ? text('p', 'sv-caption', entry.caption) : null]);
+    }
+    var fig = el('figure', null, [media(entry), block]);
     if (entry.link) {
       var a = el('a', { href: entry.link, target: '_blank', rel: 'noopener noreferrer' }, [fig]);
       return a;
@@ -67,6 +82,20 @@
 
   function reduced() {
     return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+
+  /** Round overlay arrow with an inline SVG chevron (built with createElementNS: nothing is parsed as HTML). */
+  function arrowButton(dir, label) {
+    var b = el('button', { type: 'button', class: 'sv-arrow sv-' + dir, 'aria-label': label });
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    var path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', dir === 'prev' ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7');
+    svg.appendChild(path);
+    b.appendChild(svg);
+    return b;
   }
 
   function carousel(entries, options, root) {
@@ -81,10 +110,11 @@
     var hoverPaused = false;
     var focusPaused = false;
     var nav = el('div', { class: 'sv-nav' });
-    var prev = el('button', { type: 'button', 'aria-label': 'Edellinen' });
-    prev.textContent = '‹';
-    var next = el('button', { type: 'button', 'aria-label': 'Seuraava' });
-    next.textContent = '›';
+    // `controls` (arrows, dots, swipe) belong to the carousel; `autoplay` is an option of it. The `single` type is autoplay without controls.
+    var controls = options.controls !== false && slides.length > 1;
+    var autoplay = options.autoplay !== false;
+    var prev = arrowButton('prev', 'Edellinen');
+    var next = arrowButton('next', 'Seuraava');
     var dots = [];
 
     function stop() { if (timer) { clearTimeout(timer); timer = null; } }
@@ -93,6 +123,7 @@
     function show(i, keepTime) {
       stop();
       index = (i + slides.length) % slides.length;
+      if (options.fitContent) fitStage(stage, slides[index]);
       slides.forEach(function (s, n) {
         s.classList.toggle('is-on', n === index);
         var v = s.querySelector('video');
@@ -107,23 +138,25 @@
       });
       dots.forEach(function (d, n) { d.classList.toggle('is-on', n === index); d.setAttribute('aria-current', n === index ? 'true' : 'false'); });
       var entry = entries[index];
-      if (!isPaused() && !reduced() && slides.length > 1 && entry.kind !== 'video') {
+      if (autoplay && !isPaused() && !reduced() && slides.length > 1 && entry.kind !== 'video') {
         timer = setTimeout(function () { show(index + 1, false); }, Math.max(1, entry.seconds || 10) * 1000);
       }
     }
 
     prev.addEventListener('click', function () { show(index - 1, false); });
     next.addEventListener('click', function () { show(index + 1, false); });
-    nav.appendChild(prev);
-    if (options.dots && slides.length > 1) {
-      entries.forEach(function (_e, n) {
-        var d = el('button', { type: 'button', class: 'sv-dot', 'aria-label': String(n + 1) });
-        d.addEventListener('click', function () { show(n, false); });
-        dots.push(d);
-        nav.appendChild(d);
-      });
+    if (controls) {
+      stage.appendChild(prev);
+      stage.appendChild(next);
+      if (options.dots) {
+        entries.forEach(function (_e, n) {
+          var d = el('button', { type: 'button', class: 'sv-dot', 'aria-label': String(n + 1) });
+          d.addEventListener('click', function () { show(n, false); });
+          dots.push(d);
+          nav.appendChild(d);
+        });
+      }
     }
-    nav.appendChild(next);
 
     stage.addEventListener('mouseenter', function () { hoverPaused = true; stop(); });
     stage.addEventListener('mouseleave', function () { hoverPaused = false; if (!isPaused()) show(index, true); });
@@ -133,28 +166,37 @@
     stage.addEventListener('pointerdown', function (ev) { startX = ev.clientX; });
     stage.addEventListener('pointercancel', function () { startX = null; });
     stage.addEventListener('pointerup', function (ev) {
-      if (startX === null) return;
+      if (startX === null || !controls) return;
       var dx = ev.clientX - startX;
       startX = null;
       if (Math.abs(dx) > 40) show(index + (dx < 0 ? 1 : -1), false);
     });
 
     root.appendChild(stage);
-    if (slides.length > 1) root.appendChild(nav);
+    if (dots.length) root.appendChild(nav);
     slides.forEach(function (s, n) {
       var v = s.querySelector('video');
-      if (v) v.addEventListener('ended', function () { if (n === index && slides.length > 1) show(index + 1, false); });
+      if (!v) return;
+      if (!autoplay || slides.length < 2) v.loop = true;
+      v.addEventListener('ended', function () { if (autoplay && n === index && slides.length > 1) show(index + 1, false); });
     });
     show(0, false);
   }
 
-  function single(entries, root) {
-    var stage = el('div', { class: 'sv-stage' });
-    var slide = el('div', { class: 'sv-slide is-on' }, [figure(entries[0])]);
-    stage.appendChild(slide);
-    root.appendChild(stage);
-    var v = slide.querySelector('video');
-    if (v) { v.loop = true; v.play().catch(function () {}); }
+  /** Fit to content: sizes the stage to the natural ratio of the slide's media, now and once it has loaded. */
+  function fitStage(stage, slide) {
+    var m = slide.querySelector('img, video');
+    if (!m) return;
+    function apply() {
+      var w = m.naturalWidth || m.videoWidth;
+      var h = m.naturalHeight || m.videoHeight;
+      if (w > 0 && h > 0 && slide.classList.contains('is-on')) stage.style.setProperty('--sv-aspect', w + ' / ' + h);
+    }
+    apply();
+    if (!m.getAttribute('data-sv-fit')) {
+      m.setAttribute('data-sv-fit', '1');
+      m.addEventListener(m.tagName === 'VIDEO' ? 'loadedmetadata' : 'load', apply);
+    }
   }
 
   function gallery(entries, root) {
@@ -164,7 +206,19 @@
   }
 
   /** Renders `playlist` (the view's JSON) into `root` (an element or a shadow root). */
-  function render(root, playlist, embed) {
+  /** Host-page settings (from data-sissi-* attributes or frame URL parameters). Anything that is not a plain CSS length or colour is ignored. */
+  function cssLength(v) {
+    var s = String(v == null ? '' : v).trim();
+    if (/^\d+(\.\d+)?$/.test(s)) return s + 'px';
+    return /^\d+(\.\d+)?(px|rem|em|%|vw|ch)$/.test(s) ? s : null;
+  }
+  function cssColor(v) {
+    var s = String(v == null ? '' : v).trim();
+    if (!s || s.length > 64) return null;
+    return (window.CSS && CSS.supports && CSS.supports('color', s)) ? s : null;
+  }
+
+  function render(root, playlist, embed, ext) {
     while (root.firstChild) root.removeChild(root.firstChild);
     var cfg = embed || {};
     var options = cfg.options || {};
@@ -177,6 +231,8 @@
       return;
     }
     host.style.display = '';
+    var maxW = cssLength(ext && ext.maxWidth);
+    if (maxW) host.style.maxWidth = maxW;
     notifyEmpty(false);
     var style = el('style');
     style.textContent = STYLE;
@@ -184,9 +240,12 @@
     var wrap = el('div', { class: 'sissi-view', 'data-type': cfg.type || 'carousel' });
     wrap.style.setProperty('--sv-aspect', String(options.aspect || '16:9').replace(':', ' / '));
     wrap.style.setProperty('--sv-fit', options.fit === 'cover' ? 'cover' : 'contain');
+    if (options.fitContent) wrap.classList.add('is-fit');
+    var bg = cssColor(ext && ext.background);
+    if (bg) wrap.style.setProperty('--sv-bg', bg);
     root.appendChild(wrap);
     if (cfg.type === 'gallery') gallery(entries, wrap);
-    else if (cfg.type === 'single') single(entries, wrap);
+    else if (cfg.type === 'single') carousel(entries, Object.assign({}, options, { controls: false, autoplay: true }), wrap);
     else carousel(entries, options, wrap);
   }
 
@@ -197,7 +256,23 @@
   }
 
   /** Fetches the playlist from `url` and renders it; re-checks every `intervalMs`. Returns a stop function. */
+  /** Martti (the parish font) is served by Sissi. @font-face has to live in the host document: it is ignored inside a shadow root. */
+  function loadFont(playlistUrl) {
+    if (document.getElementById('sissi-martti-font')) return;
+    try {
+      var base = new URL('../fonts/', new URL(playlistUrl, location.href));
+      var css = [['Martti-Regular.ttf', 400], ['Martti-Bold.ttf', 700]].map(function (f) {
+        return '@font-face { font-family: "Martti Sissi"; font-weight: ' + f[1] + '; font-display: swap; src: url("' + new URL(f[0], base).href + '") format("truetype"); }';
+      }).join('\n');
+      var style = document.createElement('style');
+      style.id = 'sissi-martti-font';
+      style.textContent = css;
+      (document.head || document.documentElement).appendChild(style);
+    } catch (e) { /* fall back to the system font */ }
+  }
+
   function mount(root, opts) {
+    loadFont(opts.playlistUrl);
     if (TIMERS && TIMERS.has(root)) {
       TIMERS.get(root)();
     }
@@ -228,7 +303,7 @@
           scheduleChange(parsed.nextChangeAt);
           if (body === last) return;
           last = body;
-          render(root, parsed, parsed.embed || opts.embed);
+          render(root, parsed, parsed.embed || opts.embed, opts);
         })
         .catch(function () { /* keep the last good content */ });
     }

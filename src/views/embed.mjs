@@ -59,7 +59,7 @@ export function validateEmbed(input) {
   }
   return {
     type,
-    options: { fit, aspect, dots: options.dots !== false },
+    options: { fit, aspect, dots: options.dots !== false, fitContent: options.fitContent === true, autoplay: options.autoplay !== false },
     allowedOrigins: normaliseOrigins(src.allowedOrigins),
   };
 }
@@ -150,6 +150,7 @@ export function frameCsp(allowedOrigins) {
     "script-src 'self' 'unsafe-inline'",
     "style-src 'unsafe-inline'",
     "img-src 'self'",
+    "font-src 'self'",
     "media-src 'self'",
     "connect-src 'self'",
     "base-uri 'none'",

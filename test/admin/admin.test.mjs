@@ -663,3 +663,73 @@ test('PATCH entry supports renaming item (title)', async (t) => {
   const screen = await srv.state.getScreen('lobby');
   assert.equal(screen.entries[0].title, 'Renamed Banner');
 });
+
+test('screen and view background colors: defaults, transparent rejection on screens, per-item override and reset', async (t) => {
+  const srv = await setupAdminServer();
+  t.after(srv.close);
+  const { cookie } = await loginCookie(srv.base);
+
+  // Screen defaults to #000000
+  const screenRes = await http(srv.base, '/signage/api/v1/admin/screens', {
+    method: 'POST',
+    headers: { cookie, 'x-sissi-admin': '1' },
+    body: { id: 'hall', name: 'Hall', kind: 'screen' },
+  });
+  assert.equal(screenRes.status, 201);
+  assert.equal(screenRes.json.background, '#000000');
+
+  // Screen rejects transparent background
+  const badScreen = await http(srv.base, '/signage/api/v1/admin/screens', {
+    method: 'POST',
+    headers: { cookie, 'x-sissi-admin': '1' },
+    body: { id: 'bad-screen', name: 'Bad', kind: 'screen', background: 'transparent' },
+  });
+  assert.equal(badScreen.status, 422);
+
+  // View defaults to transparent
+  const viewRes = await http(srv.base, '/signage/api/v1/admin/screens', {
+    method: 'POST',
+    headers: { cookie, 'x-sissi-admin': '1' },
+    body: { id: 'web-news', name: 'Web News', kind: 'view', embed: {} },
+  });
+  assert.equal(viewRes.status, 201);
+  assert.equal(viewRes.json.background, 'transparent');
+
+  // View accepts custom background
+  const viewPatch = await http(srv.base, '/signage/api/v1/admin/screens/web-news', {
+    method: 'PATCH',
+    headers: { cookie, 'x-sissi-admin': '1' },
+    body: { background: '#ffffff' },
+  });
+  assert.equal(viewPatch.status, 200);
+  assert.equal(viewPatch.json.background, '#ffffff');
+
+  // Add entry to view and test per-item background
+  await srv.state.applyPush('web-news', {
+    pushId: 'p-bg',
+    title: 'Slide with BG',
+    items: [{ mediaId: PNG_SHA, ext: 'png', kind: 'image', seconds: 5 }],
+  });
+  const entryId = (await srv.state.getScreen('web-news')).entries[0].entryId;
+
+  // By default, entry background is null (inherits playlist default)
+  assert.equal((await srv.state.getScreen('web-news')).entries[0].background, null);
+
+  // PATCH entry background to custom color
+  const entryPatch = await http(srv.base, `/signage/api/v1/admin/screens/web-news/entries/${entryId}`, {
+    method: 'PATCH',
+    headers: { cookie, 'x-sissi-admin': '1' },
+    body: { background: '#123456' },
+  });
+  assert.equal(entryPatch.status, 200);
+  assert.equal(entryPatch.json.background, '#123456');
+
+  // Reset entry background to null (re-inherits)
+  const resetPatch = await http(srv.base, `/signage/api/v1/admin/screens/web-news/entries/${entryId}`, {
+    method: 'PATCH',
+    headers: { cookie, 'x-sissi-admin': '1' },
+    body: { background: null },
+  });
+  assert.equal(resetPatch.status, 200);
+  assert.equal(resetPatch.json.background, null);
+});

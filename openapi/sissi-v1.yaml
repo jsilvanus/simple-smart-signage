@@ -196,6 +196,7 @@ paths:
               type: object
               properties:
                 title: { type: string, minLength: 1, maxLength: 200 }
+                background: { type: string, nullable: true, description: CSS color or null to inherit screen/view default }
                 seconds: { type: integer, minimum: 1, maximum: 3600 }
                 enabled: { type: boolean, description: true makes the entry live, false takes it off the screen (live change). }
                 startDatetime: { type: string, format: date-time, nullable: true, description: 'ISO 8601 with UTC offset. Before this the entry is not in any playlist. null = no start limit. Needs sissi:write.' }
@@ -398,6 +399,7 @@ components:
         kind: { type: string, enum: [screen, view, aggregate], description: Screens play on a display; views are embedded in web pages; aggregates join views (no items of their own) }
         name: { type: string }
         orientation: { type: string, enum: [landscape, vertical] }
+        background: { type: string, description: Default background color (black #000000 for screens, transparent for views) }
         width: { type: integer, nullable: true }
         height: { type: integer, nullable: true }
         defaultImageSeconds: { type: integer, minimum: 1, maximum: 3600 }
@@ -436,6 +438,7 @@ components:
         kind: { type: string, enum: [screen, view, aggregate], default: screen, description: Create only }
         name: { type: string, minLength: 1, maxLength: 100 }
         orientation: { type: string, enum: [landscape, vertical] }
+        background: { type: string, description: Default background color (black #000000 for screens, transparent for views) }
         width: { type: integer, nullable: true }
         height: { type: integer, nullable: true }
         defaultImageSeconds: { type: integer, minimum: 1, maximum: 3600 }
@@ -487,6 +490,7 @@ components:
         mediaId: { type: string, description: sha256 hex }
         kind: { type: string, enum: [image, video] }
         seconds: { type: integer }
+        background: { type: string, nullable: true, description: Custom background color for this item, or null to inherit screen default }
         title: { type: string }
         pushId: { type: string }
         addedAt: { type: string, format: date-time }
@@ -576,6 +580,7 @@ components:
         id: { type: string, pattern: '^[a-z0-9-]{1,40}$', description: Create only }
         name: { type: string, minLength: 1, maxLength: 100 }
         orientation: { type: string, enum: [landscape, vertical] }
+        background: { type: string, description: Default background color (black #000000 for screens, transparent for views) }
         width: { type: integer, nullable: true }
         height: { type: integer, nullable: true }
         defaultImageSeconds: { type: integer, minimum: 1, maximum: 3600 }
@@ -623,6 +628,7 @@ components:
         mediaId: { type: string, description: sha256 hex }
         kind: { type: string, enum: [image, video] }
         seconds: { type: integer }
+        background: { type: string, nullable: true, description: Custom background color for this item, or null to inherit screen default }
         title: { type: string }
         pushId: { type: string }
         addedAt: { type: string, format: date-time }

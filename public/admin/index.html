@@ -108,8 +108,8 @@
               </div>
               <button id="embed-btn" type="button" class="btn" hidden>Embeds</button>
               <button id="rights-btn" type="button" class="btn">Rights</button>
-              <a id="preview-link" class="btn" target="_blank" rel="noopener noreferrer">Preview screen &#x2197;</a>
-              <button id="edit-screen-btn" type="button" class="btn">Edit screen</button>
+              <a id="preview-link" class="btn" target="_blank" rel="noopener noreferrer">Preview &#x2197;</a>
+              <button id="edit-screen-btn" type="button" class="btn">Edit</button>
               <button id="delete-screen-btn" type="button" class="btn btn-danger">Delete</button>
             </div>
           </div>
@@ -203,9 +203,19 @@
         <input id="screen-max-video" name="maxVideoSeconds" type="number" min="1" placeholder="No limit">
       </div>
 
+      <div class="field" id="screen-background-field">
+        <label for="screen-background">Default background color</label>
+        <div class="color-picker-row">
+          <input id="screen-background" name="background" type="text" placeholder="#000000">
+          <input id="screen-background-picker" type="color" value="#000000" aria-label="Color picker">
+          <button type="button" id="screen-background-reset" class="btn btn-sm">Default</button>
+        </div>
+        <span id="screen-background-hint" class="hint">Black (#000000) for screens; transparent for views.</span>
+      </div>
+
       <fieldset id="embed-fieldset" class="embed-fieldset" hidden>
         <legend>Web embed settings</legend>
-        <div class="field-row">
+        <div class="embed-framing-grid">
           <div class="field">
             <label for="embed-type">Layout</label>
             <select id="embed-type" name="embedType">
@@ -221,27 +231,39 @@
               <option value="cover">Cover</option>
             </select>
           </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
+          <div class="field" id="embed-aspect-field">
             <label for="embed-aspect">Aspect ratio</label>
             <input id="embed-aspect" name="embedAspect" type="text" value="16:9" placeholder="16:9">
           </div>
-          <div class="field">
-            <label class="checkbox-label" for="embed-dots">
+        </div>
+
+        <div class="embed-options-panel">
+          <div class="embed-options-heading">Playback & Behavior</div>
+          <div class="embed-options-grid">
+            <label class="embed-option-card" for="embed-dots">
               <input id="embed-dots" name="embedDots" type="checkbox" checked>
-              Show carousel dots
+              <div class="embed-option-text">
+                <span class="embed-option-title">Show carousel dots</span>
+                <span class="embed-option-desc">Display navigation dots beneath slides</span>
+              </div>
             </label>
-            <label class="checkbox-label" for="embed-autoplay">
+            <label class="embed-option-card" for="embed-autoplay">
               <input id="embed-autoplay" name="embedAutoplay" type="checkbox" checked>
-              Autoplay (carousel; Single always autoplays)
+              <div class="embed-option-text">
+                <span class="embed-option-title">Autoplay</span>
+                <span class="embed-option-desc">Advance on schedule (Single always autoplays)</span>
+              </div>
             </label>
-            <label class="checkbox-label" for="embed-fit-content">
+            <label class="embed-option-card" for="embed-fit-content">
               <input id="embed-fit-content" name="embedFitContent" type="checkbox">
-              Fit to content (resize to each item's own shape)
+              <div class="embed-option-text">
+                <span class="embed-option-title">Fit to content</span>
+                <span class="embed-option-desc">Auto-resize frame to each item's natural ratio</span>
+              </div>
             </label>
           </div>
         </div>
+
         <div class="field">
           <label for="embed-origins">Allowed origins (one per line, e.g. <code>https://example.fi</code>)</label>
           <textarea id="embed-origins" name="embedOrigins" rows="2" placeholder="https://www.riihimaenseurakunta.fi"></textarea>

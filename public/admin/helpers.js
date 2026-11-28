@@ -78,6 +78,10 @@ export function buildScreenPayload(values, { isCreate = false } = {}) {
     defaultImageSeconds: Number(values.defaultImageSeconds),
     maxVideoSeconds: parseOptionalInt(values.maxVideoSeconds),
   };
+  if (values.background !== undefined) {
+    const bgRaw = String(values.background).trim();
+    payload.background = bgRaw || (kind === 'screen' ? '#000000' : 'transparent');
+  }
   if (isCreate) {
     payload.id = String(values.id ?? '').trim();
     if (kind !== 'screen') payload.kind = kind;

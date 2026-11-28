@@ -863,3 +863,143 @@ dialog.rights-dialog {
   color: var(--fg);
 }
 
+/* Color picker input row */
+.color-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.color-picker-row input[type="text"] {
+  flex: 1;
+  min-width: 8rem;
+}
+
+.color-picker-row input[type="color"] {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Embed Fieldset Modern Styling */
+.embed-fieldset {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 1rem 1.15rem;
+  margin-top: 1rem;
+}
+
+.embed-fieldset legend {
+  font-weight: 600;
+  color: var(--fg);
+  padding: 0 0.5rem;
+}
+
+.embed-framing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.embed-options-panel {
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.embed-options-heading {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.embed-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.5rem;
+}
+
+.embed-option-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.embed-option-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border);
+}
+
+.embed-option-card input[type="checkbox"] {
+  margin-top: 0.15rem;
+  cursor: pointer;
+}
+
+.embed-option-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.embed-option-title {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.embed-option-desc {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.25;
+}
+
+/* Field disabled state */
+.field.is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.field.is-disabled label {
+  color: var(--muted);
+}
+
+/* Entry background appearance form */
+.entry-bg-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.entry-bg-input {
+  max-width: 10rem;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.45rem;
+}
+
+.entry-bg-picker {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  cursor: pointer;
+}
+

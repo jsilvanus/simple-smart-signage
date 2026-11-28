@@ -241,6 +241,9 @@
 
         var slideEl = document.createElement('div');
         slideEl.className = 'slide';
+        if (entry.background) {
+          slideEl.style.setProperty('--entry-bg', entry.background);
+        }
         slideEl._revokeMedia = resolved.revoke || null;
 
         if (entry.kind === 'video') {
@@ -334,6 +337,9 @@
     function applyFetchedPlaylist(screenId, data) {
       saveStoredPlaylist(screenId, data);
       mediaCache.syncEntries(data.entries, resolveNetworkUrl);
+      if (data.background) {
+        document.documentElement.style.setProperty('--screen-bg', data.background);
+      }
 
       if (!activePlaylist || activePlaylist.entries.length === 0) {
         activePlaylist = data;

@@ -81,6 +81,7 @@ export function registerViewRoutes(router, ctx) {
       headline: e.headline ?? null,
       caption: e.caption ?? null,
       link: e.link ?? null,
+      background: e.background ?? null,
     }));
   }
 
@@ -119,6 +120,7 @@ export function registerViewRoutes(router, ctx) {
       version: pl.version,
       nextChangeAt: pl.nextChangeAt,
       embed: view.embed,
+      background: view.background ?? 'transparent',
       entries,
     };
     const cors = corsHeaders(req.headers.origin, view.embed?.allowedOrigins ?? []);

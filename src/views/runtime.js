@@ -102,6 +102,10 @@
     var stage = el('div', { class: 'sv-stage', 'aria-roledescription': 'carousel', 'aria-live': 'off' });
     var slides = entries.map(function (entry) {
       var s = el('div', { class: 'sv-slide', role: 'group', 'aria-roledescription': 'slide' }, [figure(entry)]);
+      if (entry.background) {
+        var itemBg = cssColor(entry.background);
+        if (itemBg) s.style.background = itemBg;
+      }
       stage.appendChild(s);
       return s;
     });
@@ -227,7 +231,14 @@
 
   function gallery(entries, root) {
     var grid = el('div', { class: 'sv-grid' });
-    entries.forEach(function (entry) { grid.appendChild(figure(entry)); });
+    entries.forEach(function (entry) {
+      var fig = figure(entry);
+      if (entry.background) {
+        var itemBg = cssColor(entry.background);
+        if (itemBg) fig.style.background = itemBg;
+      }
+      grid.appendChild(fig);
+    });
     root.appendChild(grid);
   }
 
@@ -267,7 +278,7 @@
     wrap.style.setProperty('--sv-aspect', String(options.aspect || '16:9').replace(':', ' / '));
     wrap.style.setProperty('--sv-fit', options.fit === 'cover' ? 'cover' : 'contain');
     if (options.fitContent) wrap.classList.add('is-fit');
-    var bg = cssColor(ext && ext.background);
+    var bg = cssColor(ext && ext.background) || cssColor(playlist && playlist.background);
     if (bg) wrap.style.setProperty('--sv-bg', bg);
     root.appendChild(wrap);
     if (cfg.type === 'gallery') gallery(entries, wrap);

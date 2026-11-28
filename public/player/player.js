@@ -228,6 +228,9 @@
 
     const slideEl = document.createElement('div');
     slideEl.className = 'slide';
+    if (entry.background) {
+      slideEl.style.setProperty('--entry-bg', entry.background);
+    }
 
     if (entry.kind === 'video') {
       const video = document.createElement('video');
@@ -347,6 +350,9 @@
   function applyFetchedPlaylist(data) {
     saveStoredPlaylist(data);
     syncPlaylistWithSw(data.entries);
+    if (data.background) {
+      document.documentElement.style.setProperty('--screen-bg', data.background);
+    }
 
     if (!activePlaylist || activePlaylist.entries.length === 0) {
       activePlaylist = data;

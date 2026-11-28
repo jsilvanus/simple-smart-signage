@@ -11,7 +11,7 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #000;
+  background: var(--screen-bg, #000);
   cursor: none;
 }
 
@@ -20,7 +20,7 @@ body {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: #000;
+  background: var(--screen-bg, #000);
 }
 
 .slide {
@@ -31,7 +31,7 @@ body {
   opacity: 0;
   transition: opacity 0.5s ease;
   will-change: opacity;
-  background: #000;
+  background: var(--entry-bg, var(--screen-bg, #000));
 }
 
 .slide.is-visible {

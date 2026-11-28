@@ -49,7 +49,7 @@ function isEnabled(entry) {
 }
 
 function withEnabled(entry) {
-  return { ...entry, enabled: isEnabled(entry) };
+  return { ...entry, background: entry.background ?? null, enabled: isEnabled(entry) };
 }
 
 const DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
@@ -119,6 +119,41 @@ function effectiveVersion(version, crossed) {
   return crossed === 0 ? version : version * 1000 + Math.min(crossed, 999);
 }
 
+function isTransparentColor(c) {
+  if (!c) return false;
+  const s = String(c).trim().toLowerCase();
+  if (s === 'transparent') return true;
+  if (s === '#00000000' || s === '#0000') return true;
+  if (/^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*0+(\.0+)?\s*\)$/.test(s)) return true;
+  if (/^hsla\([^,]+,[^,]+,[^,]+,\s*0+(\.0+)?\s*\)$/.test(s)) return true;
+  return false;
+}
+
+function validateColor(val) {
+  if (typeof val !== 'string') throw new StateError('INVALID_SCREEN', 'Background color must be a string');
+  const s = val.trim();
+  if (!s || s.length > 64) throw new StateError('INVALID_SCREEN', 'Background color must be 1-64 characters');
+  const isHex = /^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(s);
+  const isRgb = /^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*(0(\.\d+)?|1(\.0+)?|\.\d+)\s*)?\)$/i.test(s);
+  const isHsl = /^hsla?\(\s*\d{1,3}(\.\d+)?(deg)?\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*(,\s*(0(\.\d+)?|1(\.0+)?|\.\d+)\s*)?\)$/i.test(s);
+  const isNamed = /^[a-zA-Z]{3,25}$/.test(s);
+  if (!isHex && !isRgb && !isHsl && !isNamed) {
+    throw new StateError('INVALID_SCREEN', `Invalid CSS background color format: ${s}`);
+  }
+  return s;
+}
+
+function validateScreenBackground(color, kind) {
+  if (color === undefined || color === null || color === '') {
+    return kind === 'screen' ? '#000000' : 'transparent';
+  }
+  const validated = validateColor(color);
+  if (kind === 'screen' && isTransparentColor(validated)) {
+    throw new StateError('INVALID_SCREEN', 'Transparent background is not supported on screens');
+  }
+  return validated;
+}
+
 function toScreenView(doc) {
   return {
     id: doc.id,
@@ -127,6 +162,7 @@ function toScreenView(doc) {
     members: doc.members ?? null,
     name: doc.name,
     orientation: doc.orientation,
+    background: doc.background ?? ((doc.kind ?? 'screen') === 'screen' ? '#000000' : 'transparent'),
     width: doc.width ?? null,
     height: doc.height ?? null,
     defaultImageSeconds: doc.defaultImageSeconds,
@@ -279,11 +315,13 @@ function validateScreenCreate(input) {
   const power = kind === 'screen' && input.power !== undefined ? validatePower(input.power) : null;
   const embed = kind === 'screen' ? null : validateEmbed(input.embed);
   const members = kind === 'aggregate' ? validateMembers(input.members ?? [], input.id) : null;
+  const background = validateScreenBackground(input.background, kind);
 
   const doc = {
     id: input.id,
     name: input.name,
     orientation,
+    background,
     width,
     height,
     defaultImageSeconds,
@@ -345,6 +383,9 @@ function applyScreenPatch(doc, patch) {
   if (patch.power !== undefined) {
     if (!isScreenDoc(doc)) throw new StateError('INVALID_SCREEN', 'Views have no power settings');
     doc.power = validatePower(patch.power);
+  }
+  if (patch.background !== undefined) {
+    doc.background = validateScreenBackground(patch.background, doc.kind ?? 'screen');
   }
 }
 
@@ -556,6 +597,7 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
         title,
         pushId,
         canvaDesignId: item.canvaDesignId ?? item.designId ?? null,
+        background: null,
         addedAt,
         enabled,
       }));
@@ -604,6 +646,24 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
         throw new StateError('ENTRY_NOT_FOUND', `Unknown entry: ${entryId}`);
       }
       entry.title = title.trim();
+    });
+  }
+
+  async function setEntryBackground(screenId, entryId, background) {
+    return mutateScreen(screenId, (doc) => {
+      const entry = doc.entries.find((e) => e.entryId === entryId);
+      if (!entry) {
+        throw new StateError('ENTRY_NOT_FOUND', `Unknown entry: ${entryId}`);
+      }
+      if (background === null || background === undefined || background === '') {
+        entry.background = null;
+        return;
+      }
+      const validated = validateColor(background);
+      if ((doc.kind ?? 'screen') === 'screen' && isTransparentColor(validated)) {
+        throw new StateError('INVALID_SCREEN', 'Transparent background is not supported on screens');
+      }
+      entry.background = validated;
     });
   }
 
@@ -764,6 +824,7 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
       version: effectiveVersion(doc.version, snap.crossed),
       nextChangeAt: snap.nextChangeAt,
       orientation: doc.orientation,
+      background: doc.background ?? '#000000',
       entries: snap.entries,
     };
   }
@@ -959,6 +1020,7 @@ export function createState(storage, { now = () => new Date(), idGen } = {}) {
     removeEntry,
     reorderEntries,
     setEntryTitle,
+    setEntryBackground,
     setEntrySeconds,
     setEntryText,
     setEntryEnabled,

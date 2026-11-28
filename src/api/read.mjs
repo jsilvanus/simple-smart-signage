@@ -165,6 +165,7 @@ export function registerReadRoutes(router, ctx) {
         url: router.url(`/media/${e.mediaId}.${ext}`),
         sha256: e.mediaId,
         seconds: e.seconds,
+        background: e.background ?? null,
       };
     });
 
@@ -177,6 +178,7 @@ export function registerReadRoutes(router, ctx) {
         // ISO time of the next entry going live or expiring (null when nothing is scheduled). Players re-sync then.
         nextChangeAt: playlist.nextChangeAt,
         orientation: playlist.orientation,
+        background: playlist.background ?? '#000000',
         // Server clock (ms). Players use it to find the shared position in the cycle (see docs/playback-sync.md).
         serverTime: Date.now(),
         entries,

@@ -156,9 +156,14 @@ const els = {
   screenHeight: document.getElementById('screen-height'),
   screenDefaultSeconds: document.getElementById('screen-default-seconds'),
   screenMaxVideo: document.getElementById('screen-max-video'),
+  screenBackground: document.getElementById('screen-background'),
+  screenBackgroundPicker: document.getElementById('screen-background-picker'),
+  screenBackgroundReset: document.getElementById('screen-background-reset'),
+  screenBackgroundHint: document.getElementById('screen-background-hint'),
   embedFieldset: document.getElementById('embed-fieldset'),
   embedType: document.getElementById('embed-type'),
   embedFit: document.getElementById('embed-fit'),
+  embedAspectField: document.getElementById('embed-aspect-field'),
   embedAspect: document.getElementById('embed-aspect'),
   embedDots: document.getElementById('embed-dots'),
   embedFitContent: document.getElementById('embed-fit-content'),
@@ -396,7 +401,7 @@ function renderDetail() {
   const maxVid = screen.maxVideoSeconds ? `max video ${screen.maxVideoSeconds}s` : 'no video limit';
   els.detailMeta.textContent = `${kind} · ${screen.orientation} · ${dims} · default image ${screen.defaultImageSeconds}s · ${maxVid}`;
   els.previewLink.href = previewUrl(base, screen.id, kind);
-  els.previewLink.textContent = isViewLike ? 'Preview view ↗' : 'Preview screen ↗';
+  els.previewLink.textContent = 'Preview \u2197';
   els.playlistVersion.textContent = `v${screen.playlistVersion ?? 0}`;
 
   if (els.embedBtn) {
@@ -1029,6 +1034,87 @@ function renderEntries(screen) {
       sections.push(entrySection('Text', textForm));
     }
 
+    // Appearance: background color (inherits playlist default)
+    const isViewScreen = screen.kind === 'view' || screen.kind === 'aggregate';
+    const defaultBg = screen.background ?? (isViewScreen ? 'transparent' : '#000000');
+    const bgForm = document.createElement('form');
+    bgForm.className = 'entry-bg-form';
+    const bgInput = document.createElement('input');
+    bgInput.type = 'text';
+    bgInput.className = 'entry-bg-input';
+    bgInput.value = entry.background ?? '';
+    bgInput.placeholder = `Inherit (${defaultBg})`;
+    bgInput.setAttribute('aria-label', `Background color for ${title}`);
+    const bgPicker = document.createElement('input');
+    bgPicker.type = 'color';
+    bgPicker.className = 'entry-bg-picker';
+    const initPickerVal = (entry.background && entry.background.startsWith('#') && entry.background.length === 7)
+      ? entry.background
+      : (defaultBg.startsWith('#') && defaultBg.length === 7 ? defaultBg : '#000000');
+    bgPicker.value = initPickerVal;
+    bgPicker.title = 'Pick color';
+    bgPicker.addEventListener('input', () => {
+      bgInput.value = bgPicker.value;
+    });
+    const saveBgBtn = document.createElement('button');
+    saveBgBtn.type = 'submit';
+    saveBgBtn.className = 'btn btn-sm';
+    saveBgBtn.textContent = 'Save color';
+    saveBgBtn.disabled = state.busy;
+    bgForm.append(bgInput, bgPicker, saveBgBtn);
+
+    if (entry.background) {
+      const resetBgBtn = document.createElement('button');
+      resetBgBtn.type = 'button';
+      resetBgBtn.className = 'btn btn-sm';
+      resetBgBtn.textContent = 'Reset to inherit';
+      resetBgBtn.disabled = state.busy;
+      resetBgBtn.addEventListener('click', async () => {
+        setError('');
+        setStatus('');
+        state.busy = true;
+        render();
+        try {
+          await apiFetch(`/admin/screens/${encodeURIComponent(screen.id)}/entries/${encodeURIComponent(entry.entryId)}`, {
+            method: 'PATCH',
+            body: { background: null },
+          });
+          await loadScreens();
+          setStatus('Entry background reset to playlist default.');
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          state.busy = false;
+          render();
+        }
+      });
+      bgForm.append(resetBgBtn);
+    }
+
+    bgForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const val = bgInput.value.trim();
+      if (val === (entry.background ?? '')) return;
+      setError('');
+      setStatus('');
+      state.busy = true;
+      render();
+      try {
+        await apiFetch(`/admin/screens/${encodeURIComponent(screen.id)}/entries/${encodeURIComponent(entry.entryId)}`, {
+          method: 'PATCH',
+          body: { background: val || null },
+        });
+        await loadScreens();
+        setStatus('Entry background color updated.');
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        state.busy = false;
+        render();
+      }
+    });
+    sections.push(entrySection('Appearance', bgForm));
+
     // 6. Order and removal: Up, Down, and Delete (single unified removal button)
     const upBtn = entryButton('\u2191 Up', 'btn btn-sm', () => handleReorder(screen.id, entries, index, -1), index === 0 || state.busy);
     upBtn.setAttribute('aria-label', `Move ${title} up`);
@@ -1293,11 +1379,29 @@ function confirmAction({ title, message, okLabel = 'Delete' }) {
   });
 }
 
+function updateFitContentState() {
+  const fit = Boolean(els.embedFitContent?.checked);
+  if (els.embedAspect) {
+    els.embedAspect.disabled = fit;
+  }
+  if (els.embedAspectField) {
+    els.embedAspectField.classList.toggle('is-disabled', fit);
+  }
+}
+
 function syncKindFields(kind) {
   const isViewLike = kind === 'view' || kind === 'aggregate';
   if (els.embedFieldset) els.embedFieldset.hidden = !isViewLike;
   if (els.powerFieldset) els.powerFieldset.hidden = isViewLike;
   if (els.aggregateMembersField) els.aggregateMembersField.hidden = kind !== 'aggregate';
+  if (els.screenBackgroundHint) {
+    els.screenBackgroundHint.textContent = isViewLike
+      ? 'Default is transparent. Accepts hex, rgb, or color names.'
+      : 'Default is black (#000000). Transparent is not allowed on screens.';
+  }
+  if (els.screenBackground) {
+    els.screenBackground.placeholder = isViewLike ? 'transparent' : '#000000';
+  }
 }
 
 function openScreenDialog(screen = null) {
@@ -1307,6 +1411,7 @@ function openScreenDialog(screen = null) {
 
   if (screen) {
     const kind = screen.kind ?? 'screen';
+    const isViewLike = kind === 'view' || kind === 'aggregate';
     if (els.screenKind) {
       els.screenKind.value = kind;
       els.screenKind.disabled = true;
@@ -1322,6 +1427,11 @@ function openScreenDialog(screen = null) {
     els.screenHeight.value = screen.height ?? '';
     els.screenDefaultSeconds.value = screen.defaultImageSeconds ?? 10;
     els.screenMaxVideo.value = screen.maxVideoSeconds ?? '';
+    const bgVal = screen.background ?? (isViewLike ? 'transparent' : '#000000');
+    if (els.screenBackground) els.screenBackground.value = bgVal;
+    if (els.screenBackgroundPicker) {
+      els.screenBackgroundPicker.value = (bgVal && bgVal.startsWith('#') && bgVal.length === 7) ? bgVal : '#000000';
+    }
     const emb = screen.embed ?? {};
     const embOpts = emb.options ?? {};
     if (els.embedType) els.embedType.value = emb.type ?? 'carousel';
@@ -1332,6 +1442,7 @@ function openScreenDialog(screen = null) {
     if (els.embedAutoplay) els.embedAutoplay.checked = embOpts.autoplay !== false;
     if (els.embedOrigins) els.embedOrigins.value = (emb.allowedOrigins ?? []).join('\n');
     if (els.embedMembers) els.embedMembers.value = (screen.members ?? []).join(', ');
+    updateFitContentState();
     const p = screen.power ?? {};
     els.screenPowerDriver.value = p.driver ?? 'none';
     els.screenPowerLanId.value = p.lanId ?? '';
@@ -1352,12 +1463,15 @@ function openScreenDialog(screen = null) {
     els.screenForm.reset();
     els.screenOrientation.value = 'landscape';
     els.screenDefaultSeconds.value = '10';
+    if (els.screenBackground) els.screenBackground.value = '#000000';
+    if (els.screenBackgroundPicker) els.screenBackgroundPicker.value = '#000000';
     if (els.embedType) els.embedType.value = 'carousel';
     if (els.embedFit) els.embedFit.value = 'contain';
     if (els.embedAspect) els.embedAspect.value = '16:9';
     if (els.embedDots) els.embedDots.checked = true;
     if (els.embedFitContent) els.embedFitContent.checked = false;
     if (els.embedAutoplay) els.embedAutoplay.checked = true;
+    updateFitContentState();
     els.screenPowerDriver.value = 'none';
   }
 
@@ -1573,6 +1687,20 @@ if (els.motionToggleBtn) {
   });
 }
 
+els.embedFitContent?.addEventListener('change', updateFitContentState);
+els.screenBackgroundPicker?.addEventListener('input', () => {
+  if (els.screenBackground) els.screenBackground.value = els.screenBackgroundPicker.value;
+});
+els.screenBackgroundReset?.addEventListener('click', () => {
+  const kind = els.screenKind?.value ?? 'screen';
+  const isViewLike = kind === 'view' || kind === 'aggregate';
+  if (els.screenBackground) els.screenBackground.value = isViewLike ? 'transparent' : '#000000';
+  if (els.screenBackgroundPicker && !isViewLike) els.screenBackgroundPicker.value = '#000000';
+});
+els.screenKind?.addEventListener('change', () => {
+  syncKindFields(els.screenKind.value);
+});
+
 els.powerOverrideGroup.addEventListener('click', async (e) => {
   const btn = e.target.closest('[data-power-override]');
   if (!btn) return;
@@ -1640,6 +1768,7 @@ els.screenForm.addEventListener('submit', async (e) => {
         height: els.screenHeight.value,
         defaultImageSeconds: els.screenDefaultSeconds.value,
         maxVideoSeconds: els.screenMaxVideo.value,
+        background: els.screenBackground?.value,
         embedType: els.embedType?.value,
         embedFit: els.embedFit?.value,
         embedAspect: els.embedAspect?.value,

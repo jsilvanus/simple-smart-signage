@@ -69,6 +69,15 @@ export function registerAdminUiRoutes(router, _ctx = {}) {
     res.end();
   });
 
+  router.get('/favicon.ico', async (req, res) => {
+    try {
+      const data = await readAdminAsset('sissi.svg');
+      sendStatic(req, res, data, 'image/svg+xml; charset=utf-8');
+    } catch {
+      throw new HttpError('NOT_FOUND', 'Not found');
+    }
+  });
+
   router.get('/admin', serveIndex);
   router.get('/admin/', serveIndex);
 

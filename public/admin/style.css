@@ -78,6 +78,24 @@ select:user-invalid {
   gap: 1rem;
 }
 
+.auth-header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.auth-logo {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  display: block;
+}
+
+.auth-header h1 {
+  margin: 0;
+}
+
 /* Topbar */
 .topbar {
   background: var(--surface);
@@ -90,8 +108,23 @@ select:user-invalid {
   flex-wrap: wrap;
 }
 
+.topbar-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.topbar-logo {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+  display: block;
+}
+
 .topbar h1 {
   font-size: 1.2rem;
+  margin: 0;
 }
 
 .topbar-actions {

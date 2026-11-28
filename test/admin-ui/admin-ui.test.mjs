@@ -70,6 +70,15 @@ test('static assets under /admin/* serve with 200, proper mime, no-cache, and re
     assert.equal(css.headers.get('content-type'), 'text/css; charset=utf-8');
     assert.equal(css.headers.get('cache-control'), 'no-cache');
 
+    const svg = await http(srv.base, '/signage/admin/sissi.svg');
+    assert.equal(svg.status, 200);
+    assert.equal(svg.headers.get('content-type'), 'image/svg+xml; charset=utf-8');
+    assert.equal(svg.headers.get('cache-control'), 'no-cache');
+
+    const favicon = await http(srv.base, '/signage/favicon.ico');
+    assert.equal(favicon.status, 200);
+    assert.equal(favicon.headers.get('content-type'), 'image/svg+xml; charset=utf-8');
+
     const missing = await http(srv.base, '/signage/admin/does-not-exist.js');
     assert.equal(missing.status, 404);
 

@@ -5,13 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <base href="/admin/">
   <title>SiSSi Admin</title>
+  <link rel="icon" type="image/svg+xml" href="sissi.svg">
   <link rel="stylesheet" href="style.css">
   <script type="module" src="app.js"></script>
 </head>
 <body>
   <div id="login-view" class="auth-shell" hidden>
     <main class="auth-card">
-      <h1>SiSSi Admin</h1>
+      <div class="auth-header">
+        <img class="auth-logo" src="sissi.svg" alt="SiSSi logo" width="44" height="44">
+        <h1>SiSSi Admin</h1>
+      </div>
       <p class="muted">Sign in to manage signage screens and playlists.</p>
       <div class="auth-methods">
         <form id="login-form" novalidate>
@@ -38,6 +42,7 @@
   <div id="app-view" class="app-shell" hidden>
     <header class="topbar">
       <div class="topbar-title">
+        <img class="topbar-logo" src="sissi.svg" alt="SiSSi" width="32" height="32">
         <h1>SiSSi Admin</h1>
       </div>
       <div class="topbar-actions">

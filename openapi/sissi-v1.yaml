@@ -416,6 +416,8 @@ components:
                 fit: { type: string, enum: [contain, cover] }
                 aspect: { type: string, pattern: '^[1-9]\\d?:[1-9]\\d?$' }
                 dots: { type: boolean }
+                fitContent: { type: boolean }
+                autoplay: { type: boolean }
             allowedOrigins:
               type: array
               items: { type: string, format: uri }
@@ -564,6 +566,8 @@ components:
         playlistVersion: { type: integer, nullable: true }
  }
                 dots: { type: boolean }
+                fitContent: { type: boolean }
+                autoplay: { type: boolean }
             allowedOrigins: { type: array, items: { type: string, format: uri } }
     ScreenInput:
       type: object

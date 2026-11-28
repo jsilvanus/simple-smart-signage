@@ -131,6 +131,8 @@ const els = {
   embedFit: document.getElementById('embed-fit'),
   embedAspect: document.getElementById('embed-aspect'),
   embedDots: document.getElementById('embed-dots'),
+  embedFitContent: document.getElementById('embed-fit-content'),
+  embedAutoplay: document.getElementById('embed-autoplay'),
   embedOrigins: document.getElementById('embed-origins'),
   aggregateMembersField: document.getElementById('aggregate-members-field'),
   embedMembers: document.getElementById('embed-members'),
@@ -1098,6 +1100,8 @@ function openScreenDialog(screen = null) {
     if (els.embedFit) els.embedFit.value = embOpts.fit ?? 'contain';
     if (els.embedAspect) els.embedAspect.value = embOpts.aspect ?? '16:9';
     if (els.embedDots) els.embedDots.checked = embOpts.dots !== false;
+    if (els.embedFitContent) els.embedFitContent.checked = embOpts.fitContent === true;
+    if (els.embedAutoplay) els.embedAutoplay.checked = embOpts.autoplay !== false;
     if (els.embedOrigins) els.embedOrigins.value = (emb.allowedOrigins ?? []).join('\n');
     if (els.embedMembers) els.embedMembers.value = (screen.members ?? []).join(', ');
     const p = screen.power ?? {};
@@ -1124,6 +1128,8 @@ function openScreenDialog(screen = null) {
     if (els.embedFit) els.embedFit.value = 'contain';
     if (els.embedAspect) els.embedAspect.value = '16:9';
     if (els.embedDots) els.embedDots.checked = true;
+    if (els.embedFitContent) els.embedFitContent.checked = false;
+    if (els.embedAutoplay) els.embedAutoplay.checked = true;
     els.screenPowerDriver.value = 'none';
   }
 
@@ -1378,6 +1384,8 @@ els.screenForm.addEventListener('submit', async (e) => {
         embedFit: els.embedFit?.value,
         embedAspect: els.embedAspect?.value,
         embedDots: els.embedDots?.checked,
+        embedFitContent: els.embedFitContent?.checked,
+        embedAutoplay: els.embedAutoplay?.checked,
         embedOrigins: els.embedOrigins?.value,
         members: els.embedMembers?.value,
         powerDriver: els.screenPowerDriver.value,

@@ -93,6 +93,8 @@ export function buildScreenPayload(values, { isCreate = false } = {}) {
         fit: values.embedFit === 'cover' ? 'cover' : 'contain',
         aspect: String(values.embedAspect ?? '16:9').trim() || '16:9',
         dots: values.embedDots !== false,
+        fitContent: values.embedFitContent === true,
+        autoplay: values.embedAutoplay !== false,
       },
       allowedOrigins,
     };

@@ -288,7 +288,7 @@ test('GET /api/v1/screens?kind=view lists only views and exposes embed aspect se
     assert.equal(res.json.screens[0].id, 'aikuistyo');
     assert.deepEqual(res.json.screens[0].embed, {
       type: 'carousel',
-      options: { fit: 'contain', aspect: '4:3', dots: true },
+      options: { fit: 'contain', aspect: '4:3', dots: true, fitContent: false, autoplay: true },
       allowedOrigins: ['https://church.example'],
     });
   } finally {

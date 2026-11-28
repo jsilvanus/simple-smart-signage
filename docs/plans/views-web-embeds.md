@@ -44,13 +44,13 @@ A view has one `embed.type`, chosen in the admin page; the renderer is a small m
 
 | Type | Behaviour | v1 |
 |---|---|---|
-| `carousel` | Slides in order, entry seconds, arrows and dots, swipe, pauses on hover/focus, respects `prefers-reduced-motion` (then no autoplay). | yes |
-| `single` | Shows the first enabled entry only (a banner or "this week's poster"). | yes |
+| `carousel` | Slides in order. User-browseable (round arrow buttons, dots, swipe). Optional autoplay (`embed.options.autoplay`, entry seconds, pauses on hover/focus, respects `prefers-reduced-motion`). | yes |
+| `single` | Rotates through the enabled entries automatically (entry seconds, videos advance when they end), with no buttons, dots or swipe. | yes |
 | `gallery` | Grid of thumbnails, click opens a larger view. | yes |
 | `cards` | Entries with title and text (needs a text entry kind). | later |
 | `list` | News-like list, newest first. | later |
 
-Options per type (aspect ratio, fit contain/cover, show dots, alt text source) live in `embed.options`. Entry `alt` text becomes a field on push (Canva page title is the default) so embeds are accessible.
+Options per type (aspect ratio, fit contain/cover, show dots, fit to content, alt text source) live in `embed.options`. Entry `alt` text becomes a field on push (Canva page title is the default) so embeds are accessible.
 
 ## 4. Data model and API
 
